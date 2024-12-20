@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 includes:
-  - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.2.2/tasks/lint.yaml
+  - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.6.1/tasks/lint.yaml
 
 tasks:
   # build tasks
