@@ -28,3 +28,4 @@ kubernetesSandbox:
   enableSecurityExceptions: false
 
   additionalNetworkAllow: []
+  
