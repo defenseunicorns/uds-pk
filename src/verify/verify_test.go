@@ -66,7 +66,7 @@ components:
 			t.Fatalf("failed to write test YAML file: %v", err)
 		}
 
-		got, _ := getNamespaceFromZarfYaml(zarfYamlPath)
+		got, _ := getSingleYamlValue(zarfYamlPath, namespacePath)
 
 		require.Equal(t, tt.want, got, fmt.Sprintf("Expected namespace [%s] but got [%s].", tt.want, got))
 	}

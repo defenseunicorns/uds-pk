@@ -5,7 +5,6 @@ package verify
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,33 +13,40 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
+const namespacePath = "$.components[0].charts[0].namespace"
+
 func VerifyBadge(baseDir string) error {
 	fmt.Printf("Verify command called. packageDir=[%s]\n", baseDir)
 
-	namespace, err := readNamespace(baseDir)
+	commonZarfPath := filepath.Join(baseDir, "common", "zarf.yaml")
+	rootZarfPath := filepath.Join(baseDir, "zarf.yaml")
+
+	packageName, err := getSingleYamlValue(rootZarfPath, "$.metadata.name")
+
+	fmt.Printf("  ℹ️  Package Name: %s\n", packageName)
 
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Found namespace %s\n", namespace)
+	namespace, err := readNamespace(commonZarfPath, rootZarfPath)
 
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("  ℹ️  Namespace: %s\n", namespace)
 	return nil
 }
 
-func readNamespace(baseDir string) (string, error) {
-	commonZarfPath := filepath.Join(baseDir, "common", "zarf.yaml")
-	rootZarfPath := filepath.Join(baseDir, "zarf.yaml")
-
-	var path string
+func readNamespace(commonZarfPath string, rootZarfPath string) (string, error) {
+	namespacePath := "$.components[0].charts[0].namespace"
 
 	if fileExists(commonZarfPath) {
-		path = commonZarfPath
+		return getSingleYamlValue(commonZarfPath, namespacePath)
 	} else {
-		path = rootZarfPath
+		return getSingleYamlValue(rootZarfPath, namespacePath)
 	}
-
-	return getNamespaceFromZarfYaml(path)
 }
 
 func fileExists(path string) bool {
@@ -51,45 +57,24 @@ func fileExists(path string) bool {
 	return !info.IsDir()
 }
 
-func getNamespaceFromZarfYaml(filePath string) (string, error) {
+func getSingleYamlValue(filePath string, yamlPath string) (string, error) {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		log.Fatalf("Failed to read file %s: %v", filePath, err)
 	}
 
-	pathQuery, err := yaml.PathString("$.components[*].charts[*].namespace")
+	pathQuery, err := yaml.PathString(yamlPath)
 	if err != nil {
 		log.Fatalf("Invalid path query: %v", err)
 		return "", err
 	}
 
-	// Use the path query to extract namespaces, wrapping data in bytes.NewReader
-	var rawNamespaces []interface{}
-	err = pathQuery.Read(bytes.NewReader(data), &rawNamespaces)
+	var value string
+	err = pathQuery.Read(bytes.NewReader(data), &value)
 	if err != nil {
-		log.Fatalf("Failed to extract namespaces from YAML file %s: %v", filePath, err)
+		log.Fatalf("Failed to extract value from YAML file: %v", err)
 		return "", err
 	}
 
-	// Find and return the first namespace
-	for _, raw := range rawNamespaces {
-		switch v := raw.(type) {
-		case string:
-			// Return the first string namespace
-			return v, nil
-		case []interface{}:
-			// If it's a nested slice, look for the first string within it
-			for _, nested := range v {
-				if ns, ok := nested.(string); ok {
-					return ns, nil
-				}
-			}
-		default:
-			log.Printf("Skipping non-string namespace: %v", raw)
-		}
-	}
-
-	// Return an empty string if no valid namespace is found
-	log.Println("No valid namespace found")
-	return "", errors.New("no valid namespace found")
+	return value, nil
 }
