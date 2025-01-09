@@ -4,25 +4,28 @@
 package cmd
 
 import (
-	"fmt"
+	badgeVerify "github.com/defenseunicorns/uds-pk/src/verify"
+	"github.com/zarf-dev/zarf/src/pkg/message"
 
 	"github.com/spf13/cobra"
 )
 
-var chartPath string
-var groupName string
-var packageDir string
+var baseDir string
 
 // checkCmd represents the check command
 var verifyCommand = &cobra.Command{
 	Use:   "verify",
 	Short: "Run Made for UDS badge verification",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println("Verify command called.")
-		return nil
+		err := badgeVerify.VerifyBadge(baseDir)
+		if err != nil {
+			message.WarnErr(err, "Failed to run badge verification.")
+		}
+		return err
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(verifyCommand)
+	verifyCommand.PersistentFlags().StringVarP(&baseDir, "dir", "d", ".", "Path to the root directory of the package")
 }

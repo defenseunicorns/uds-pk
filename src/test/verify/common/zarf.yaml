@@ -1,0 +1,45 @@
+kind: ZarfPackageConfig
+metadata:
+  name: archivista-common
+  description: "UDS Archivista Common Package"
+
+components:
+  - name: archivista
+    required: true
+    charts:
+      - name: uds-archivista-config
+        namespace: archivista
+        version: 0.1.0
+        localPath: ../chart
+        valuesFiles:
+          - ../values/config-values.yaml
+      - name: archivista
+        namespace: asdf
+        url: https://github.com/in-toto/archivista.git
+        gitPath: chart
+        version: v0.8.0
+        valuesFiles:
+          - ../values/common-values.yaml
+    actions:
+      onDeploy:
+        after:
+          - description: Validate Archivista Package
+            maxTotalSeconds: 300
+            wait:
+              cluster:
+                kind: packages.uds.dev
+                name: archivista
+                namespace: archivista
+                condition: "'{.status.phase}'=Ready"
+          - cmd: ./zarf tools kubectl -n archivista rollout restart deployment
+            description: Restart Archivista Deployment so pods cycle on upgrades
+          - cmd: ./zarf tools kubectl -n archivista rollout status deploy
+            description: Wait for Rollout to complete before continuing
+          - description: Archivista to be Healthy
+            maxTotalSeconds: 180
+            wait:
+              cluster:
+                kind: pod
+                name: app.kubernetes.io/name=archivista
+                namespace: archivista
+                condition: Ready

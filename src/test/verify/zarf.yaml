@@ -1,0 +1,46 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/defenseunicorns/zarf/main/zarf.schema.json
+kind: ZarfPackageConfig
+metadata:
+  name: archivista
+  description: "A deployment of Archivista, an application for storing in-toto attestations."
+  version: "dev"
+
+variables:
+  - name: DB_PASSWORD
+    description: "Database Password for Archivista"
+  - name: ACCESS_KEY
+    description: "Access Key for S3 compatible storage"
+  - name: SECRET_KEY
+    description: "Secret Key for S3 compatible storage"
+
+components:
+  - name: archivista
+    required: true
+    description: "Deploy Archivista"
+    import:
+      path: common
+    only:
+      flavor: upstream
+    charts:
+      - name: archivista
+        valuesFiles:
+          - values/upstream-values.yaml
+    images:
+      - ghcr.io/in-toto/archivista:0.8.0
+
+  - name: archivista
+    required: true
+    description: "Deploy Archivista"
+    import:
+      path: common
+    only:
+      flavor: unicorn
+    charts:
+      - name: archivista
+        valuesFiles:
+          - values/unicorn-values.yaml
+    images:
+      - ghcr.io/in-toto/archivista:0.8.0
