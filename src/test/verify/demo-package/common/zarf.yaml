@@ -15,7 +15,7 @@ components:
         namespace: httpd
         files:
           # local manifests are specified relative to the `zarf.yaml` that uses them:
-          - httpd-deployment.yaml    
+          - httpd-deployment.yaml
     charts:
       - name: uds-mattermost-config
         namespace: mattermost
