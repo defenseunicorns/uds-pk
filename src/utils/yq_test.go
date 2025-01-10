@@ -1,7 +1,7 @@
 // Copyright 2025 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
-package verify
+package utils
 
 import (
 	"fmt"
@@ -9,63 +9,53 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/stretchr/testify/require"
 )
 
-func TestReadNamespace(t *testing.T) {
+func TestYQ(t *testing.T) {
 
 	tests := []struct {
-		yaml string
-		want string
+		yaml       string
+		expression string
+		want       string
 	}{
 		{
 			yaml: `
-kind: ZarfPackageConfig
-metadata:
-  name: my-zarf-package
-  description: "My UDS Package"
-
 components:
   - name: my-component
-    required: true
     charts:
       - name: uds-app-config
         namespace: mynamespace
       - name: app
         namespace: mynamespace
 `,
-			want: "mynamespace",
+			expression: ".components[0].charts[0].namespace",
+			want:       "mynamespace",
 		},
 		{
 			yaml: `
-kind: ZarfPackageConfig
-metadata:
-  name: my-zarf-package
-  description: "My UDS Package"
-
 components:
   - name: my-component
-    required: true
     charts:
       - name: uds-app-config
         namespace: mynamespace2
       - name: app
         namespace: mynamespace3
 `,
-			want: "mynamespace2",
+			expression: ".components[].charts[].namespace",
+			want:       "mynamespace2\nmynamespace3",
 		},
 	}
 
 	for _, tt := range tests {
 		tmpDir := t.TempDir()
-		zarfYamlPath := filepath.Join(tmpDir, "zarf.yaml")
+		yamlPath := filepath.Join(tmpDir, "test.yaml")
 
-		if err := os.WriteFile(zarfYamlPath, []byte(tt.yaml), 0644); err != nil {
+		if err := os.WriteFile(yamlPath, []byte(tt.yaml), 0644); err != nil {
 			t.Fatalf("failed to write test YAML file: %v", err)
 		}
 
-		got, _ := utils.EvaluateYqToString(namespaceExpression, zarfYamlPath)
+		got, _ := EvaluateYqToString(tt.expression, yamlPath)
 
 		require.Equal(t, tt.want, got, fmt.Sprintf("Expected namespace [%s] but got [%s].", tt.want, got))
 	}

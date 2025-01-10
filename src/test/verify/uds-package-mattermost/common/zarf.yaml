@@ -1,0 +1,53 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/defenseunicorns/zarf/main/zarf.schema.json
+kind: ZarfPackageConfig
+metadata:
+  name: mattermost-common
+  description: "UDS Mattermost Common Package"
+
+components:
+  - name: mattermost
+    required: true
+    manifests:
+      - name: simple-httpd-deployment
+        namespace: httpd
+        files:
+          # local manifests are specified relative to the `zarf.yaml` that uses them:
+          - httpd-deployment.yaml    
+    charts:
+      - name: uds-mattermost-config
+        namespace: mattermost
+        version: 0.1.0
+        localPath: ../chart
+        valuesFiles:
+          - ../values/config-values.yaml
+      - name: mattermost-enterprise-edition
+        namespace: mattermost
+        url: https://helm.mattermost.com
+        gitPath: chart
+        version: 2.6.64
+        valuesFiles:
+          - ../values/common-values.yaml
+    actions:
+      onDeploy:
+        after:
+          - description: Validate Mattermost Package
+            maxTotalSeconds: 300
+            wait:
+              cluster:
+                kind: packages.uds.dev
+                name: mattermost
+                namespace: mattermost
+                condition: "'{.status.phase}'=Ready"
+          - cmd: ./zarf tools kubectl -n mattermost rollout restart deployment
+            description: Restart Mattermost Deployment so pods cycle on upgrades
+          - cmd: ./zarf tools kubectl -n mattermost rollout status deploy
+          - description: Mattermost to be Healthy
+            wait:
+              cluster:
+                kind: Deployment
+                name: mattermost-enterprise-edition
+                namespace: mattermost
+                condition: Available
