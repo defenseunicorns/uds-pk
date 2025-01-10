@@ -1,0 +1,30 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+# yaml-language-server: $schema=./values.schema.json
+
+# which executor to use, either 'kubernetes' or 'instance'
+executor: "kubernetes"
+
+serviceAccountName: "gitlab-runner"
+
+runnerAuthToken: "###ZARF_VAR_RUNNER_AUTH_TOKEN###"
+
+pluginRegistryImage: ghcr.io/defenseunicorns/uds-package-gitlab-runner/gitlab-runner-plugins:latest
+
+additionalNetworkAllow: []
+  # - direction: Egress
+  #   selector:
+  #     app: jenkins
+  #   remoteGenerated: Anywhere
+  #   description: "Egress from to external GitLab"
+
+kubernetesSandbox:
+  namespace: "###ZARF_VAR_RUNNER_SANDBOX_NAMESPACE###"
+
+  # whether to have the Zarf Agent ignore the sandbox namespace
+  zarfIgnore: true
+
+  # whether to allow securityContext capabilities like SET_UID/SET_GID in the sandbox: https://github.com/defenseunicorns/uds-package-gitlab-runner/blob/main/docs/configuration.md#allow-setuid-and-setgid-security-capabilities
+  enableSecurityExceptions: false
+
+  additionalNetworkAllow: []

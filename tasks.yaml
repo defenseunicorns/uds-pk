@@ -5,6 +5,12 @@ includes:
   - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.2.2/tasks/lint.yaml
 
 tasks:
+  - name: default
+    description: run all the tasks
+    actions:
+      - task: e2e
+      - task: unit
+
   # build tasks
   - name: build-all
     description: build all the CLI binaries and gen checksums

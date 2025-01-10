@@ -185,3 +185,73 @@ func (e2e *UDSPKE2ETest) GetGitRevision() (string, error) {
 
 	return strings.TrimSpace(out), nil
 }
+
+// CopyDir recursively copies the contents of src to dst.
+// Both src and dst must be directories.
+// If dst does not exist, it will be created.
+// File permissions are preserved.
+func (e2e *UDSPKE2ETest) CopyDir(src string, dst string) error {
+	// Get properties of the source directory
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("failed to stat src dir %s: %w", src, err)
+	}
+	if !srcInfo.IsDir() {
+		return fmt.Errorf("source %s is not a directory", src)
+	}
+
+	// Create destination directory if it doesn't exist
+	if err := os.MkdirAll(dst, srcInfo.Mode()); err != nil {
+		return fmt.Errorf("failed to create dst dir %s: %w", dst, err)
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return fmt.Errorf("failed to read directory %s: %w", src, err)
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("failed to get info for %s: %w", srcPath, err)
+		}
+
+		if info.IsDir() {
+			// Recursively copy directories
+			if err := e2e.CopyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else {
+			// Copy files
+			if err := e2e.copyFile(srcPath, dstPath, info.Mode()); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// copyFile copies a single file from src to dst with the given file mode.
+func (e2e *UDSPKE2ETest) copyFile(src, dst string, mode os.FileMode) error {
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open src file %s: %w", src, err)
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	if err != nil {
+		return fmt.Errorf("failed to open dst file %s: %w", dst, err)
+	}
+	defer dstFile.Close()
+
+	if _, err := io.Copy(dstFile, srcFile); err != nil {
+		return fmt.Errorf("failed to copy from %s to %s: %w", src, dst, err)
+	}
+
+	return nil
+}

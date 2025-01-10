@@ -1,0 +1,104 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+# yaml-language-server: $schema=./values.schema.json
+
+domain: "###ZARF_VAR_DOMAIN###"
+
+# contents of a gitlab license, if available
+license: ""
+
+ssh:
+  enabled: false
+  port: 2222
+
+sso:
+  enabled: true
+  protocol: saml
+  secretName: gitlab-sso
+  # Note: the following settings only apply when using `saml`
+  requiredGroups: []
+  adminGroups: ["/GitLab Admin", "/UDS Core/Admin"]
+  # This will replace the current list of default scopes.
+  defaultClientScopes: []
+storage:
+  internal: true  # Set to false to use external storage
+  selector:
+    app: minio
+  namespace: minio
+  port: 9000
+  endpoint: "http://uds-minio-hl.minio.svc.cluster.local:9000"
+  createSecret:
+    enabled: "###ZARF_VAR_GENERATE_STORAGE_SECRET###"
+    accessKey: ""
+    secretKey: ""
+    bucketPrefix: "###ZARF_VAR_BUCKET_PREFIX###"
+    bucketSuffix: "###ZARF_VAR_BUCKET_SUFFIX###"
+    region: "minio"
+    # provider: aws or minio; if aws, assumed IRSA is used
+    # and annotations need to be passed to necessary service accounts in the gitlab chart
+    provider: "minio"
+    secretRef:
+      enabled: true  # Set to true to use secret reference
+      secretNamespace: "gitlab"
+      secretName: "gitlab-minio"
+      secretIDKey: "access_key"
+      secretPasswordKey: "secret_key"
+
+redis:
+  password: ""
+
+  # Set to false to use external redis
+  internal: true
+  selector:
+    app.kubernetes.io/name: valkey
+  namespace: valkey
+  port: 6379
+  sentinel:
+    enabled: false
+    port: 26379
+postgres:
+  password: ""
+
+  # Set to false to use external postgres
+  internal: true
+  selector:
+    cluster-name: pg-cluster
+  namespace: postgres
+  port: 5432
+runner:
+  internal: true
+  selector:
+    app: gitlab-runner
+  namespace: gitlab-runner
+  sandboxNamespace: gitlab-runner-sandbox
+
+# Gitaly is responsible for mirroring actions, and there are 4 valid protocols with the following ports
+# ssh: 22
+# http: 80
+# https: 443
+# git: 9418
+mirroring:
+  enabled: false
+  ports:
+    - 443
+
+# Add the exemption for the gitaly cgroups init container
+gitalyCgroupsInit:
+  enabled: false
+
+additionalNetworkAllow: []
+#    # Notice no `remoteGenerated` field here on custom internal rule
+#   - direction: Ingress
+#     selector:
+#       app: jenkins
+#     remoteNamespace: jenkins
+#     remoteSelector:
+#       app: jenkins
+#     port: 8180
+#     description: "Ingress to Jenkins"
+#   # No `remoteNamespace`, `remoteSelector`, or `port` fields on rule to `remoteGenerated`
+#   - direction: Egress
+#     selector:
+#       app: webservice
+#     remoteGenerated: Anywhere
+#     description: "Egress from Webservice"

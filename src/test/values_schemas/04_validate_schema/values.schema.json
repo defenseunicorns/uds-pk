@@ -1,0 +1,318 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "additionalNetworkAllow": {
+      "items": {
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "remoteGenerated": {
+                "not": {}
+              }
+            },
+            "required": [
+              "remoteNamespace",
+              "remoteSelector"
+            ]
+          },
+          {
+            "properties": {
+              "remoteNamespace": {
+                "not": {}
+              },
+              "remoteSelector": {
+                "not": {}
+              }
+            },
+            "required": [
+              "remoteGenerated"
+            ]
+          }
+        ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "direction": {
+            "enum": [
+              "Egress",
+              "Ingress"
+            ],
+            "type": "string"
+          },
+          "port": {
+            "type": "number"
+          },
+          "remoteGenerated": {
+            "enum": [
+              "Anywhere",
+              "CloudMetadata",
+              "IntraNamespace",
+              "KubeAPI"
+            ],
+            "type": "string"
+          },
+          "remoteNamespace": {
+            "type": "string"
+          },
+          "remoteSelector": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "selector": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "direction",
+          "selector"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "domain": {
+      "type": "string"
+    },
+    "gitalyCgroupsInit": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "license": {
+      "type": "string"
+    },
+    "mirroring": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "ports": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "postgres": {
+      "additionalProperties": false,
+      "properties": {
+        "internal": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "port": {
+          "type": "number"
+        },
+        "selector": {
+          "additionalProperties": false,
+          "properties": {
+            "cluster-name": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "redis": {
+      "additionalProperties": false,
+      "properties": {
+        "internal": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "port": {
+          "type": "number"
+        },
+        "selector": {
+          "additionalProperties": false,
+          "properties": {
+            "app.kubernetes.io/name": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "sentinel": {
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "port": {
+              "type": "number"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "runner": {
+      "additionalProperties": false,
+      "properties": {
+        "internal": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "sandboxNamespace": {
+          "type": "string"
+        },
+        "selector": {
+          "additionalProperties": false,
+          "properties": {
+            "app": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "ssh": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "port": {
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "sso": {
+      "additionalProperties": false,
+      "properties": {
+        "adminGroups": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "defaultClientScopes": {
+          "items": {},
+          "type": "array"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "requiredGroups": {
+          "items": {},
+          "type": "array"
+        },
+        "secretName": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "storage": {
+      "additionalProperties": false,
+      "properties": {
+        "createSecret": {
+          "additionalProperties": false,
+          "properties": {
+            "accessKey": {
+              "type": "string"
+            },
+            "bucketPrefix": {
+              "type": "string"
+            },
+            "bucketSuffix": {
+              "type": "string"
+            },
+            "enabled": {
+              "type": "string"
+            },
+            "provider": {
+              "type": "string"
+            },
+            "region": {
+              "type": "string"
+            },
+            "secretKey": {
+              "type": "string"
+            },
+            "secretRef": {
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "secretIDKey": {
+                  "type": "string"
+                },
+                "secretName": {
+                  "type": "string"
+                },
+                "secretNamespace": {
+                  "type": "string"
+                },
+                "secretPasswordKey": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "internal": {
+          "type": "boolean"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "port": {
+          "type": "number"
+        },
+        "selector": {
+          "additionalProperties": false,
+          "properties": {
+            "app": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "type": "object"
+}
