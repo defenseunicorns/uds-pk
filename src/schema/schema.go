@@ -245,7 +245,7 @@ func LoadCustomSchemas() (map[string]interface{}, error) {
 
 	entries, err := schemasFS.ReadDir("schemas")
 	if err != nil {
-		return nil, fmt.Errorf("failed to read schemas directory: %w", err)
+		return nil, fmt.Errorf("failed to read internal schemas: %w", err)
 	}
 
 	for _, entry := range entries {
