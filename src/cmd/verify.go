@@ -11,15 +11,17 @@ import (
 )
 
 var baseDir string
+var failOnError bool
 
 // checkCmd represents the check command
 var verifyCommand = &cobra.Command{
 	Use:   "verify",
 	Short: "Run Made for UDS badge verification",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := badgeVerify.VerifyBadge(baseDir)
+		err := badgeVerify.VerifyBadge(baseDir, failOnError)
 		if err != nil {
-			message.WarnErr(err, "Failed to run badge verification.")
+			cmd.SilenceUsage = true
+			message.WarnErr(err, "Errors occurred while running badge verifications.")
 		}
 		return err
 	},
@@ -28,4 +30,5 @@ var verifyCommand = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(verifyCommand)
 	verifyCommand.PersistentFlags().StringVarP(&baseDir, "dir", "d", ".", "Path to the root directory of the package")
+	verifyCommand.Flags().BoolVarP(&failOnError, "fail-on-error", "f", false, "Return a non-zero return code when errors are found")
 }

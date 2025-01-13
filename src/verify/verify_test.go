@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestReadNamespace(t *testing.T) {
+func TestReadNamespace(t *testing.T) { //TODO (@ewyles) -- rework this to test more specific validations on sample files
 
 	tests := []struct {
 		yaml string
@@ -65,7 +65,7 @@ components:
 			t.Fatalf("failed to write test YAML file: %v", err)
 		}
 
-		got, _ := utils.EvaluateYqToString(namespaceExpression, zarfYamlPath)
+		got, _ := utils.EvaluateYqToString(NamespaceExpression, zarfYamlPath)
 
 		require.Equal(t, tt.want, got, fmt.Sprintf("Expected namespace [%s] but got [%s].", tt.want, got))
 	}
