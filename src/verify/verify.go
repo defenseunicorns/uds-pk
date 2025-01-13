@@ -33,7 +33,7 @@ func VerifyBadge(baseDir string, failOnError bool) error {
 	var allResults CheckResults
 	var results CheckResults
 
-	commonZarfPath := filepath.Join(baseDir, "common", "zarf.yaml")
+	commonZarfPath := filepath.Join(baseDir, "common/zarf.yaml")
 	rootZarfPath := filepath.Join(baseDir, "zarf.yaml")
 
 	commonZarfYamlExists := fileExists(commonZarfPath)
@@ -58,11 +58,16 @@ func VerifyBadge(baseDir string, failOnError bool) error {
 	message.Infof("Package Name: %s\n", packageName)
 	message.Infof("Namespace: %s\n", namespace)
 
+	// manifests should not be found in common/zarf.yaml or zarf.yaml
 	if commonZarfYamlExists {
 		results = checkForManifests(commonZarfPath)
 		allResults.Merge(results)
 	}
 	results = checkForManifests(rootZarfPath)
+	allResults.Merge(results)
+
+	// flavors should be defined in zarf.yaml
+	results = checkForFlavors(rootZarfPath)
 	allResults.Merge(results)
 
 	if len(allResults.Warnings) > 0 {
@@ -84,7 +89,7 @@ func VerifyBadge(baseDir string, failOnError bool) error {
 func checkForManifests(zarfYamlFile string) CheckResults {
 	var results CheckResults
 
-	exists, err := manifestsExist(zarfYamlFile)
+	exists, err := atLeastOneExists(".components[] | select(.manifests != null)", zarfYamlFile)
 	if err != nil {
 		results.Errors = append(results.Errors, fmt.Sprintf("Unable to determine if manifests exist in %s", zarfYamlFile))
 	} else {
@@ -99,10 +104,28 @@ func checkForManifests(zarfYamlFile string) CheckResults {
 	return results
 }
 
-func manifestsExist(file string) (bool, error) {
-	manifests, err := utils.EvaluateYqToString(".components[] | select(.manifests != null)", file)
+func checkForFlavors(zarfYamlFile string) CheckResults {
+	var results CheckResults
+
+	exists, err := atLeastOneExists(".components[] | select(.only.flavor != null)", zarfYamlFile)
+	if err != nil {
+		results.Errors = append(results.Errors, fmt.Sprintf("Unable to determine if flavors are defined in %s", zarfYamlFile))
+	} else {
+		if exists {
+			results.Successes = append(results.Errors, fmt.Sprintf("At least one flavor defined in %s", zarfYamlFile))
+		} else {
+			results.Errors = append(results.Errors, fmt.Sprintf("No flavors defined in in %s", zarfYamlFile))
+		}
+	}
+
+	logResults(results)
+	return results
+}
+
+func atLeastOneExists(expression string, file string) (bool, error) {
+	result, err := utils.EvaluateYqToString(expression, file)
 	if err == nil {
-		return len(manifests) > 0, nil
+		return len(result) > 0, nil
 	}
 	return false, nil
 }
