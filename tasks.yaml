@@ -5,12 +5,6 @@ includes:
   - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.2.2/tasks/lint.yaml
 
 tasks:
-  - name: default
-    actions:
-      - task: build-cli-mac-apple
-      - task: unit
-      - task: e2e
-
   # build tasks
   - name: build-all
     description: build all the CLI binaries and gen checksums

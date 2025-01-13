@@ -10,26 +10,26 @@ import (
 )
 
 func TestVerifyBadgeGoodFailFalse(t *testing.T) {
-	stdout, stderr, err := e2e.UDSPK("verify-badge", "-d", "src/test/verify/good-package")
+	stdout, stderr, err := e2e.UDSPK("verify-badge", "-d", "src/test/verify/mattermost-good")
 	require.NoError(t, err, stdout, stderr)
 }
 func TestVerifyBadgeGoodFailTrue(t *testing.T) {
-	stdout, stderr, err := e2e.UDSPK("verify-badge", "-d", "src/test/verify/good-package", "-f")
+	stdout, stderr, err := e2e.UDSPK("verify-badge", "-d", "src/test/verify/mattermost-good", "-f")
 	require.NoError(t, err, stdout, stderr)
 }
 
 func TestVerifyBadgeBadFailTrue(t *testing.T) {
-	stdout, stderr, err := e2e.UDSPK("verify-badge", "-d", "src/test/verify/bad-package", "-f")
+	stdout, stderr, err := e2e.UDSPK("verify-badge", "-d", "src/test/verify/mattermost-bad", "-f")
 	require.Error(t, err, stdout, stderr)
-	require.Contains(t, stderr, "Manifests present in src/test/verify/bad-package/common/zarf.yaml")
-	require.Contains(t, stderr, "Manifests present in src/test/verify/bad-package/zarf.yaml")
-	require.Contains(t, stderr, "No flavors defined in in src/test/verify/bad-package/zarf.yaml")
+	require.Contains(t, stderr, "Manifests present in src/test/verify/mattermost-bad/common/zarf.yaml")
+	require.Contains(t, stderr, "Manifests present in src/test/verify/mattermost-bad/zarf.yaml")
+	require.Contains(t, stderr, "No flavors defined in in src/test/verify/mattermost-bad/zarf.yaml")
 }
 
 func TestVerifyBadgeBadFailFalse(t *testing.T) {
-	stdout, stderr, err := e2e.UDSPK("verify-badge", "-d", "src/test/verify/bad-package")
+	stdout, stderr, err := e2e.UDSPK("verify-badge", "-d", "src/test/verify/mattermost-bad")
 	require.NoError(t, err, stdout, stderr)
-	require.Contains(t, stderr, "Manifests present in src/test/verify/bad-package/common/zarf.yaml")
-	require.Contains(t, stderr, "Manifests present in src/test/verify/bad-package/zarf.yaml")
-	require.Contains(t, stderr, "No flavors defined in in src/test/verify/bad-package/zarf.yaml")
+	require.Contains(t, stderr, "Manifests present in src/test/verify/mattermost-bad/common/zarf.yaml")
+	require.Contains(t, stderr, "Manifests present in src/test/verify/mattermost-bad/zarf.yaml")
+	require.Contains(t, stderr, "No flavors defined in in src/test/verify/mattermost-bad/zarf.yaml")
 }
