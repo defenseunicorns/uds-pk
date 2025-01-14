@@ -60,7 +60,7 @@ components:
       - name: app
         namespace: mynamespace
 `,
-			want: wantResult{errorCount: 1, warnCount: 0, successCount: 0},
+			want: wantResult{errorCount: 0, warnCount: 1, successCount: 0},
 		},
 	}
 
@@ -77,6 +77,122 @@ components:
 		require.Equal(t, tt.want.errorCount, len(got.Errors))
 		require.Equal(t, tt.want.warnCount, len(got.Warnings))
 		require.Equal(t, tt.want.successCount, len(got.Successes))
+	}
+}
+
+func TestGetNamespaces(t *testing.T) {
+	tests := []struct {
+		commonZarfYaml string
+		rootZarfYaml   string
+		want           []string
+	}{
+		{
+			commonZarfYaml: `
+kind: ZarfPackageConfig
+metadata:
+  name: my-zarf-package
+  description: "My UDS Package"
+
+components:
+  - name: my-component
+    required: true
+    charts:
+      - name: uds-app-config
+        namespace: mynamespace1
+      - name: app
+        namespace: mynamespace2
+`,
+			rootZarfYaml: `
+kind: ZarfPackageConfig
+metadata:
+  name: my-zarf-package
+  description: "My UDS Package"
+
+components:
+  - name: my-component
+    required: true
+    charts:
+      - name: uds-app-config
+        namespace: mynamespace2
+      - name: app
+        namespace: mynamespace3
+      - name: app
+        namespace: mynamespace4
+`,
+			want: []string{"mynamespace1", "mynamespace2", "mynamespace3", "mynamespace4"},
+		},
+		{
+			commonZarfYaml: `
+kind: ZarfPackageConfig
+metadata:
+  name: my-zarf-package
+  description: "My UDS Package"
+
+components:
+  - name: my-component
+    required: true
+    charts:
+      - name: uds-app-config
+        namespace: mynamespace1
+      - name: app
+        namespace: mynamespace2
+`,
+			rootZarfYaml: `
+kind: ZarfPackageConfig
+metadata:
+  name: my-zarf-package
+  description: "My UDS Package"
+
+components:
+  - name: my-component
+    required: true
+`,
+			want: []string{"mynamespace1", "mynamespace2"},
+		},
+		{
+			commonZarfYaml: `
+kind: ZarfPackageConfig
+metadata:
+  name: my-zarf-package
+  description: "My UDS Package"
+`,
+			rootZarfYaml: `
+kind: ZarfPackageConfig
+metadata:
+  name: my-zarf-package
+  description: "My UDS Package"
+
+components:
+  - name: my-component
+    required: true
+    charts:
+      - name: uds-app-config
+        namespace: mynamespace2
+      - name: app
+        namespace: mynamespace3
+      - name: app
+        namespace: mynamespace4
+`,
+			want: []string{"mynamespace2", "mynamespace3", "mynamespace4"},
+		},
+	}
+
+	for _, tt := range tests {
+		tmpDir := t.TempDir()
+		commonZarfYamlPath := filepath.Join(tmpDir, "common-zarf.yaml")
+		rootZarfYamlPath := filepath.Join(tmpDir, "zarf.yaml")
+
+		if err := os.WriteFile(commonZarfYamlPath, []byte(tt.commonZarfYaml), 0644); err != nil {
+			t.Fatalf("failed to write test YAML file: %v", err)
+		}
+		if err := os.WriteFile(rootZarfYamlPath, []byte(tt.rootZarfYaml), 0644); err != nil {
+			t.Fatalf("failed to write test YAML file: %v", err)
+		}
+
+		got, err := getNamespaces(commonZarfYamlPath, rootZarfYamlPath)
+
+		require.Equal(t, err, nil)
+		require.Equal(t, got, tt.want)
 	}
 }
 

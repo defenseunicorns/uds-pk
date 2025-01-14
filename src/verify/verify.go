@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/zarf-dev/zarf/src/pkg/message"
@@ -29,7 +31,7 @@ func (r *CheckResults) Merge(other CheckResults) {
 	r.Successes = append(r.Successes, other.Successes...)
 }
 
-func VerifyBadge(baseDir string, failOnError bool) error {
+func VerifyBadge(baseDir string) error {
 	var allResults CheckResults
 	var results CheckResults
 
@@ -44,19 +46,15 @@ func VerifyBadge(baseDir string, failOnError bool) error {
 		return err
 	}
 
-	var namespace string
-	if commonZarfYamlExists {
-		namespace, err = utils.EvaluateYqToString(NamespaceExpression, commonZarfPath)
-	} else {
-		namespace, err = utils.EvaluateYqToString(NamespaceExpression, rootZarfPath)
-	}
-	if err != nil {
-		message.Warnf("Unable to read namespace. %s", err.Error())
+	namespaces, err := getNamespaces(commonZarfPath, rootZarfPath)
+
+	if len(namespaces) == 0 {
+		message.Warnf("No namespaces found. %s", err.Error())
 		return err
 	}
 
 	message.Infof("Package Name: %s\n", packageName)
-	message.Infof("Namespace: %s\n", namespace)
+	message.Infof("Namespaces (%d): %v\n", len(namespaces), namespaces)
 
 	// manifests should not be found in common/zarf.yaml or zarf.yaml
 	if commonZarfYamlExists {
@@ -78,12 +76,37 @@ func VerifyBadge(baseDir string, failOnError bool) error {
 	if len(allResults.Errors) > 0 {
 		message.Infof("The following errors were found:")
 		logMessages(ErrorSymbol, allResults.Errors)
-		if failOnError {
-			return fmt.Errorf("%d errors were found while performing badge verification", len(allResults.Errors))
-		}
+		return fmt.Errorf("%d errors were found while performing badge verification", len(allResults.Errors))
 	}
 
 	return nil
+}
+
+func getNamespaces(commonZarfPath, rootZarfPath string) ([]string, error) {
+	var namespaces []string
+
+	processPath := func(path string) error {
+		if fileExists(path) {
+			values, err := getSliceOfValues(".components[].charts[].namespace  | select(. != null)", path)
+			if err != nil {
+				message.Infof("Error reading namespaces from %s - %s", path, err)
+				return err
+			}
+			if len(values) > 0 {
+				namespaces = append(namespaces, values...)
+			}
+		}
+		return nil
+	}
+
+	if err := processPath(commonZarfPath); err != nil {
+		message.Infof("Continuing despite error with %s", commonZarfPath)
+	}
+	err := processPath(rootZarfPath)
+
+	namespaces = dedupe(namespaces)
+	sort.Strings(namespaces)
+	return namespaces, err
 }
 
 func checkForManifests(zarfYamlFile string) CheckResults {
@@ -94,7 +117,7 @@ func checkForManifests(zarfYamlFile string) CheckResults {
 		results.Errors = append(results.Errors, fmt.Sprintf("Unable to determine if manifests exist in %s", zarfYamlFile))
 	} else {
 		if exists {
-			results.Errors = append(results.Errors, fmt.Sprintf("Manifests present in %s", zarfYamlFile))
+			results.Warnings = append(results.Errors, fmt.Sprintf("Manifests present in %s", zarfYamlFile))
 		} else {
 			results.Successes = append(results.Errors, fmt.Sprintf("No manifests present in %s", zarfYamlFile))
 		}
@@ -130,6 +153,18 @@ func atLeastOneExists(expression string, file string) (bool, error) {
 	return false, nil
 }
 
+func getSliceOfValues(expression string, file string) ([]string, error) {
+	result, err := utils.EvaluateYqToString(expression, file)
+	if err == nil {
+		if len(result) > 0 {
+			return strings.Split(result, "\n"), nil
+		} else {
+			return nil, nil
+		}
+	}
+	return nil, err
+}
+
 func logResults(results CheckResults) {
 	logMessages(ErrorSymbol, results.Errors)
 	logMessages(WarningSymbol, results.Warnings)
@@ -140,6 +175,20 @@ func logMessages(prefix rune, messages []string) {
 	for _, m := range messages {
 		message.Infof("%c %s", prefix, m)
 	}
+}
+
+func dedupe(input []string) []string {
+	seen := make(map[string]bool)
+	result := []string{}
+
+	for _, str := range input {
+		if !seen[str] {
+			seen[str] = true
+			result = append(result, str)
+		}
+	}
+
+	return result
 }
 
 func fileExists(path string) bool {

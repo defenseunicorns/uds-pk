@@ -25,12 +25,12 @@ components:
   - name: my-component
     charts:
       - name: uds-app-config
-        namespace: mynamespace
+        namespace: mynamespace1
       - name: app
-        namespace: mynamespace
+        namespace: mynamespace2
 `,
 			expression: ".components[0].charts[0].namespace",
-			want:       "mynamespace",
+			want:       "mynamespace1",
 		},
 		{
 			yaml: `
@@ -38,12 +38,12 @@ components:
   - name: my-component
     charts:
       - name: uds-app-config
-        namespace: mynamespace2
-      - name: app
         namespace: mynamespace3
+      - name: app
+        namespace: mynamespace4
 `,
 			expression: ".components[].charts[].namespace",
-			want:       "mynamespace2\nmynamespace3",
+			want:       "mynamespace3\nmynamespace4",
 		},
 	}
 

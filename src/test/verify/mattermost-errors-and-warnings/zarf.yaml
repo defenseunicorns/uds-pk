@@ -36,7 +36,6 @@ components:
       - name: simple-httpd-deployment
         namespace: httpd
         files:
-          # local manifests are specified relative to the `zarf.yaml` that uses them:
           - httpd-deployment.yaml
     charts:
       - name: mattermost-enterprise-edition
