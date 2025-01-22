@@ -35,6 +35,12 @@ tasks:
     actions:
       - cmd: GOOS=darwin GOARCH=arm64 go build -ldflags="${BUILD_ARGS}" -o build/uds-pk-mac-apple main.go
 
+  - name: test
+    description: run all unit and e2e tests
+    actions:
+      - task: unit
+      - task: e2e
+
   - name: e2e
     description: run all e2e tests
     actions:

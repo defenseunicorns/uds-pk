@@ -1,0 +1,80 @@
+# Copyright 2024 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+# yaml-language-server: $schema=https://raw.githubusercontent.com/defenseunicorns/zarf/main/zarf.schema.json
+kind: ZarfPackageConfig
+metadata:
+  name: mattermost
+  description: "UDS Mattermost Package"
+  # x-release-please-start-version
+  version: "10.2.0-uds.1"
+  # x-release-please-end
+
+variables:
+  - name: SUBDOMAIN
+    description: "Subdomain for Mattermost"
+    default: "chat"
+  - name: DOMAIN
+    default: "uds.dev"
+  - name: ACCESS_KEY
+    description: "Access Key for S3 compatible storage"
+  - name: SECRET_KEY
+    description: "Secret Key for S3 compatible storage"
+  - name: DB_PASSWORD
+    description: "Database Password for Mattermost"
+  - name: MM_LICENSE
+    description: "License for Mattermost"
+    default: ""
+
+components:
+  - name: mattermost
+    required: true
+    description: "Deploy Mattermost"
+    import:
+      path: common
+    only:
+      flavor: upstream
+    manifests:
+      - name: simple-httpd-deployment
+        namespace: httpd
+        files:
+          - httpd-deployment.yaml
+    charts:
+      - name: mattermost-enterprise-edition
+        valuesFiles:
+          - values/upstream-values.yaml
+    images:
+      - curlimages/curl:8.11.0
+      - mattermost/mattermost-enterprise-edition:10.2.0
+
+  - name: mattermost
+    required: true
+    description: "Deploy Mattermost"
+    import:
+      path: common
+    only:
+      flavor: registry1
+      cluster:
+        architecture: amd64
+    charts:
+      - name: mattermost-enterprise-edition
+        valuesFiles:
+          - values/registry1-values.yaml
+    images:
+      - registry1.dso.mil/ironbank/redhat/ubi/ubi9-minimal:9.5
+      - registry1.dso.mil/ironbank/opensource/mattermost/mattermost:10.2.0
+
+  - name: mattermost
+    required: true
+    description: "Deploy Mattermost"
+    import:
+      path: common
+    only:
+      flavor: unicorn
+    charts:
+      - name: mattermost-enterprise-edition
+        valuesFiles:
+          - values/unicorn-values.yaml
+    images:
+      - cgr.dev/du-uds-defenseunicorns/curl-fips:8.11.0
+      - cgr.dev/du-uds-defenseunicorns/mattermost:10.2.0
