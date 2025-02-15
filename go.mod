@@ -2,14 +2,14 @@ module github.com/defenseunicorns/uds-pk
 
 go 1.23.3
 
-toolchain go1.23.6
+toolchain go1.24.0
 
 require (
 	github.com/defenseunicorns/uds-cli v0.21.0
 	github.com/go-git/go-git/v5 v5.13.2
-	github.com/goccy/go-yaml v1.15.20
+	github.com/goccy/go-yaml v1.15.23
 	github.com/google/go-github/v66 v66.0.0
-	github.com/google/go-github/v69 v69.0.0
+	github.com/google/go-github/v69 v69.1.0
 	github.com/mikefarah/yq/v4 v4.45.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
