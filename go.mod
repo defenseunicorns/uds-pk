@@ -1,20 +1,20 @@
 module github.com/defenseunicorns/uds-pk
 
-go 1.23.3
+go 1.23.6
 
-toolchain go1.23.6
+toolchain go1.24.0
 
 require (
-	github.com/defenseunicorns/uds-cli v0.21.0
+	github.com/defenseunicorns/uds-cli v0.22.0
 	github.com/go-git/go-git/v5 v5.13.2
-	github.com/goccy/go-yaml v1.15.20
+	github.com/goccy/go-yaml v1.15.23
 	github.com/google/go-github/v66 v66.0.0
-	github.com/google/go-github/v69 v69.0.0
+	github.com/google/go-github/v69 v69.2.0
 	github.com/mikefarah/yq/v4 v4.45.1
-	github.com/spf13/cobra v1.8.1
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/xanzy/go-gitlab v0.115.0
-	github.com/zarf-dev/zarf v0.48.1
+	github.com/zarf-dev/zarf v0.49.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
 
@@ -54,7 +54,7 @@ require (
 	github.com/lithammer/fuzzysearch v1.1.8 // indirect
 	github.com/magiconair/properties v1.8.9 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/otiai10/copy v1.14.1 // indirect
@@ -71,13 +71,13 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/oauth2 v0.25.0 // indirect
 	golang.org/x/sync v0.11.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
