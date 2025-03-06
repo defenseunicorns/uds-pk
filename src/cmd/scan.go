@@ -54,7 +54,7 @@ var compareCmd = &cobra.Command{
 			}
 		}
 		fmt.Println("<details>")
-		fmt.Printf("<summary>%s:%s</summary>\n\n", newScan.Metadata.Component.Name, newScan.Metadata.Component.Version)
+		fmt.Printf("<summary>%s:%s -> %s:%s</summary>\n\n", baseScan.Metadata.Component.Name, baseScan.Metadata.Component.Version, newScan.Metadata.Component.Name, newScan.Metadata.Component.Version)
 
 		fmt.Printf("New vulnerabilities: %d\n", newCount)
 		fmt.Printf("Fixed vulnerabilities: %d\n", fixedCount)
