@@ -53,8 +53,7 @@ var compareCmd = &cobra.Command{
 				fixedCount++
 			}
 		}
-		fmt.Println("<details>")
-		fmt.Printf("<summary>%s:%s -> %s:%s</summary>\n\n", baseScan.Metadata.Component.Name, baseScan.Metadata.Component.Version, newScan.Metadata.Component.Name, newScan.Metadata.Component.Version)
+		fmt.Printf("### %s:%s -> %s:%s</summary>\n\n", baseScan.Metadata.Component.Name, baseScan.Metadata.Component.Version, newScan.Metadata.Component.Name, newScan.Metadata.Component.Version)
 
 		fmt.Printf("New vulnerabilities: %d\n", newCount)
 		fmt.Printf("Fixed vulnerabilities: %d\n", fixedCount)
@@ -152,8 +151,7 @@ var compareCmd = &cobra.Command{
 		fmt.Println("<summary>Existing vulnerabilities</summary>\n")
 		existingVulnTable.Render()
 		fmt.Println("\n</details>")
-
-		fmt.Println("\n</details>")
+		fmt.Println("---")
 	},
 }
 
