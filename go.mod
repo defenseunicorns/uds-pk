@@ -1,16 +1,17 @@
 module github.com/defenseunicorns/uds-pk
 
-go 1.23.6
+go 1.24.0
 
 toolchain go1.24.1
 
 require (
+	github.com/CycloneDX/cyclonedx-go v0.9.2
 	github.com/defenseunicorns/uds-cli v0.23.0
 	github.com/go-git/go-git/v5 v5.14.0
 	github.com/goccy/go-yaml v1.15.23
 	github.com/google/go-github/v66 v66.0.0
-	github.com/google/go-github/v69 v69.2.0
 	github.com/mikefarah/yq/v4 v4.45.1
+	github.com/olekukonko/tablewriter v0.0.5
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/xanzy/go-gitlab v0.115.0
@@ -96,7 +97,7 @@ require (
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
-	golang.org/x/time v0.8.0 // indirect
+	golang.org/x/time v0.10.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	oras.land/oras-go/v2 v2.5.0 // indirect
