@@ -8,6 +8,7 @@ UDS Package Kit is a tool designed to assist in developing, maintaining, and pub
 
 - Automated release and tag creation in GitLab and GitHub
 - Customizable release configuration file
+- Comparing grype scans using the cyclonedx-json format
 
 ## Installation
 
@@ -54,4 +55,74 @@ flavors:
     version: "2.0.0-uds.0"
   - name: unicorn
     version: "1.0.0-uds.0"
+```
+
+## Scan Comparison
+
+The `compare-scans` command allows you to compare two grype scans using the cyclonedx-json output format. This can be useful to identify new, existing, and fixed vulnerabilities between two different scans.
+
+### Usage
+
+```bash
+uds-pk compare-scans BASE_SCAN NEW_SCAN [flags]
+```
+
+- BASE_SCAN: The file path to the base scan JSON file.
+- NEW_SCAN: The file path to the new scan JSON file.
+
+### Flags
+
+-d, --allow-different-images: Allow comparing scans for different images. By default, the command will error out if the scans are for different images.
+
+Example
+
+```bash
+uds-pk compare-scans base_scan.json new_scan.json
+```
+
+This command will output a markdown table summarizing the new, existing, and fixed vulnerabilities between the two scans. If the scans are for different images, you can use the --allow-different-images flag to bypass the error:
+
+```bash
+uds-pk compare-scans base_scan.json new_scan.json --allow-different-images
+```
+
+### Output
+
+The output will include a summary of the new, existing, and fixed vulnerabilities, followed by detailed tables for each category. The tables will be rendered in a collapsible format for better readability. The output is meant to be used in github comments/issues.
+
+```markdown
+### <base_image>:<base_version> -> <new_image>:<new_version>
+
+New vulnerabilities: <count>
+Fixed vulnerabilities: <count>
+Existing vulnerabilities: <count>
+
+<details>
+<summary>New vulnerabilities</summary>
+
+| ID | Severity | URL | Advisory List |
+|----|----------|-----|---------------|
+| ... | ... | ... | ... |
+
+</details>
+
+<details>
+<summary>Fixed vulnerabilities</summary>
+
+| ID | Severity | URL | Advisory List |
+|----|----------|-----|---------------|
+| ... | ... | ... | ... |
+
+</details>
+
+<details>
+<summary>Existing vulnerabilities</summary>
+
+| ID | Severity | URL | Advisory List |
+|----|----------|-----|---------------|
+| ... | ... | ... | ... |
+
+</details>
+
+---
 ```
