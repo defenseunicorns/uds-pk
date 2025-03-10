@@ -1,0 +1,33 @@
+name: golangci-lint
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - "**.jpg"
+      - "**.png"
+      - "**.gif"
+      - "**.svg"
+      - "adr/**"
+      - "docs/**"
+      - "CODEOWNERS"
+      - "goreleaser.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  golangci:
+    strategy:
+      matrix:
+        go: [stable]
+        os: [ubuntu-latest, macos-latest]
+    name: lint
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup golang
+        uses: ./.github/actions/golang
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6

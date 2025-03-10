@@ -1,0 +1,29 @@
+name: golangci-lint
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - "**.jpg"
+      - "**.png"
+      - "**.gif"
+      - "**.svg"
+      - "adr/**"
+      - "docs/**"
+      - "CODEOWNERS"
+      - "goreleaser.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck_job:
+    runs-on: ubuntu-latest
+    name: Run govulncheck
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup golang
+        uses: ./.github/actions/golang
+      - id: govulncheck
+        uses: golang/govulncheck-action@v1
