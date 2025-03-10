@@ -1,0 +1,3399 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:30f16344-e32a-42a2-9f3a-ab55022352a4",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2025-03-10T12:53:49Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "author": "anchore",
+          "name": "grype",
+          "version": "0.89.0"
+        }
+      ]
+    },
+    "component": {
+      "bom-ref": "da31294c0dcc4fd2",
+      "type": "container",
+      "name": "alpine",
+      "version": "3.16"
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "pkg:apk/alpine/alpine-baselayout@3.2.0-r23?arch=x86_64&distro=alpine-3.16.9&package-id=a1355c85bf520167",
+      "type": "library",
+      "publisher": "Natanael Copa <ncopa@alpinelinux.org>",
+      "name": "alpine-baselayout",
+      "version": "3.2.0-r23",
+      "description": "Alpine base dir structure and init scripts",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-only"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:alpine-baselayout:alpine-baselayout:3.2.0-r23:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/alpine-baselayout@3.2.0-r23?arch=x86_64&distro=alpine-3.16.9",
+      "externalReferences": [
+        {
+          "url": "https://git.alpinelinux.org/cgit/aports/tree/main/alpine-baselayout",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine-baselayout:alpine_baselayout:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine_baselayout:alpine-baselayout:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine_baselayout:alpine_baselayout:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine:alpine-baselayout:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine:alpine_baselayout:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "348653a9ba0701e8e968b3344e72313a9ef334e4"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "348160"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "alpine-baselayout"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "cmd:mkmntdirs=3.2.0-r23"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q19UI7UxyiUywG6aew9c3lCBPshsE="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "alpine-baselayout-data=3.2.0-r23"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:1",
+          "value": "/bin/sh"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:2",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "11136"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/alpine-baselayout-data@3.2.0-r23?arch=x86_64&distro=alpine-3.16.9&package-id=67a08559085d18a1&upstream=alpine-baselayout",
+      "type": "library",
+      "publisher": "Natanael Copa <ncopa@alpinelinux.org>",
+      "name": "alpine-baselayout-data",
+      "version": "3.2.0-r23",
+      "description": "Alpine base dir structure and init scripts",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-only"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:alpine-baselayout-data:alpine-baselayout-data:3.2.0-r23:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/alpine-baselayout-data@3.2.0-r23?arch=x86_64&distro=alpine-3.16.9&upstream=alpine-baselayout",
+      "externalReferences": [
+        {
+          "url": "https://git.alpinelinux.org/cgit/aports/tree/main/alpine-baselayout",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine-baselayout-data:alpine_baselayout_data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine_baselayout_data:alpine-baselayout-data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine_baselayout_data:alpine_baselayout_data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine-baselayout:alpine-baselayout-data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine-baselayout:alpine_baselayout_data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine_baselayout:alpine-baselayout-data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine_baselayout:alpine_baselayout_data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine:alpine-baselayout-data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine:alpine_baselayout_data:3.2.0-r23:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "348653a9ba0701e8e968b3344e72313a9ef334e4"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "77824"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "alpine-baselayout"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1d4HQ/Gyfw7NRD1qRvOgS6IzT2sI="
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "11655"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/alpine-keys@2.4-r1?arch=x86_64&distro=alpine-3.16.9&package-id=549e2f61654a9d5a",
+      "type": "library",
+      "publisher": "Natanael Copa <ncopa@alpinelinux.org>",
+      "name": "alpine-keys",
+      "version": "2.4-r1",
+      "description": "Public keys for Alpine Linux packages",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:alpine-keys:alpine-keys:2.4-r1:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/alpine-keys@2.4-r1?arch=x86_64&distro=alpine-3.16.9",
+      "externalReferences": [
+        {
+          "url": "https://alpinelinux.org",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine-keys:alpine_keys:2.4-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine_keys:alpine-keys:2.4-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine_keys:alpine_keys:2.4-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine:alpine-keys:2.4-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:alpine:alpine_keys:2.4-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "aab68f8c9ab434a46710de8e12fb3206e2930a59"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "159744"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "alpine-keys"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1FBfIjtsEmvuqoNXpShXDcm/mjzE="
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "13359"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/apk-tools@2.12.9-r3?arch=x86_64&distro=alpine-3.16.9&package-id=05748094aac5804f",
+      "type": "library",
+      "publisher": "Natanael Copa <ncopa@alpinelinux.org>",
+      "name": "apk-tools",
+      "version": "2.12.9-r3",
+      "description": "Alpine Package Keeper - package manager for alpine",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-only"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:apk-tools:apk-tools:2.12.9-r3:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/apk-tools@2.12.9-r3?arch=x86_64&distro=alpine-3.16.9",
+      "externalReferences": [
+        {
+          "url": "https://gitlab.alpinelinux.org/alpine/apk-tools",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:apk-tools:apk_tools:2.12.9-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:apk_tools:apk-tools:2.12.9-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:apk_tools:apk_tools:2.12.9-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:apk:apk-tools:2.12.9-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:apk:apk_tools:2.12.9-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "34d90ac8388e88126893f5d27ea35d304e65e5ab"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "307200"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "apk-tools"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "so:libapk.so.3.12.0=3.12.0"
+        },
+        {
+          "name": "syft:metadata:provides:1",
+          "value": "cmd:apk=2.12.9-r3"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1VFFFWMKjB9aRkehIATc5kwgAhlU="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "musl>=1.2"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:1",
+          "value": "ca-certificates-bundle"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:2",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:3",
+          "value": "so:libcrypto.so.1.1"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:4",
+          "value": "so:libssl.so.1.1"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:5",
+          "value": "so:libz.so.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "120745"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/busybox@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=ff2aef9711b5014c",
+      "type": "library",
+      "publisher": "Sören Tempel <soeren+alpine@soeren-tempel.net>",
+      "name": "busybox",
+      "version": "1.35.0-r17",
+      "description": "Size optimized toolbox of many common UNIX utilities",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-only"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:busybox:busybox:1.35.0-r17:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/busybox@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9",
+      "externalReferences": [
+        {
+          "url": "https://busybox.net/",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "2bf6ec48e526113f87216683cd341a78af5f0b3f"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "962560"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "busybox"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "/bin/sh"
+        },
+        {
+          "name": "syft:metadata:provides:1",
+          "value": "cmd:busybox=1.35.0-r17"
+        },
+        {
+          "name": "syft:metadata:provides:2",
+          "value": "cmd:sh=1.35.0-r17"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1iZ+C2JJdBlm2KKtAOkSkM7zZegY="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "507831"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/ca-certificates-bundle@20230506-r0?arch=x86_64&distro=alpine-3.16.9&package-id=f2abb6cef2de7a08&upstream=ca-certificates",
+      "type": "library",
+      "publisher": "Natanael Copa <ncopa@alpinelinux.org>",
+      "name": "ca-certificates-bundle",
+      "version": "20230506-r0",
+      "description": "Pre generated bundle of Mozilla certificates",
+      "licenses": [
+        {
+          "expression": "MPL-2.0 AND MIT"
+        }
+      ],
+      "cpe": "cpe:2.3:a:ca-certificates-bundle:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/ca-certificates-bundle@20230506-r0?arch=x86_64&distro=alpine-3.16.9&upstream=ca-certificates",
+      "externalReferences": [
+        {
+          "url": "https://www.mozilla.org/en-US/about/governance/policies/security-group/certs/",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca-certificates-bundle:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca_certificates_bundle:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca_certificates_bundle:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca-certificates:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca-certificates:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca_certificates:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca_certificates:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:mozilla:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:mozilla:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca:ca-certificates-bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ca:ca_certificates_bundle:20230506-r0:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "11ebe397253a07b7b35c1cbbf92b12f262257639"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "233472"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "ca-certificates"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "ca-certificates-cacert=20230506-r0"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q14xVHFCxUQnUR183TDLI96ZKRBEY="
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "125904"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/libc-utils@0.7.2-r3?arch=x86_64&distro=alpine-3.16.9&package-id=ad7486b0ecab325f&upstream=libc-dev",
+      "type": "library",
+      "publisher": "Natanael Copa <ncopa@alpinelinux.org>",
+      "name": "libc-utils",
+      "version": "0.7.2-r3",
+      "description": "Meta package to pull in correct libc",
+      "licenses": [
+        {
+          "expression": "BSD-2-Clause AND BSD-3-Clause"
+        }
+      ],
+      "cpe": "cpe:2.3:a:libc-utils:libc-utils:0.7.2-r3:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/libc-utils@0.7.2-r3?arch=x86_64&distro=alpine-3.16.9&upstream=libc-dev",
+      "externalReferences": [
+        {
+          "url": "https://alpinelinux.org",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libc-utils:libc_utils:0.7.2-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libc_utils:libc-utils:0.7.2-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libc_utils:libc_utils:0.7.2-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libc:libc-utils:0.7.2-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libc:libc_utils:0.7.2-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "60424133be2e79bbfeff3d58147a22886f817ce2"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "4096"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "libc-dev"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1O4GFJRvHz95tPjO84qpEvkNVwDw="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "musl-utils"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "1480"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl",
+      "type": "library",
+      "publisher": "Timo Teras <timo.teras@iki.fi>",
+      "name": "libcrypto1.1",
+      "version": "1.1.1w-r1",
+      "description": "Crypto library from openssl",
+      "licenses": [
+        {
+          "license": {
+            "id": "OpenSSL"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:libcrypto1.1:libcrypto1.1:1.1.1w-r1:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&upstream=openssl",
+      "externalReferences": [
+        {
+          "url": "https://www.openssl.org/",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libcrypto1.1:libcrypto:1.1.1w-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libcrypto:libcrypto1.1:1.1.1w-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libcrypto:libcrypto:1.1.1w-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "109910c17d51d060eec185e649bb6a2d513f010d"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "2772992"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "openssl"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "so:libcrypto.so.1.1=1.1"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1sL2pyMpRdkVWe6Z/RL4ZruOA3kA="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "1214639"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl",
+      "type": "library",
+      "publisher": "Timo Teras <timo.teras@iki.fi>",
+      "name": "libssl1.1",
+      "version": "1.1.1w-r1",
+      "description": "SSL shared libraries",
+      "licenses": [
+        {
+          "license": {
+            "id": "OpenSSL"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:libssl1.1:libssl1.1:1.1.1w-r1:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&upstream=openssl",
+      "externalReferences": [
+        {
+          "url": "https://www.openssl.org/",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libssl1.1:libssl:1.1.1w-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libssl:libssl1.1:1.1.1w-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:libssl:libssl:1.1.1w-r1:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "109910c17d51d060eec185e649bb6a2d513f010d"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "540672"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "openssl"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "so:libssl.so.1.1=1.1"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1X6zWnCOKFH7gyNm12+LM4Avp2/w="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:1",
+          "value": "so:libcrypto.so.1.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "213461"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4",
+      "type": "library",
+      "publisher": "Timo Teräs <timo.teras@iki.fi>",
+      "name": "musl",
+      "version": "1.2.3-r3",
+      "description": "the musl c library (libc) implementation",
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:musl-libc:musl:1.2.3-r3:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9",
+      "externalReferences": [
+        {
+          "url": "https://musl.libc.org/",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl_libc:musl:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl:musl:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "a8200e94bd003c0d5fe95a77850958ed60b91dec"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "622592"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "musl"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "so:libc.musl-x86_64.so.1=1"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1rquop7dlhyMFiT2uY9VcytyRTE4="
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "383441"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/musl-utils@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=9e4536979188ef6a&upstream=musl",
+      "type": "library",
+      "publisher": "Timo Teräs <timo.teras@iki.fi>",
+      "name": "musl-utils",
+      "version": "1.2.3-r3",
+      "description": "the musl c library (libc) implementation",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-or-later"
+          }
+        },
+        {
+          "license": {
+            "id": "MIT"
+          }
+        },
+        {
+          "license": {
+            "name": "BSD"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:musl-utils:musl-utils:1.2.3-r3:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/musl-utils@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&upstream=musl",
+      "externalReferences": [
+        {
+          "url": "https://musl.libc.org/",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl-utils:musl_utils:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl_utils:musl-utils:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl_utils:musl_utils:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl-libc:musl-utils:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl-libc:musl_utils:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl:musl-utils:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:musl:musl_utils:1.2.3-r3:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "a8200e94bd003c0d5fe95a77850958ed60b91dec"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "135168"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "musl"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "cmd:getconf=1.2.3-r3"
+        },
+        {
+          "name": "syft:metadata:provides:1",
+          "value": "cmd:getent=1.2.3-r3"
+        },
+        {
+          "name": "syft:metadata:provides:2",
+          "value": "cmd:iconv=1.2.3-r3"
+        },
+        {
+          "name": "syft:metadata:provides:3",
+          "value": "cmd:ldconfig=1.2.3-r3"
+        },
+        {
+          "name": "syft:metadata:provides:4",
+          "value": "cmd:ldd=1.2.3-r3"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q11VLCTJxVA6/25ovngpKmxAnGM78="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "scanelf"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:1",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "36958"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/scanelf@1.3.4-r0?arch=x86_64&distro=alpine-3.16.9&package-id=f6b1a209e56bee5b&upstream=pax-utils",
+      "type": "library",
+      "publisher": "Natanael Copa <ncopa@alpinelinux.org>",
+      "name": "scanelf",
+      "version": "1.3.4-r0",
+      "description": "Scan ELF binaries for stuff",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-only"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:scanelf:scanelf:1.3.4-r0:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/scanelf@1.3.4-r0?arch=x86_64&distro=alpine-3.16.9&upstream=pax-utils",
+      "externalReferences": [
+        {
+          "url": "https://wiki.gentoo.org/wiki/Hardened/PaX_Utilities",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "d7ae612a3cc5f827289d915783b4cbf8c7207947"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "94208"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "pax-utils"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "cmd:scanelf=1.3.4-r0"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1Gcqe+ND8DFOlhM3R0o5KyZjR2oE="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "36745"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/ssl_client@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=70873d0159fd7545&upstream=busybox",
+      "type": "library",
+      "publisher": "Sören Tempel <soeren+alpine@soeren-tempel.net>",
+      "name": "ssl_client",
+      "version": "1.35.0-r17",
+      "description": "EXternal ssl_client for busybox wget",
+      "licenses": [
+        {
+          "license": {
+            "id": "GPL-2.0-only"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:ssl-client:ssl-client:1.35.0-r17:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/ssl_client@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&upstream=busybox",
+      "externalReferences": [
+        {
+          "url": "https://busybox.net/",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ssl-client:ssl_client:1.35.0-r17:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ssl_client:ssl-client:1.35.0-r17:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ssl_client:ssl_client:1.35.0-r17:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ssl:ssl-client:1.35.0-r17:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:cpe23",
+          "value": "cpe:2.3:a:ssl:ssl_client:1.35.0-r17:*:*:*:*:*:*:*"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "2bf6ec48e526113f87216683cd341a78af5f0b3f"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "28672"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "busybox"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "cmd:ssl_client=1.35.0-r17"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1KWJXawaNPiINHfdzCg/FrEmiAaU="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:1",
+          "value": "so:libcrypto.so.1.1"
+        },
+        {
+          "name": "syft:metadata:pullDependencies:2",
+          "value": "so:libssl.so.1.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "5004"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:apk/alpine/zlib@1.2.12-r3?arch=x86_64&distro=alpine-3.16.9&package-id=562de40387135d9f",
+      "type": "library",
+      "publisher": "Natanael Copa <ncopa@alpinelinux.org>",
+      "name": "zlib",
+      "version": "1.2.12-r3",
+      "description": "A compression/decompression Library",
+      "licenses": [
+        {
+          "license": {
+            "id": "Zlib"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:zlib:zlib:1.2.12-r3:*:*:*:*:*:*:*",
+      "purl": "pkg:apk/alpine/zlib@1.2.12-r3?arch=x86_64&distro=alpine-3.16.9",
+      "externalReferences": [
+        {
+          "url": "https://zlib.net/",
+          "type": "distribution"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:package:foundBy",
+          "value": "apk-db-cataloger"
+        },
+        {
+          "name": "syft:package:type",
+          "value": "apk"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "apk-db-entry"
+        },
+        {
+          "name": "syft:location:0:layerID",
+          "value": "sha256:5535fda0356bb3eff348b2f618314a47946d7ccfbeb880b3fc910dd7375ae140"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/lib/apk/db/installed"
+        },
+        {
+          "name": "syft:metadata:gitCommitOfApkPort",
+          "value": "57ce38bde7ce42964b664c137935cf2de803ac44"
+        },
+        {
+          "name": "syft:metadata:installedSize",
+          "value": "110592"
+        },
+        {
+          "name": "syft:metadata:originPackage",
+          "value": "zlib"
+        },
+        {
+          "name": "syft:metadata:provides:0",
+          "value": "so:libz.so.1=1.2.12"
+        },
+        {
+          "name": "syft:metadata:pullChecksum",
+          "value": "Q1Ekuqm/0CPywDCKEbEwhsPCw+z9E="
+        },
+        {
+          "name": "syft:metadata:pullDependencies:0",
+          "value": "so:libc.musl-x86_64.so.1"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "53346"
+        }
+      ]
+    },
+    {
+      "bom-ref": "os:alpine@3.16.9",
+      "type": "operating-system",
+      "name": "alpine",
+      "version": "3.16.9",
+      "description": "Alpine Linux v3.16",
+      "swid": {
+        "tagId": "alpine",
+        "name": "alpine",
+        "version": "3.16.9"
+      },
+      "externalReferences": [
+        {
+          "url": "https://gitlab.alpinelinux.org/alpine/aports/-/issues",
+          "type": "issue-tracker"
+        },
+        {
+          "url": "https://alpinelinux.org/",
+          "type": "website"
+        }
+      ],
+      "properties": [
+        {
+          "name": "syft:distro:id",
+          "value": "alpine"
+        },
+        {
+          "name": "syft:distro:prettyName",
+          "value": "Alpine Linux v3.16"
+        },
+        {
+          "name": "syft:distro:versionID",
+          "value": "3.16.9"
+        }
+      ]
+    },
+    {
+      "bom-ref": "edd0211630c2244b",
+      "type": "file",
+      "name": "/bin/busybox",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "28a60362bdd0a77dcbc5294ef9cdfd256c19c3ee391a24489a42c74be26fde9f"
+        }
+      ]
+    },
+    {
+      "bom-ref": "0be59ef3c7c9c0cc",
+      "type": "file",
+      "name": "/etc/apk/keys/alpine-devel@lists.alpinelinux.org-4a6a0840.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9c102bcc376af1498d549b77bdbfa815ae86faa1d2d82f040e616b18ef2df2d4"
+        }
+      ]
+    },
+    {
+      "bom-ref": "7393c55b260a88f0",
+      "type": "file",
+      "name": "/etc/apk/keys/alpine-devel@lists.alpinelinux.org-5243ef4b.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ebf31683b56410ecc4c00acd9f6e2839e237a3b62b5ae7ef686705c7ba0396a9"
+        }
+      ]
+    },
+    {
+      "bom-ref": "f740ba2551d3ab46",
+      "type": "file",
+      "name": "/etc/apk/keys/alpine-devel@lists.alpinelinux.org-5261cecb.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "12f899e55a7691225603d6fb3324940fc51cd7f133e7ead788663c2b7eecb00c"
+        }
+      ]
+    },
+    {
+      "bom-ref": "fc8582290b3ca6ae",
+      "type": "file",
+      "name": "/etc/apk/keys/alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "207e4696d3c05f7cb05966aee557307151f1f00217af4143c1bcaf33b8df733f"
+        }
+      ]
+    },
+    {
+      "bom-ref": "29702da15a296ef2",
+      "type": "file",
+      "name": "/etc/apk/keys/alpine-devel@lists.alpinelinux.org-61666e3f.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "128d34d4aec39b0daedea8163cd8dc24dff36fd3d848630ab97eeb1d3084bbb3"
+        }
+      ]
+    },
+    {
+      "bom-ref": "163dc75b5073c128",
+      "type": "file",
+      "name": "/etc/crontabs/root",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "575d810a9fae5f2f0671c9b2c0ce973e46c7207fbe5cb8d1b0d1836a6a0470e3"
+        }
+      ]
+    },
+    {
+      "bom-ref": "a7944a9faf24e3ae",
+      "type": "file",
+      "name": "/etc/fstab",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a3efca2e8d62785c87517283092b4c800d88612b6f3f06b80a4c2f39d8e68841"
+        }
+      ]
+    },
+    {
+      "bom-ref": "631771f20d711e23",
+      "type": "file",
+      "name": "/etc/group",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0632d55a68081065097472fe7bc7c66f0785f3b78f39fb23f622d24a7e09be9f"
+        }
+      ]
+    },
+    {
+      "bom-ref": "4b768e8225cce2ca",
+      "type": "file",
+      "name": "/etc/hostname",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d906aecb61d076a967d9ffe8821c7b04b063f72df9d9e35b33ef36b1c0d98f16"
+        }
+      ]
+    },
+    {
+      "bom-ref": "2f88f7103747bcd6",
+      "type": "file",
+      "name": "/etc/hosts",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e3998dbe02b51dada33de87ae43d18a93ab6915b9e34f5a751bf2b9b25a55492"
+        }
+      ]
+    },
+    {
+      "bom-ref": "49852d9f7eece1e6",
+      "type": "file",
+      "name": "/etc/inittab",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "54a5f36970125bf70cdf7b215c9e12a287d92ad76a693bd72aec4cbc5645df87"
+        }
+      ]
+    },
+    {
+      "bom-ref": "4e00c0dc5cd3ae2b",
+      "type": "file",
+      "name": "/etc/logrotate.d/acpid",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d608a3b7715886b5735def0cc50a6359fd364fac2e0e0a459c588c04be471031"
+        }
+      ]
+    },
+    {
+      "bom-ref": "fd4999b94f1cdcb0",
+      "type": "file",
+      "name": "/etc/modprobe.d/aliases.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3ebaba946f213670170c7d69949f690a3854553bd0b1560f1d980cba4c83a942"
+        }
+      ]
+    },
+    {
+      "bom-ref": "d2c885d473255147",
+      "type": "file",
+      "name": "/etc/modprobe.d/blacklist.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5cd46031fc7dc7186e67c97fd34780597de4ebff51dbe41eba27220fe5e0d866"
+        }
+      ]
+    },
+    {
+      "bom-ref": "f4d99683b3462af0",
+      "type": "file",
+      "name": "/etc/modprobe.d/i386.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6c46c4cbfb8b7594f19eb94801a350fa2221ae9ac5239a8819d15555caa76ae8"
+        }
+      ]
+    },
+    {
+      "bom-ref": "03659db05c519527",
+      "type": "file",
+      "name": "/etc/modprobe.d/kms.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "50467fa732f809f3a2bb5738628765c5f895c3a237e1c1ad09f85d41fd9ca7c5"
+        }
+      ]
+    },
+    {
+      "bom-ref": "44b1c9d82c8bd0ba",
+      "type": "file",
+      "name": "/etc/modules",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2c881de75a5409c35d2433a24f180b8b02ba478ef2c1c60ea3434a35bcbc335d"
+        }
+      ]
+    },
+    {
+      "bom-ref": "b9e419836fa7a168",
+      "type": "file",
+      "name": "/etc/motd",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4ada0c700c4460f85252987092650c6708f17b4ccebc9ae4fcf8732089a1485f"
+        }
+      ]
+    },
+    {
+      "bom-ref": "cb9b7ca9d3778146",
+      "type": "file",
+      "name": "/etc/network/if-up.d/dad",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8ee2455448c12cd1fd0befbc84f1ace7b80ba46603aff0d67bc7bcad604ea466"
+        }
+      ]
+    },
+    {
+      "bom-ref": "696b68afb2b73bb4",
+      "type": "file",
+      "name": "/etc/nsswitch.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0afd94c183d30a348b45057f6bf468e121aa448a7641109addb5bb8e282f514d"
+        }
+      ]
+    },
+    {
+      "bom-ref": "2852cf0e4e69a2da",
+      "type": "file",
+      "name": "/etc/passwd",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2e0902cf0a7f64bf4e64ef2fad66ae977b4d01975dddf5352a84aea5c4e901f0"
+        }
+      ]
+    },
+    {
+      "bom-ref": "6a2cba701576d370",
+      "type": "file",
+      "name": "/etc/profile",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "36ae9bf37bacb8bcd7601eb2e29a4fd0dc6b0f822514634406e3d98ac8a28e62"
+        }
+      ]
+    },
+    {
+      "bom-ref": "110fdcb9ef4be2e0",
+      "type": "file",
+      "name": "/etc/profile.d/README",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b73284f27fe2da9ae1902b1fe9596c3ffc61a154e2805a034184f0468f8b09b0"
+        }
+      ]
+    },
+    {
+      "bom-ref": "a41bbbe00d5825c7",
+      "type": "file",
+      "name": "/etc/profile.d/color_prompt.sh.disabled",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ba24425c6864a5d17fa0fdaf914c4d21419e47c4d62080c33830af059fe46617"
+        }
+      ]
+    },
+    {
+      "bom-ref": "0893ff49ba291f97",
+      "type": "file",
+      "name": "/etc/profile.d/locale.sh",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "84eb9034099d759ff08e6da5a731cacfc63a319547ad0f1dfc1c64853aca93f2"
+        }
+      ]
+    },
+    {
+      "bom-ref": "44a013b9a00fa289",
+      "type": "file",
+      "name": "/etc/protocols",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a90a2be9c2a88be6fbfc1fc73ba76f34698377bb19513e5de503dbb0bfe13be1"
+        }
+      ]
+    },
+    {
+      "bom-ref": "20484e2da3c3c4d4",
+      "type": "file",
+      "name": "/etc/securetty",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "49382575069e4b954a36f1fb2248d1bd96ee7ba28a5b12798fa92d80a29d0fab"
+        }
+      ]
+    },
+    {
+      "bom-ref": "1225877d48011baa",
+      "type": "file",
+      "name": "/etc/services",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d85f9ab44e46d6605d749935cf9827a38f767b0e5e56ae8d948ef67e0759e52d"
+        }
+      ]
+    },
+    {
+      "bom-ref": "afa21b384c7a19d9",
+      "type": "file",
+      "name": "/etc/shadow",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "cdcdf002dbf6a03de7cf3c024d12162d6227cb5e2d27ca58844a716301f03151"
+        }
+      ]
+    },
+    {
+      "bom-ref": "6e58bbb4606b788a",
+      "type": "file",
+      "name": "/etc/shells",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "24be6ceb236610df45684c83b06c918ae45635be55f69975e43676b7595bbc5f"
+        }
+      ]
+    },
+    {
+      "bom-ref": "aad9eb30b3e7a541",
+      "type": "file",
+      "name": "/etc/ssl/certs/ca-certificates.crt",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "824cefcee69de918c76b7b92776f304c3a4b7f6281539118bc1d41a9dd8476d9"
+        }
+      ]
+    },
+    {
+      "bom-ref": "f168b71ba3d7408f",
+      "type": "file",
+      "name": "/etc/ssl/ct_log_list.cnf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f1c1803d13d1d0b755b13b23c28bd4e20e07baf9f2b744c9337ba5866aa0ec3b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "8a01bb9cf45bb119",
+      "type": "file",
+      "name": "/etc/ssl/ct_log_list.cnf.dist",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f1c1803d13d1d0b755b13b23c28bd4e20e07baf9f2b744c9337ba5866aa0ec3b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "a2e50635859f9056",
+      "type": "file",
+      "name": "/etc/ssl/misc/CA.pl",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "61ab95f7e96f2b0f2acdcafb8afde2f6c43e899416397230c2fae9c1e701e45b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "d2f4ab9c214042a1",
+      "type": "file",
+      "name": "/etc/ssl/misc/tsget.pl",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b302f1e3cbac68658e054e7a92cea8808e1886c36dc211db46266e0b6707c31f"
+        }
+      ]
+    },
+    {
+      "bom-ref": "55d6b74bd10e872f",
+      "type": "file",
+      "name": "/etc/ssl/openssl.cnf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f10ba64917b4458fafc1e078c2eb9e6a7602e68fc98c2e9e6df5e1636ae27d6b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "7cf205e38700bbf5",
+      "type": "file",
+      "name": "/etc/ssl/openssl.cnf.dist",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f10ba64917b4458fafc1e078c2eb9e6a7602e68fc98c2e9e6df5e1636ae27d6b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "d77e0ff821c18b85",
+      "type": "file",
+      "name": "/etc/sysctl.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8bba47da45bc8715c69ac904a60410eabffaa7bbbef640f9c1368ab9c48493d0"
+        }
+      ]
+    },
+    {
+      "bom-ref": "b5dc5ee475c22ff2",
+      "type": "file",
+      "name": "/etc/udhcpd.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9249f3fd52c2500bfe3586def6765b82336ba7832b65cb8c6b8ca1999c31342e"
+        }
+      ]
+    },
+    {
+      "bom-ref": "f25715e8bbe35264",
+      "type": "file",
+      "name": "/lib/apk/db/installed",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5f2f98eadf7542383a9980e7561d7db1e1378175e94a428f7693758a90770f29"
+        }
+      ]
+    },
+    {
+      "bom-ref": "53ace2a928917d33",
+      "type": "file",
+      "name": "/lib/ld-musl-x86_64.so.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "04e6ed67f2e9668677d23f4b34b40c25c8608123dfdaf005653e050a75654349"
+        }
+      ]
+    },
+    {
+      "bom-ref": "3a75f5b29839b2c1",
+      "type": "file",
+      "name": "/lib/libapk.so.3.12.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "29310b88202123b955cf0c277ec13f27504044758003f2798f9ee9afb0ca5e07"
+        }
+      ]
+    },
+    {
+      "bom-ref": "7e7f945a36454676",
+      "type": "file",
+      "name": "/lib/libcrypto.so.1.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3220e3faef57ffc4052938c9a4c5dac23f5c9190af598ac2524c5d1e07339955"
+        }
+      ]
+    },
+    {
+      "bom-ref": "7f45dd311df6a46b",
+      "type": "file",
+      "name": "/lib/libssl.so.1.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "78253f6770265ff26f5e59fa753b9fa1d39d4eb921978301823b06038eea3e09"
+        }
+      ]
+    },
+    {
+      "bom-ref": "8bf030072d1a0e6c",
+      "type": "file",
+      "name": "/lib/libz.so.1.2.12",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "666eb7ed6aa2e835e412c07288763e6c8ec241773e7f1287e0ea57490b6cd2fd"
+        }
+      ]
+    },
+    {
+      "bom-ref": "a190e25a1de8836a",
+      "type": "file",
+      "name": "/lib/sysctl.d/00-alpine.conf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ee169bea2cb6859420b55ca7a9c23fb68b50adc1d26c951f904dec9e8f767380"
+        }
+      ]
+    },
+    {
+      "bom-ref": "04a34d9c56295ade",
+      "type": "file",
+      "name": "/sbin/apk",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7995d69305583789568e85eeac0abf0c3c7166c4edb53afc5910e57ff0b37650"
+        }
+      ]
+    },
+    {
+      "bom-ref": "853e607d62bb0465",
+      "type": "file",
+      "name": "/sbin/ldconfig",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b4a2c06db38742e8c42c3c9838b285a7d8cdac6c091ff3df5ff9a15f1e41b9c7"
+        }
+      ]
+    },
+    {
+      "bom-ref": "8b90b006208f2c29",
+      "type": "file",
+      "name": "/sbin/mkmntdirs",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ab0f9ffe6fb1064ed2736c8191f841daaf54700f5e7b670e56fca7d7855dece8"
+        }
+      ]
+    },
+    {
+      "bom-ref": "f385479e02899d61",
+      "type": "file",
+      "name": "/usr/bin/getconf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9694ce6ac92a73d7d20689f71eef101e0ebb9b1e77dc89ef347afeed78370673"
+        }
+      ]
+    },
+    {
+      "bom-ref": "40fe4b42c044dc8a",
+      "type": "file",
+      "name": "/usr/bin/getent",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "2433e7c4ef78929e0c7859bf0586083c340239121b3f071a2c641cf15b62c7e0"
+        }
+      ]
+    },
+    {
+      "bom-ref": "21f00b5fb885b44d",
+      "type": "file",
+      "name": "/usr/bin/iconv",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c168b4a9479642b38d1f98e38d011ddea21ad82f8ed583001fc246042f65afa5"
+        }
+      ]
+    },
+    {
+      "bom-ref": "a130cd4e6e9b8ce1",
+      "type": "file",
+      "name": "/usr/bin/ldd",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9a49c2541a439be89f1ef1496604ef3b607f460d589877c60775acf74cdb5dfb"
+        }
+      ]
+    },
+    {
+      "bom-ref": "e90aa4b485adb02d",
+      "type": "file",
+      "name": "/usr/bin/scanelf",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "96c87ffb92aa18f7db3ea650acf406f303690becc6f3f0a403f2d01d593ae03b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "8f6ee6763173bdec",
+      "type": "file",
+      "name": "/usr/bin/ssl_client",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a47f0a28dc8113a35aa1b8ed1bfb579940651403bd154463803e0f5daf898fb9"
+        }
+      ]
+    },
+    {
+      "bom-ref": "8247be1e189a0d3f",
+      "type": "file",
+      "name": "/usr/lib/engines-1.1/afalg.so",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d3478d749afdf51b3e1f21b056066feb56bf51ab1ddaa3a03d4240e59c5d3eed"
+        }
+      ]
+    },
+    {
+      "bom-ref": "1986089b711b1e5e",
+      "type": "file",
+      "name": "/usr/lib/engines-1.1/capi.so",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "79d67f532db5769b3100b99643395eb5fbcffa4161a5af2aa224f79b614b8c14"
+        }
+      ]
+    },
+    {
+      "bom-ref": "04fec3487bd2da89",
+      "type": "file",
+      "name": "/usr/lib/engines-1.1/padlock.so",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e0411add216ac5225fa4fc652d3333110dd582bf733fdde9216d3c4acbfa7a1b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "b567fcd906da1bf7",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-4a6a0840.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9c102bcc376af1498d549b77bdbfa815ae86faa1d2d82f040e616b18ef2df2d4"
+        }
+      ]
+    },
+    {
+      "bom-ref": "6121bee0420d6623",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-5243ef4b.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ebf31683b56410ecc4c00acd9f6e2839e237a3b62b5ae7ef686705c7ba0396a9"
+        }
+      ]
+    },
+    {
+      "bom-ref": "a34652dc79b18f0c",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-524d27bb.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1bb2a846c0ea4ca9d0e7862f970863857fc33c32f5506098c636a62a726a847b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "b421903588b7ae8d",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-5261cecb.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "12f899e55a7691225603d6fb3324940fc51cd7f133e7ead788663c2b7eecb00c"
+        }
+      ]
+    },
+    {
+      "bom-ref": "781438e34ad94bc4",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-58199dcc.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "73867d92083f2f8ab899a26ccda7ef63dfaa0032a938620eda605558958a8041"
+        }
+      ]
+    },
+    {
+      "bom-ref": "c121302cd1e0ac54",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-58cbb476.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9a4cd858d9710963848e6d5f555325dc199d1c952b01cf6e64da2c15deedbd97"
+        }
+      ]
+    },
+    {
+      "bom-ref": "cbda3fbd948e4333",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-58e4f17d.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "780b3ed41786772cbc7b68136546fa3f897f28a23b30c72dde6225319c44cfff"
+        }
+      ]
+    },
+    {
+      "bom-ref": "8c0669a5259c07b6",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-5e69ca50.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "59c01c57b446633249f67c04b115dd6787f4378f183dff2bbf65406df93f176d"
+        }
+      ]
+    },
+    {
+      "bom-ref": "3b28d117cffb79ed",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-60ac2099.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "db0b49163f07ffba64a5ca198bcf1688610b0bd1f0d8d5afeaf78559d73f2278"
+        }
+      ]
+    },
+    {
+      "bom-ref": "ee8dcafd5f201d43",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-6165ee59.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "207e4696d3c05f7cb05966aee557307151f1f00217af4143c1bcaf33b8df733f"
+        }
+      ]
+    },
+    {
+      "bom-ref": "1cf39644466464ea",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-61666e3f.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "128d34d4aec39b0daedea8163cd8dc24dff36fd3d848630ab97eeb1d3084bbb3"
+        }
+      ]
+    },
+    {
+      "bom-ref": "f8263a0a7caaacd3",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616a9724.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "10877cce0a935e46ad88cb79e174a2491680508eccda08e92bf04fb9bf37fbc1"
+        }
+      ]
+    },
+    {
+      "bom-ref": "e81b5e02715be07c",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616abc23.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4a095a9daca86da496a3cd9adcd95ee2197fdbeb84638656d469f05a4d740751"
+        }
+      ]
+    },
+    {
+      "bom-ref": "4d2285ffbcc84748",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616ac3bc.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0caf5662fde45616d88cfd7021b7bda269a2fcaf311e51c48945a967a609ec0b"
+        }
+      ]
+    },
+    {
+      "bom-ref": "f28b6860559d64e6",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616adfeb.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ebe717d228555aa58133c202314a451f81e71f174781fd7ff8d8970d6cfa60da"
+        }
+      ]
+    },
+    {
+      "bom-ref": "41f23bd3b6c26aa8",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616ae350.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d11f6b21c61b4274e182eb888883a8ba8acdbf820dcc7a6d82a7d9fc2fd2836d"
+        }
+      ]
+    },
+    {
+      "bom-ref": "3c391a35db0782c7",
+      "type": "file",
+      "name": "/usr/share/apk/keys/alpine-devel@lists.alpinelinux.org-616db30d.rsa.pub",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "40a216cbd163f22e5f16a9e0929de7cde221b9cbae8e36aa368b1e128afe0a31"
+        }
+      ]
+    },
+    {
+      "bom-ref": "ff2b0e8362124534",
+      "type": "file",
+      "name": "/usr/share/udhcpc/default.script",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "04d4b9c67b5e4ee561047a3578d3d031bda5580435c2f118651394a3325a101f"
+        }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:apk/alpine/alpine-baselayout@3.2.0-r23?arch=x86_64&distro=alpine-3.16.9&package-id=a1355c85bf520167",
+      "dependsOn": [
+        "pkg:apk/alpine/alpine-baselayout-data@3.2.0-r23?arch=x86_64&distro=alpine-3.16.9&package-id=67a08559085d18a1&upstream=alpine-baselayout",
+        "pkg:apk/alpine/busybox@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=ff2aef9711b5014c",
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/apk-tools@2.12.9-r3?arch=x86_64&distro=alpine-3.16.9&package-id=05748094aac5804f",
+      "dependsOn": [
+        "pkg:apk/alpine/ca-certificates-bundle@20230506-r0?arch=x86_64&distro=alpine-3.16.9&package-id=f2abb6cef2de7a08&upstream=ca-certificates",
+        "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl",
+        "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl",
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4",
+        "pkg:apk/alpine/zlib@1.2.12-r3?arch=x86_64&distro=alpine-3.16.9&package-id=562de40387135d9f"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/busybox@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=ff2aef9711b5014c",
+      "dependsOn": [
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/libc-utils@0.7.2-r3?arch=x86_64&distro=alpine-3.16.9&package-id=ad7486b0ecab325f&upstream=libc-dev",
+      "dependsOn": [
+        "pkg:apk/alpine/musl-utils@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=9e4536979188ef6a&upstream=musl"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl",
+      "dependsOn": [
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl",
+      "dependsOn": [
+        "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl",
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/musl-utils@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=9e4536979188ef6a&upstream=musl",
+      "dependsOn": [
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4",
+        "pkg:apk/alpine/scanelf@1.3.4-r0?arch=x86_64&distro=alpine-3.16.9&package-id=f6b1a209e56bee5b&upstream=pax-utils"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/scanelf@1.3.4-r0?arch=x86_64&distro=alpine-3.16.9&package-id=f6b1a209e56bee5b&upstream=pax-utils",
+      "dependsOn": [
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/ssl_client@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=70873d0159fd7545&upstream=busybox",
+      "dependsOn": [
+        "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl",
+        "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl",
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4"
+      ]
+    },
+    {
+      "ref": "pkg:apk/alpine/zlib@1.2.12-r3?arch=x86_64&distro=alpine-3.16.9&package-id=562de40387135d9f",
+      "dependsOn": [
+        "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4"
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "urn:uuid:7261b64e-a8c8-42dd-8f40-ab52a9f5b4ad",
+      "id": "CVE-2022-48174",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2022-48174",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 9.8,
+          "severity": "critical",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        }
+      ],
+      "description": "There is a stack overflow vulnerability in ash.c:6030 in busybox before 1.35. In the environment of Internet of Vehicles, this vulnerability can be executed from command to arbitrary code execution.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-48174"
+        },
+        {
+          "url": "https://bugs.busybox.net/show_bug.cgi?id=15216"
+        },
+        {
+          "url": "https://bugs.busybox.net/show_bug.cgi?id=15216"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20241129-0001/"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/busybox@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=ff2aef9711b5014c"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:f361b46b-7567-4e3a-9379-472d6c6dff56",
+      "id": "CVE-2023-42366",
+      "source": {
+        "name": "alpine-distro-alpine-3.16",
+        "url": "alpine"
+      },
+      "references": [
+        {
+          "id": "CVE-2023-42366",
+          "source": {
+            "name": "alpine-distro-alpine-3.16",
+            "url": "alpine"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 5.5,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H"
+        }
+      ],
+      "advisories": [
+        {
+          "url": "https://www.cve.org/CVERecord?id=CVE-2023-42366"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/busybox@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=ff2aef9711b5014c"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:e7c7242b-c5fd-49a6-90c6-48c72bd26013",
+      "id": "CVE-2024-5535",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-5535",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 9.1,
+          "severity": "critical",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H"
+        }
+      ],
+      "description": "Issue summary: Calling the OpenSSL API function SSL_select_next_proto with an\nempty supported client protocols buffer may cause a crash or memory contents to\nbe sent to the peer.\n\nImpact summary: A buffer overread can have a range of potential consequences\nsuch as unexpected application beahviour or a crash. In particular this issue\ncould result in up to 255 bytes of arbitrary private data from memory being sent\nto the peer leading to a loss of confidentiality. However, only applications\nthat directly call the SSL_select_next_proto function with a 0 length list of\nsupported client protocols are affected by this issue. This would normally never\nbe a valid scenario and is typically not under attacker control but may occur by\naccident in the case of a configuration or programming error in the calling\napplication.\n\nThe OpenSSL API function SSL_select_next_proto is typically used by TLS\napplications that support ALPN (Application Layer Protocol Negotiation) or NPN\n(Next Protocol Negotiation). NPN is older, was never standardised and\nis deprecated in favour of ALPN. We believe that ALPN is significantly more\nwidely deployed than NPN. The SSL_select_next_proto function accepts a list of\nprotocols from the server and a list of protocols from the client and returns\nthe first protocol that appears in the server list that also appears in the\nclient list. In the case of no overlap between the two lists it returns the\nfirst item in the client list. In either case it will signal whether an overlap\nbetween the two lists was found. In the case where SSL_select_next_proto is\ncalled with a zero length client list it fails to notice this condition and\nreturns the memory immediately following the client list pointer (and reports\nthat there was no overlap in the lists).\n\nThis function is typically called from a server side application callback for\nALPN or a client side application callback for NPN. In the case of ALPN the list\nof protocols supplied by the client is guaranteed by libssl to never be zero in\nlength. The list of server protocols comes from the application and should never\nnormally be expected to be of zero length. In this case if the\nSSL_select_next_proto function has been called as expected (with the list\nsupplied by the client passed in the client/client_len parameters), then the\napplication will not be vulnerable to this issue. If the application has\naccidentally been configured with a zero length server list, and has\naccidentally passed that zero length server list in the client/client_len\nparameters, and has additionally failed to correctly handle a \"no overlap\"\nresponse (which would normally result in a handshake failure in ALPN) then it\nwill be vulnerable to this problem.\n\nIn the case of NPN, the protocol permits the client to opportunistically select\na protocol when there is no overlap. OpenSSL returns the first client protocol\nin the no overlap case in support of this. The list of client protocols comes\nfrom the application and should never normally be expected to be of zero length.\nHowever if the SSL_select_next_proto function is accidentally called with a\nclient_len of 0 then an invalid memory pointer will be returned instead. If the\napplication uses this output as the opportunistic protocol then the loss of\nconfidentiality will occur.\n\nThis issue has been assessed as Low severity because applications are most\nlikely to be vulnerable if they are using NPN instead of ALPN - but NPN is not\nwidely used. It also requires an application configuration or programming error.\nFinally, this issue would not typically be under attacker control making active\nexploitation unlikely.\n\nThe FIPS modules in 3.3, 3.2, 3.1 and 3.0 are not affected by this issue.\n\nDue to the low severity of this issue we are not issuing new releases of\nOpenSSL at this time. The fix will be included in the next releases when they\nbecome available.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-5535"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/06/27/1"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/06/28/4"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/4ada436a1946cbb24db5ab4ca082b69c1bc10f37"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/99fb785a5f85315b95288921a321a935ea29a51e"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/cf6f91f6121f4db167405db2f0de410a456f260c"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e86ac436f0bd54d4517745483e2315650fae7b2c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/9947251413065a05189a63c9b7a6c1d4e224c21c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/b78ec0824da857223486660177d3b1f255c65d87"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240712-0005/"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240627.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/06/27/1"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/06/28/4"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/08/15/1"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/4ada436a1946cbb24db5ab4ca082b69c1bc10f37"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/99fb785a5f85315b95288921a321a935ea29a51e"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/cf6f91f6121f4db167405db2f0de410a456f260c"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e86ac436f0bd54d4517745483e2315650fae7b2c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/9947251413065a05189a63c9b7a6c1d4e224c21c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/b78ec0824da857223486660177d3b1f255c65d87"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240712-0005/"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240627.txt"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:a298ba7f-03f4-4699-be4e-f5102a36c382",
+      "id": "CVE-2024-4741",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-4741",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 7.5,
+          "severity": "high",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        }
+      ],
+      "description": "Issue summary: Calling the OpenSSL API function SSL_free_buffers may cause\nmemory to be accessed that was previously freed in some situations\n\nImpact summary: A use after free can have a range of potential consequences such\nas the corruption of valid data, crashes or execution of arbitrary code.\nHowever, only applications that directly call the SSL_free_buffers function are\naffected by this issue. Applications that do not call this function are not\nvulnerable. Our investigations indicate that this function is rarely used by\napplications.\n\nThe SSL_free_buffers function is used to free the internal OpenSSL buffer used\nwhen processing an incoming record from the network. The call is only expected\nto succeed if the buffer is not currently in use. However, two scenarios have\nbeen identified where the buffer is freed even when still in use.\n\nThe first scenario occurs where a record header has been received from the\nnetwork and processed by OpenSSL, but the full record body has not yet arrived.\nIn this case calling SSL_free_buffers will succeed even though a record has only\nbeen partially processed and the buffer is still in use.\n\nThe second scenario occurs where a full record containing application data has\nbeen received and processed by OpenSSL but the application has only read part of\nthis data. Again a call to SSL_free_buffers will succeed even though the buffer\nis still in use.\n\nWhile these scenarios could occur accidentally during normal operation a\nmalicious attacker could attempt to engineer a stituation where this occurs.\nWe are not aware of this issue being actively exploited.\n\nThe FIPS modules in 3.3, 3.2, 3.1 and 3.0 are not affected by this issue.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-4741"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/704f725b96aa373ee45ecfb23f6abfe8be8d9177"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/b3f0eb0a295f58f16ba43ba99dad70d4ee5c437d"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/c88c3de51020c37e8706bf7a682a162593053aac"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e5093133c35ca82874ad83697af76f4b0f7e3bd8"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/f7a045f3143fc6da2ee66bf52d8df04829590dd4"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240528.txt"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:009b2c90-603b-49e5-b7c6-57d61d82aa06",
+      "id": "CVE-2024-0727",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-0727",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 5.5,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H"
+        }
+      ],
+      "description": "Issue summary: Processing a maliciously formatted PKCS12 file may lead OpenSSL\nto crash leading to a potential Denial of Service attack\n\nImpact summary: Applications loading files in the PKCS12 format from untrusted\nsources might terminate abruptly.\n\nA file in PKCS12 format can contain certificates and keys and may come from an\nuntrusted source. The PKCS12 specification allows certain fields to be NULL, but\nOpenSSL does not correctly check for this case. This can lead to a NULL pointer\ndereference that results in OpenSSL crashing. If an application processes PKCS12\nfiles from an untrusted source using the OpenSSL APIs then that application will\nbe vulnerable to this issue.\n\nOpenSSL APIs that are vulnerable to this are: PKCS12_parse(),\nPKCS12_unpack_p7data(), PKCS12_unpack_p7encdata(), PKCS12_unpack_authsafes()\nand PKCS12_newpass().\n\nWe have also fixed a similar issue in SMIME_write_PKCS7(). However since this\nfunction is related to writing data we do not consider it security significant.\n\nThe FIPS modules in 3.2, 3.1 and 3.0 are not affected by this issue.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-0727"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/09df4395b5071217b76dc7d3d2e630eb8c5a79c2"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/775acfdbd0c6af9ac855f34969cdab0c0c90844a"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/d135eeab8a5dbf72b3da5240bab9ddb7678dbd2c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/03b3941d60c4bce58fab69a0c22377ab439bc0e8"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/aebaa5883e31122b404e450732dc833dc9dee539"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240125.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/03/11/1"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/09df4395b5071217b76dc7d3d2e630eb8c5a79c2"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/775acfdbd0c6af9ac855f34969cdab0c0c90844a"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/d135eeab8a5dbf72b3da5240bab9ddb7678dbd2c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/03b3941d60c4bce58fab69a0c22377ab439bc0e8"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/aebaa5883e31122b404e450732dc833dc9dee539"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240208-0006/"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240125.txt"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:63bcf2a7-2ba2-4dd8-a436-6dbaf7241b33",
+      "id": "CVE-2024-13176",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-13176",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 4.1,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:P/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L"
+        }
+      ],
+      "description": "Issue summary: A timing side-channel which could potentially allow recovering\nthe private key exists in the ECDSA signature computation.\n\nImpact summary: A timing side-channel in ECDSA signature computations\ncould allow recovering the private key by an attacker. However, measuring\nthe timing would require either local access to the signing application or\na very fast network connection with low latency.\n\nThere is a timing signal of around 300 nanoseconds when the top word of\nthe inverted ECDSA nonce value is zero. This can happen with significant\nprobability only for some of the supported elliptic curves. In particular\nthe NIST P-521 curve is affected. To be able to measure this leak, the attacker\nprocess must either be located in the same physical computer or must\nhave a very fast network connection with low latency. For that reason\nthe severity of this vulnerability is Low.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-13176"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/07272b05b04836a762b4baa874958af51d513844"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/2af62e74fb59bc469506bc37eb2990ea408d9467"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/392dcb336405a0c94486aa6655057f59fd3a0902"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/4b1cb94a734a7d4ec363ac0a215a25c181e11f65"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/77c608f4c8857e63e98e66444e2e761c9627916f"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/0d5fd1ab987f7571e2c955d8d8b638fc0fb54ded"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/a2639000db19878d5d89586ae7b725080592ae86"
+        },
+        {
+          "url": "https://openssl-library.org/news/secadv/20250120.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2025/01/20/2"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20250124-0005/"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:d96da252-ed64-4d1c-b9c2-8d2c31c67d35",
+      "id": "CVE-2024-9143",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-9143",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 4.3,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N"
+        }
+      ],
+      "description": "Issue summary: Use of the low-level GF(2^m) elliptic curve APIs with untrusted\nexplicit values for the field polynomial can lead to out-of-bounds memory reads\nor writes.\n\nImpact summary: Out of bound memory writes can lead to an application crash or\neven a possibility of a remote code execution, however, in all the protocols\ninvolving Elliptic Curve Cryptography that we're aware of, either only \"named\ncurves\" are supported, or, if explicit curve parameters are supported, they\nspecify an X9.62 encoding of binary (GF(2^m)) curves that can't represent\nproblematic input values. Thus the likelihood of existence of a vulnerable\napplication is low.\n\nIn particular, the X9.62 encoding is used for ECC keys in X.509 certificates,\nso problematic inputs cannot occur in the context of processing X.509\ncertificates.  Any problematic use-cases would have to be using an \"exotic\"\ncurve encoding.\n\nThe affected APIs include: EC_GROUP_new_curve_GF2m(), EC_GROUP_new_from_params(),\nand various supporting BN_GF2m_*() functions.\n\nApplications working with \"exotic\" explicit binary (GF(2^m)) curve parameters,\nthat make it possible to represent invalid field polynomials with a zero\nconstant term, via the above or similar APIs, may terminate abruptly as a\nresult of reading or writing outside of array bounds.  Remote code execution\ncannot easily be ruled out.\n\nThe FIPS modules in 3.3, 3.2, 3.1 and 3.0 are not affected by this issue.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-9143"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/72ae83ad214d2eef262461365a1975707f862712"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/bc7e04d7c8d509fb78fc0e285aa948fb0da04700"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/c0d3e4d32d2805f49bec30547f225bc4d092e1f4"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/fdf6723362ca51bd883295efe206cb5b1cfa5154"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/8efc0cbaa8ebba8e116f7b81a876a4123594d86a"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/9d576994cec2b7aa37a91740ea7e680810957e41"
+        },
+        {
+          "url": "https://openssl-library.org/news/secadv/20241016.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/10/16/1"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/10/23/1"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/10/24/1"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20241101-0001/"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:bd366cce-94d0-40a2-9423-1c3460adb612",
+      "id": "CVE-2024-2511",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-2511",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "severity": "unknown",
+          "method": "other"
+        }
+      ],
+      "description": "Issue summary: Some non-default TLS server configurations can cause unbounded\nmemory growth when processing TLSv1.3 sessions\n\nImpact summary: An attacker may exploit certain server configurations to trigger\nunbounded memory growth that would lead to a Denial of Service\n\nThis problem can occur in TLSv1.3 if the non-default SSL_OP_NO_TICKET option is\nbeing used (but not if early_data support is also configured and the default\nanti-replay protection is in use). In this case, under certain conditions, the\nsession cache can get into an incorrect state and it will fail to flush properly\nas it fills. The session cache will continue to grow in an unbounded manner. A\nmalicious client could deliberately create the scenario for this failure to\nforce a Denial of Service. It may also happen by accident in normal operation.\n\nThis issue only affects TLS servers supporting TLSv1.3. It does not affect TLS\nclients.\n\nThe FIPS modules in 3.2, 3.1 and 3.0 are not affected by this issue. OpenSSL\n1.0.2 is also not affected by this issue.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-2511"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/7e4d731b1c07201ad9374c1cd9ac5263bdf35bce"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/b52867a9f618bb955bed2a3ce3db4d4f97ed8e5d"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e9d7083e241670332e0443da0f0d4ffb52829f08"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/5f8d25770ae6437db119dfc951e207271a326640"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240408.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/04/08/5"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/7e4d731b1c07201ad9374c1cd9ac5263bdf35bce"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/b52867a9f618bb955bed2a3ce3db4d4f97ed8e5d"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e9d7083e241670332e0443da0f0d4ffb52829f08"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/5f8d25770ae6437db119dfc951e207271a326640"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240503-0013/"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240408.txt"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libcrypto1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=6175c56d8f8780e8&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:dd35141d-4c47-44e3-a980-cb1020e2fc6b",
+      "id": "CVE-2024-5535",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-5535",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 9.1,
+          "severity": "critical",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H"
+        }
+      ],
+      "description": "Issue summary: Calling the OpenSSL API function SSL_select_next_proto with an\nempty supported client protocols buffer may cause a crash or memory contents to\nbe sent to the peer.\n\nImpact summary: A buffer overread can have a range of potential consequences\nsuch as unexpected application beahviour or a crash. In particular this issue\ncould result in up to 255 bytes of arbitrary private data from memory being sent\nto the peer leading to a loss of confidentiality. However, only applications\nthat directly call the SSL_select_next_proto function with a 0 length list of\nsupported client protocols are affected by this issue. This would normally never\nbe a valid scenario and is typically not under attacker control but may occur by\naccident in the case of a configuration or programming error in the calling\napplication.\n\nThe OpenSSL API function SSL_select_next_proto is typically used by TLS\napplications that support ALPN (Application Layer Protocol Negotiation) or NPN\n(Next Protocol Negotiation). NPN is older, was never standardised and\nis deprecated in favour of ALPN. We believe that ALPN is significantly more\nwidely deployed than NPN. The SSL_select_next_proto function accepts a list of\nprotocols from the server and a list of protocols from the client and returns\nthe first protocol that appears in the server list that also appears in the\nclient list. In the case of no overlap between the two lists it returns the\nfirst item in the client list. In either case it will signal whether an overlap\nbetween the two lists was found. In the case where SSL_select_next_proto is\ncalled with a zero length client list it fails to notice this condition and\nreturns the memory immediately following the client list pointer (and reports\nthat there was no overlap in the lists).\n\nThis function is typically called from a server side application callback for\nALPN or a client side application callback for NPN. In the case of ALPN the list\nof protocols supplied by the client is guaranteed by libssl to never be zero in\nlength. The list of server protocols comes from the application and should never\nnormally be expected to be of zero length. In this case if the\nSSL_select_next_proto function has been called as expected (with the list\nsupplied by the client passed in the client/client_len parameters), then the\napplication will not be vulnerable to this issue. If the application has\naccidentally been configured with a zero length server list, and has\naccidentally passed that zero length server list in the client/client_len\nparameters, and has additionally failed to correctly handle a \"no overlap\"\nresponse (which would normally result in a handshake failure in ALPN) then it\nwill be vulnerable to this problem.\n\nIn the case of NPN, the protocol permits the client to opportunistically select\na protocol when there is no overlap. OpenSSL returns the first client protocol\nin the no overlap case in support of this. The list of client protocols comes\nfrom the application and should never normally be expected to be of zero length.\nHowever if the SSL_select_next_proto function is accidentally called with a\nclient_len of 0 then an invalid memory pointer will be returned instead. If the\napplication uses this output as the opportunistic protocol then the loss of\nconfidentiality will occur.\n\nThis issue has been assessed as Low severity because applications are most\nlikely to be vulnerable if they are using NPN instead of ALPN - but NPN is not\nwidely used. It also requires an application configuration or programming error.\nFinally, this issue would not typically be under attacker control making active\nexploitation unlikely.\n\nThe FIPS modules in 3.3, 3.2, 3.1 and 3.0 are not affected by this issue.\n\nDue to the low severity of this issue we are not issuing new releases of\nOpenSSL at this time. The fix will be included in the next releases when they\nbecome available.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-5535"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/06/27/1"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/06/28/4"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/4ada436a1946cbb24db5ab4ca082b69c1bc10f37"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/99fb785a5f85315b95288921a321a935ea29a51e"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/cf6f91f6121f4db167405db2f0de410a456f260c"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e86ac436f0bd54d4517745483e2315650fae7b2c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/9947251413065a05189a63c9b7a6c1d4e224c21c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/b78ec0824da857223486660177d3b1f255c65d87"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240712-0005/"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240627.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/06/27/1"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/06/28/4"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/08/15/1"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/4ada436a1946cbb24db5ab4ca082b69c1bc10f37"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/99fb785a5f85315b95288921a321a935ea29a51e"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/cf6f91f6121f4db167405db2f0de410a456f260c"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e86ac436f0bd54d4517745483e2315650fae7b2c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/9947251413065a05189a63c9b7a6c1d4e224c21c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/b78ec0824da857223486660177d3b1f255c65d87"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240712-0005/"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240627.txt"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:60b17f93-95e0-4a55-a0a6-051b0497107f",
+      "id": "CVE-2024-4741",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-4741",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 7.5,
+          "severity": "high",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        }
+      ],
+      "description": "Issue summary: Calling the OpenSSL API function SSL_free_buffers may cause\nmemory to be accessed that was previously freed in some situations\n\nImpact summary: A use after free can have a range of potential consequences such\nas the corruption of valid data, crashes or execution of arbitrary code.\nHowever, only applications that directly call the SSL_free_buffers function are\naffected by this issue. Applications that do not call this function are not\nvulnerable. Our investigations indicate that this function is rarely used by\napplications.\n\nThe SSL_free_buffers function is used to free the internal OpenSSL buffer used\nwhen processing an incoming record from the network. The call is only expected\nto succeed if the buffer is not currently in use. However, two scenarios have\nbeen identified where the buffer is freed even when still in use.\n\nThe first scenario occurs where a record header has been received from the\nnetwork and processed by OpenSSL, but the full record body has not yet arrived.\nIn this case calling SSL_free_buffers will succeed even though a record has only\nbeen partially processed and the buffer is still in use.\n\nThe second scenario occurs where a full record containing application data has\nbeen received and processed by OpenSSL but the application has only read part of\nthis data. Again a call to SSL_free_buffers will succeed even though the buffer\nis still in use.\n\nWhile these scenarios could occur accidentally during normal operation a\nmalicious attacker could attempt to engineer a stituation where this occurs.\nWe are not aware of this issue being actively exploited.\n\nThe FIPS modules in 3.3, 3.2, 3.1 and 3.0 are not affected by this issue.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-4741"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/704f725b96aa373ee45ecfb23f6abfe8be8d9177"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/b3f0eb0a295f58f16ba43ba99dad70d4ee5c437d"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/c88c3de51020c37e8706bf7a682a162593053aac"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e5093133c35ca82874ad83697af76f4b0f7e3bd8"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/f7a045f3143fc6da2ee66bf52d8df04829590dd4"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240528.txt"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:f5ee86f0-1364-47a3-85af-6925cbb3d1a3",
+      "id": "CVE-2024-0727",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-0727",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 5.5,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H"
+        }
+      ],
+      "description": "Issue summary: Processing a maliciously formatted PKCS12 file may lead OpenSSL\nto crash leading to a potential Denial of Service attack\n\nImpact summary: Applications loading files in the PKCS12 format from untrusted\nsources might terminate abruptly.\n\nA file in PKCS12 format can contain certificates and keys and may come from an\nuntrusted source. The PKCS12 specification allows certain fields to be NULL, but\nOpenSSL does not correctly check for this case. This can lead to a NULL pointer\ndereference that results in OpenSSL crashing. If an application processes PKCS12\nfiles from an untrusted source using the OpenSSL APIs then that application will\nbe vulnerable to this issue.\n\nOpenSSL APIs that are vulnerable to this are: PKCS12_parse(),\nPKCS12_unpack_p7data(), PKCS12_unpack_p7encdata(), PKCS12_unpack_authsafes()\nand PKCS12_newpass().\n\nWe have also fixed a similar issue in SMIME_write_PKCS7(). However since this\nfunction is related to writing data we do not consider it security significant.\n\nThe FIPS modules in 3.2, 3.1 and 3.0 are not affected by this issue.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-0727"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/09df4395b5071217b76dc7d3d2e630eb8c5a79c2"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/775acfdbd0c6af9ac855f34969cdab0c0c90844a"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/d135eeab8a5dbf72b3da5240bab9ddb7678dbd2c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/03b3941d60c4bce58fab69a0c22377ab439bc0e8"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/aebaa5883e31122b404e450732dc833dc9dee539"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240125.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/03/11/1"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/09df4395b5071217b76dc7d3d2e630eb8c5a79c2"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/775acfdbd0c6af9ac855f34969cdab0c0c90844a"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/d135eeab8a5dbf72b3da5240bab9ddb7678dbd2c"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/03b3941d60c4bce58fab69a0c22377ab439bc0e8"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/aebaa5883e31122b404e450732dc833dc9dee539"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240208-0006/"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240125.txt"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:66d5e807-95c6-4eee-927a-c4a7c9337e49",
+      "id": "CVE-2024-13176",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-13176",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 4.1,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:P/AC:L/PR:L/UI:N/S:U/C:L/I:L/A:L"
+        }
+      ],
+      "description": "Issue summary: A timing side-channel which could potentially allow recovering\nthe private key exists in the ECDSA signature computation.\n\nImpact summary: A timing side-channel in ECDSA signature computations\ncould allow recovering the private key by an attacker. However, measuring\nthe timing would require either local access to the signing application or\na very fast network connection with low latency.\n\nThere is a timing signal of around 300 nanoseconds when the top word of\nthe inverted ECDSA nonce value is zero. This can happen with significant\nprobability only for some of the supported elliptic curves. In particular\nthe NIST P-521 curve is affected. To be able to measure this leak, the attacker\nprocess must either be located in the same physical computer or must\nhave a very fast network connection with low latency. For that reason\nthe severity of this vulnerability is Low.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-13176"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/07272b05b04836a762b4baa874958af51d513844"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/2af62e74fb59bc469506bc37eb2990ea408d9467"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/392dcb336405a0c94486aa6655057f59fd3a0902"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/4b1cb94a734a7d4ec363ac0a215a25c181e11f65"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/77c608f4c8857e63e98e66444e2e761c9627916f"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/0d5fd1ab987f7571e2c955d8d8b638fc0fb54ded"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/a2639000db19878d5d89586ae7b725080592ae86"
+        },
+        {
+          "url": "https://openssl-library.org/news/secadv/20250120.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2025/01/20/2"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20250124-0005/"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:4274400a-313e-4dda-8752-6a71c28e3e6b",
+      "id": "CVE-2024-9143",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-9143",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 4.3,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:L/A:N"
+        }
+      ],
+      "description": "Issue summary: Use of the low-level GF(2^m) elliptic curve APIs with untrusted\nexplicit values for the field polynomial can lead to out-of-bounds memory reads\nor writes.\n\nImpact summary: Out of bound memory writes can lead to an application crash or\neven a possibility of a remote code execution, however, in all the protocols\ninvolving Elliptic Curve Cryptography that we're aware of, either only \"named\ncurves\" are supported, or, if explicit curve parameters are supported, they\nspecify an X9.62 encoding of binary (GF(2^m)) curves that can't represent\nproblematic input values. Thus the likelihood of existence of a vulnerable\napplication is low.\n\nIn particular, the X9.62 encoding is used for ECC keys in X.509 certificates,\nso problematic inputs cannot occur in the context of processing X.509\ncertificates.  Any problematic use-cases would have to be using an \"exotic\"\ncurve encoding.\n\nThe affected APIs include: EC_GROUP_new_curve_GF2m(), EC_GROUP_new_from_params(),\nand various supporting BN_GF2m_*() functions.\n\nApplications working with \"exotic\" explicit binary (GF(2^m)) curve parameters,\nthat make it possible to represent invalid field polynomials with a zero\nconstant term, via the above or similar APIs, may terminate abruptly as a\nresult of reading or writing outside of array bounds.  Remote code execution\ncannot easily be ruled out.\n\nThe FIPS modules in 3.3, 3.2, 3.1 and 3.0 are not affected by this issue.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-9143"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/72ae83ad214d2eef262461365a1975707f862712"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/bc7e04d7c8d509fb78fc0e285aa948fb0da04700"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/c0d3e4d32d2805f49bec30547f225bc4d092e1f4"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/fdf6723362ca51bd883295efe206cb5b1cfa5154"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/8efc0cbaa8ebba8e116f7b81a876a4123594d86a"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/9d576994cec2b7aa37a91740ea7e680810957e41"
+        },
+        {
+          "url": "https://openssl-library.org/news/secadv/20241016.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/10/16/1"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/10/23/1"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/10/24/1"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20241101-0001/"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:35958b9a-05aa-4a6c-ba45-751732902b25",
+      "id": "CVE-2024-2511",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2024-2511",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "severity": "unknown",
+          "method": "other"
+        }
+      ],
+      "description": "Issue summary: Some non-default TLS server configurations can cause unbounded\nmemory growth when processing TLSv1.3 sessions\n\nImpact summary: An attacker may exploit certain server configurations to trigger\nunbounded memory growth that would lead to a Denial of Service\n\nThis problem can occur in TLSv1.3 if the non-default SSL_OP_NO_TICKET option is\nbeing used (but not if early_data support is also configured and the default\nanti-replay protection is in use). In this case, under certain conditions, the\nsession cache can get into an incorrect state and it will fail to flush properly\nas it fills. The session cache will continue to grow in an unbounded manner. A\nmalicious client could deliberately create the scenario for this failure to\nforce a Denial of Service. It may also happen by accident in normal operation.\n\nThis issue only affects TLS servers supporting TLSv1.3. It does not affect TLS\nclients.\n\nThe FIPS modules in 3.2, 3.1 and 3.0 are not affected by this issue. OpenSSL\n1.0.2 is also not affected by this issue.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-2511"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/7e4d731b1c07201ad9374c1cd9ac5263bdf35bce"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/b52867a9f618bb955bed2a3ce3db4d4f97ed8e5d"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e9d7083e241670332e0443da0f0d4ffb52829f08"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/5f8d25770ae6437db119dfc951e207271a326640"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240408.txt"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/04/08/5"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/7e4d731b1c07201ad9374c1cd9ac5263bdf35bce"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/b52867a9f618bb955bed2a3ce3db4d4f97ed8e5d"
+        },
+        {
+          "url": "https://github.com/openssl/openssl/commit/e9d7083e241670332e0443da0f0d4ffb52829f08"
+        },
+        {
+          "url": "https://github.openssl.org/openssl/extended-releases/commit/5f8d25770ae6437db119dfc951e207271a326640"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240503-0013/"
+        },
+        {
+          "url": "https://www.openssl.org/news/secadv/20240408.txt"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/libssl1.1@1.1.1w-r1?arch=x86_64&distro=alpine-3.16.9&package-id=c2f28bce3e6cf109&upstream=openssl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:cf6d4b2a-80c7-43b9-ade7-74342ace68dd",
+      "id": "CVE-2025-26519",
+      "source": {
+        "name": "alpine-distro-alpine-3.16",
+        "url": "alpine"
+      },
+      "references": [
+        {
+          "id": "CVE-2025-26519",
+          "source": {
+            "name": "alpine-distro-alpine-3.16",
+            "url": "alpine"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 8.1,
+          "severity": "high",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:L"
+        }
+      ],
+      "advisories": [
+        {
+          "url": "https://www.cve.org/CVERecord?id=CVE-2025-26519"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/musl@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=746c524ed42f40d4"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:900cc8ed-f68e-408c-8af7-54d6405736c6",
+      "id": "CVE-2025-26519",
+      "source": {
+        "name": "alpine-distro-alpine-3.16",
+        "url": "alpine"
+      },
+      "references": [
+        {
+          "id": "CVE-2025-26519",
+          "source": {
+            "name": "alpine-distro-alpine-3.16",
+            "url": "alpine"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 8.1,
+          "severity": "high",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:L"
+        }
+      ],
+      "advisories": [
+        {
+          "url": "https://www.cve.org/CVERecord?id=CVE-2025-26519"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/musl-utils@1.2.3-r3?arch=x86_64&distro=alpine-3.16.9&package-id=9e4536979188ef6a&upstream=musl"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:912e1d33-de20-4c04-b599-0b84bfeb46f0",
+      "id": "CVE-2022-48174",
+      "source": {
+        "name": "nvd-cpe",
+        "url": "nvd"
+      },
+      "references": [
+        {
+          "id": "CVE-2022-48174",
+          "source": {
+            "name": "nvd-cpe",
+            "url": "nvd"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 9.8,
+          "severity": "critical",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        }
+      ],
+      "description": "There is a stack overflow vulnerability in ash.c:6030 in busybox before 1.35. In the environment of Internet of Vehicles, this vulnerability can be executed from command to arbitrary code execution.",
+      "advisories": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-48174"
+        },
+        {
+          "url": "https://bugs.busybox.net/show_bug.cgi?id=15216"
+        },
+        {
+          "url": "https://bugs.busybox.net/show_bug.cgi?id=15216"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20241129-0001/"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/ssl_client@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=70873d0159fd7545&upstream=busybox"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:c178cbe5-1052-4e94-8e71-311a3e9e7639",
+      "id": "CVE-2023-42366",
+      "source": {
+        "name": "alpine-distro-alpine-3.16",
+        "url": "alpine"
+      },
+      "references": [
+        {
+          "id": "CVE-2023-42366",
+          "source": {
+            "name": "alpine-distro-alpine-3.16",
+            "url": "alpine"
+          }
+        }
+      ],
+      "ratings": [
+        {
+          "score": 5.5,
+          "severity": "medium",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H"
+        }
+      ],
+      "advisories": [
+        {
+          "url": "https://www.cve.org/CVERecord?id=CVE-2023-42366"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:apk/alpine/ssl_client@1.35.0-r17?arch=x86_64&distro=alpine-3.16.9&package-id=70873d0159fd7545&upstream=busybox"
+        }
+      ]
+    }
+  ]
+}

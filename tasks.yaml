@@ -44,7 +44,6 @@ tasks:
   - name: e2e
     description: run all e2e tests
     actions:
-      - task: build-all
       - cmd: go test ./... -failfast -v -timeout 5m
         dir: src/test/e2e
 

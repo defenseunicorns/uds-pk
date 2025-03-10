@@ -76,67 +76,59 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 		return "", err
 	}
 
-	_, err = outputBuilder.WriteString(fmt.Sprintf("New vulnerabilities: %d\n", newCount))
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString(fmt.Sprintf("Fixed vulnerabilities: %d\n", fixedCount))
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString(fmt.Sprintf("Existing vulnerabilities: %d\n\n", existingCount))
-	if err != nil {
-		return "", err
-	}
+	outputBuilder.WriteString(fmt.Sprintf("New vulnerabilities: %d\n", newCount))
+	outputBuilder.WriteString(fmt.Sprintf("Fixed vulnerabilities: %d\n", fixedCount))
+	outputBuilder.WriteString(fmt.Sprintf("Existing vulnerabilities: %d\n\n", existingCount))
 
 	newVulnTableString := &strings.Builder{}
 	fixedVulnTableString := &strings.Builder{}
 	existingVulnTableString := &strings.Builder{}
 
-	newVulnTable := tablewriter.NewWriter(newVulnTableString)
-	fixedVulnTable := tablewriter.NewWriter(fixedVulnTableString)
-	existingVulnTable := tablewriter.NewWriter(existingVulnTableString)
+	newVulnTable, fixedVulnTable, existingVulnTable := setupTables(newVulnTableString, fixedVulnTableString, existingVulnTableString)
 
-	newVulnTable.SetHeader([]string{"ID", "Severity", "URL"})
-	fixedVulnTable.SetHeader([]string{"ID", "Severity", "URL"})
-	existingVulnTable.SetHeader([]string{"ID", "Severity", "URL"})
-
-	newVulnTable.SetCenterSeparator("|")
-	fixedVulnTable.SetCenterSeparator("|")
-	existingVulnTable.SetCenterSeparator("|")
-
-	newVulnTable.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	fixedVulnTable.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-	existingVulnTable.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-
-	allVulns := []cyclonedx.Vulnerability{}
-	allVulns = append(allVulns, *baseScan.Vulnerabilities...)
-	allVulns = append(allVulns, *newScan.Vulnerabilities...)
-
-	newVulnRows := [][]string{}
-	fixedVulnRows := [][]string{}
-	existingVulnRows := [][]string{}
-
-	for vulnUID, status := range vulnStatus {
-		vuln, err := getVulnByUID(vulnUID, allVulns)
-		if err != nil {
-			return "", err
-		}
-		row := []string{
-			vuln.ID,
-			string((*vuln.Ratings)[0].Severity),
-			vuln.Source.URL,
-		}
-		switch status {
-		case 0:
-			newVulnRows = append(newVulnRows, row)
-		case 1:
-			existingVulnRows = append(existingVulnRows, row)
-		case 2:
-			fixedVulnRows = append(fixedVulnRows, row)
-		}
+	newVulnRows, fixedVulnRows, existingVulnRows, err := generateTableRows(*baseScan.Vulnerabilities, *newScan.Vulnerabilities, vulnStatus)
+	if err != nil {
+		return "", err
 	}
 
+	newVulnRows = sortRows(newVulnRows)
+	fixedVulnRows = sortRows(fixedVulnRows)
+	existingVulnRows = sortRows(existingVulnRows)
+
+	newVulnTable.AppendBulk(newVulnRows)
+	fixedVulnTable.AppendBulk(fixedVulnRows)
+	existingVulnTable.AppendBulk(existingVulnRows)
+
+	outputBuilder.WriteString("<details>\n")
+	outputBuilder.WriteString("<summary>New vulnerabilities</summary>\n\n")
+
+	newVulnTable.Render()
+
+	outputBuilder.WriteString(newVulnTableString.String())
+	outputBuilder.WriteString("\n</details>\n")
+
+	outputBuilder.WriteString("<details>\n")
+	outputBuilder.WriteString("<summary>Fixed vulnerabilities</summary>\n\n")
+
+	fixedVulnTable.Render()
+
+	outputBuilder.WriteString(fixedVulnTableString.String())
+	outputBuilder.WriteString("\n</details>\n")
+
+	outputBuilder.WriteString("<details>\n")
+	outputBuilder.WriteString("<summary>Existing vulnerabilities</summary>\n\n")
+
+	existingVulnTable.Render()
+
+	outputBuilder.WriteString(existingVulnTableString.String())
+	outputBuilder.WriteString("\n</details>\n")
+
+	outputBuilder.WriteString("\n---")
+
+	return outputBuilder.String(), nil
+}
+
+func sortRows(rows [][]string) [][]string {
 	orderMap := map[string]int{
 		"critical": 0,
 		"high":     1,
@@ -160,79 +152,60 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 		return rank1 < rank2
 	}
 
-	sort.Slice(newVulnRows, func(i, j int) bool {
-		return sortFunc(i, j, newVulnRows)
-	})
-	sort.Slice(fixedVulnRows, func(i, j int) bool {
-		return sortFunc(i, j, fixedVulnRows)
-	})
-	sort.Slice(existingVulnRows, func(i, j int) bool {
-		return sortFunc(i, j, existingVulnRows)
+	sort.Slice(rows, func(i, j int) bool {
+		return sortFunc(i, j, rows)
 	})
 
-	newVulnTable.AppendBulk(newVulnRows)
-	fixedVulnTable.AppendBulk(fixedVulnRows)
-	existingVulnTable.AppendBulk(existingVulnRows)
+	return rows
+}
 
-	_, err = outputBuilder.WriteString("<details>\n")
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString("<summary>New vulnerabilities</summary>\n\n")
-	if err != nil {
-		return "", err
-	}
-	newVulnTable.Render()
-	_, err = outputBuilder.WriteString(newVulnTableString.String())
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString("\n</details>\n")
-	if err != nil {
-		return "", err
+func setupTables(newVulnTableString *strings.Builder, fixedVulnTableString *strings.Builder, existingVulnTableString *strings.Builder) (newVulnTable *tablewriter.Table, fixedVulnTable *tablewriter.Table, existingVulnTable *tablewriter.Table) {
+	newVulnTable = tablewriter.NewWriter(newVulnTableString)
+	fixedVulnTable = tablewriter.NewWriter(fixedVulnTableString)
+	existingVulnTable = tablewriter.NewWriter(existingVulnTableString)
+
+	tables := []*tablewriter.Table{newVulnTable, fixedVulnTable, existingVulnTable}
+
+	for _, table := range tables {
+		table.SetHeader([]string{"ID", "Severity", "URL", "Advisory List"})
+		table.SetCenterSeparator("|")
+		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+		table.SetColWidth(10000)
 	}
 
-	_, err = outputBuilder.WriteString("<details>\n")
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString("<summary>Fixed vulnerabilities</summary>\n\n")
-	if err != nil {
-		return "", err
-	}
-	fixedVulnTable.Render()
-	_, err = outputBuilder.WriteString(fixedVulnTableString.String())
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString("\n</details>\n")
-	if err != nil {
-		return "", err
-	}
+	return newVulnTable, fixedVulnTable, existingVulnTable
+}
 
-	_, err = outputBuilder.WriteString("<details>\n")
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString("<summary>Existing vulnerabilities</summary>\n\n")
-	if err != nil {
-		return "", err
-	}
-	existingVulnTable.Render()
-	_, err = outputBuilder.WriteString(existingVulnTableString.String())
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString("\n</details>\n")
-	if err != nil {
-		return "", err
-	}
-	_, err = outputBuilder.WriteString("\n---")
-	if err != nil {
-		return "", err
-	}
+func generateTableRows(baseVulns []cyclonedx.Vulnerability, newVulns []cyclonedx.Vulnerability, vulnStatus map[string]int) (newVulnRows [][]string, fixedVulnRows [][]string, existingVulnRows [][]string, err error) {
+	allVulns := []cyclonedx.Vulnerability{}
+	allVulns = append(allVulns, baseVulns...)
+	allVulns = append(allVulns, newVulns...)
 
-	return outputBuilder.String(), nil
+	for vulnUID, status := range vulnStatus {
+		vuln, err := getVulnByUID(vulnUID, allVulns)
+		if err != nil {
+			return newVulnRows, fixedVulnRows, existingVulnRows, err
+		}
+		var advisoryURLs []string
+		for _, advisory := range *vuln.Advisories {
+			advisoryURLs = append(advisoryURLs, advisory.URL)
+		}
+		row := []string{
+			vuln.ID,
+			string((*vuln.Ratings)[0].Severity),
+			vuln.Source.URL,
+			strings.Join(advisoryURLs, ", "),
+		}
+		switch status {
+		case 0:
+			newVulnRows = append(newVulnRows, row)
+		case 1:
+			existingVulnRows = append(existingVulnRows, row)
+		case 2:
+			fixedVulnRows = append(fixedVulnRows, row)
+		}
+	}
+	return newVulnRows, fixedVulnRows, existingVulnRows, nil
 }
 
 func loadScanJson(filename string) (cyclonedx.BOM, error) {
@@ -248,7 +221,8 @@ func loadScanJson(filename string) (cyclonedx.BOM, error) {
 }
 
 func getUniqueVulnId(vuln cyclonedx.Vulnerability) string {
-	return fmt.Sprintf("%s|%s", vuln.ID, (*vuln.Affects)[0].Ref)
+	pkgPath := strings.Split((*vuln.Affects)[0].Ref, "@")[0]
+	return fmt.Sprintf("%s|%s", vuln.ID, pkgPath)
 }
 
 func getVulnByUID(uid string, vulns []cyclonedx.Vulnerability) (cyclonedx.Vulnerability, error) {
@@ -257,5 +231,5 @@ func getVulnByUID(uid string, vulns []cyclonedx.Vulnerability) (cyclonedx.Vulner
 			return vuln, nil
 		}
 	}
-	return cyclonedx.Vulnerability{}, fmt.Errorf("Vulnerability not found: %s", uid)
+	return cyclonedx.Vulnerability{}, fmt.Errorf("vulnerability not found: %s", uid)
 }

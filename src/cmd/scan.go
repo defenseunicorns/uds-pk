@@ -5,10 +5,13 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/defenseunicorns/uds-pk/src/compare"
 	"github.com/spf13/cobra"
 )
+
+var allowDifferentImages bool
 
 var compareCmd = &cobra.Command{
 	Use:   "compare-scans BASE_SCAN NEW_SCAN",
@@ -21,7 +24,11 @@ var compareCmd = &cobra.Command{
 		}
 
 		if baseScan.Metadata.Component.Name != newScan.Metadata.Component.Name {
-			return fmt.Errorf("These scans are not for the same image: %s != %s", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)
+			if !allowDifferentImages {
+				return fmt.Errorf("these scans are not for the same image: %s != %s", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)
+			} else {
+				fmt.Fprintf(os.Stderr, "Warning: these scans are not for the same image: %s != %s\n", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)
+			}
 		}
 
 		vulnStatus := compare.GenerateComparisonMap(baseScan, newScan)
@@ -36,22 +43,10 @@ var compareCmd = &cobra.Command{
 	},
 }
 
-// func loadScanJson(filename string) models.Document {
-// 	data, err := os.ReadFile(filename)
-// 	if err != nil {
-// 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
-// 		os.Exit(1)
-// 	}
-// 	var scan models.Document
-// 	if err := json.Unmarshal(data, &scan); err != nil {
-// 		fmt.Fprintf(os.Stderr, "Error parsing JSON: %v\n", err)
-// 		os.Exit(1)
-// 	}
-// 	return scan
-// }
-
 func init() {
 	rootCmd.AddCommand(compareCmd)
+
+	compareCmd.Flags().BoolVarP(&allowDifferentImages, "allow-different-images", "d", false, "Allow comparing scans for different images")
 
 	// Here you will define your flags and configuration settings.
 
