@@ -34,3 +34,5 @@ jobs:
         uses: ./.github/actions/golang
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
+        with:
+          args: --timeout=0
