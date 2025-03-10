@@ -13,7 +13,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	github "github.com/google/go-github/v66/github"
+	github "github.com/google/go-github/v69/github"
 	"github.com/zarf-dev/zarf/src/pkg/message"
 )
 
