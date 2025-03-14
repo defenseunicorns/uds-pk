@@ -125,7 +125,7 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	outputBuilder.WriteString(existingVulnTableString.String())
 	outputBuilder.WriteString("\n</details>\n")
 
-	outputBuilder.WriteString("\n---")
+	outputBuilder.WriteString("\n---\n")
 
 	return outputBuilder.String(), nil
 }
