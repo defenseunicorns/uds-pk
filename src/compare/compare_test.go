@@ -354,7 +354,7 @@ func TestGenerateComparisonMarkdown_Success(t *testing.T) {
 	if !strings.Contains(markdown, "Existing vulnerabilities: 1") {
 		t.Errorf("Expected markdown to contain existing vulnerabilities count '1'")
 	}
-	if !strings.Contains(markdown, "BaseComponent:1.0 -> NewComponent:2.0") {
+	if !strings.Contains(markdown, "BaseComponent `1.0` -> `2.0`") {
 		t.Errorf("Expected markdown to contain component names and versions")
 	}
 	if !strings.Contains(markdown, "<summary>New vulnerabilities</summary>") {

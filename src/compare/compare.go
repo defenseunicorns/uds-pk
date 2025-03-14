@@ -68,10 +68,9 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 
 	_, err := outputBuilder.WriteString(
 		fmt.Sprintf(
-			"### %s:%s -> %s:%s\n\n",
+			"### %s `%s` -> `%s`\n\n",
 			baseScan.Metadata.Component.Name,
 			baseScan.Metadata.Component.Version,
-			newScan.Metadata.Component.Name,
 			newScan.Metadata.Component.Version,
 		),
 	)
