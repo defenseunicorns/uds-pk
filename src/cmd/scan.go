@@ -23,6 +23,9 @@ var compareCmd = &cobra.Command{
 			return err
 		}
 
+		baseScan.Metadata.Component.Name = compare.TrimDockerRegistryPrefixes(baseScan.Metadata.Component.Name)
+		newScan.Metadata.Component.Name = compare.TrimDockerRegistryPrefixes(newScan.Metadata.Component.Name)
+
 		if baseScan.Metadata.Component.Name != newScan.Metadata.Component.Name {
 			if !allowDifferentImages {
 				return fmt.Errorf("these scans are not for the same image: %s != %s", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)

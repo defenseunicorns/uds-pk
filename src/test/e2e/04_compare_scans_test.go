@@ -19,14 +19,35 @@ func TestCompareScansCommand(t *testing.T) {
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "compare-scans", "scans/alpine_3.16.json", "scans/alpine_3.17.json")
 	require.NoError(t, err, stdout, stderr)
 
-	expecteHeader := "### alpine:3.16 -> alpine:3.17"
+	expectedHeader := "### alpine `3.16` -> `3.17`"
 
 	expectedNew := "New vulnerabilities: 5"
 	expectedFixed := "Fixed vulnerabilities: 14"
 	expectedExisting := "Existing vulnerabilities: 4"
 
 
-	assert.Contains(t, stdout, expecteHeader)
+	assert.Contains(t, stdout, expectedHeader)
+	assert.Contains(t, stdout, expectedNew)
+	assert.Contains(t, stdout, expectedFixed)
+	assert.Contains(t, stdout, expectedExisting)
+
+	for _, header := range expectedTableHeaders {
+		assert.Contains(t, stdout, strings.ToUpper(header))
+	}
+}
+
+func TestCompareScansCommandRegistryPrefix(t *testing.T) {
+	stdout, stderr, err := e2e.UDSPKDir("src/test", "compare-scans", "scans/alpine_3.16.json", "scans/docker.io_alpine_3.17.json")
+	require.NoError(t, err, stdout, stderr)
+
+	expectedHeader := "### alpine `3.16` -> `3.17`"
+
+	expectedNew := "New vulnerabilities: 5"
+	expectedFixed := "Fixed vulnerabilities: 14"
+	expectedExisting := "Existing vulnerabilities: 4"
+
+
+	assert.Contains(t, stdout, expectedHeader)
 	assert.Contains(t, stdout, expectedNew)
 	assert.Contains(t, stdout, expectedFixed)
 	assert.Contains(t, stdout, expectedExisting)
@@ -46,7 +67,7 @@ func TestCompareScansCommandAllowDifferentImages(t *testing.T) {
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "compare-scans", "scans/alpine_3.16.json", "scans/busybox.json", "--allow-different-images")
 	require.NoError(t, err, stdout, stderr)
 
-	expectedHeader := "### alpine:3.16 -> busybox:1.36.1"
+	expectedHeader := "### `alpine:3.16` -> `busybox:1.36.1`"
 
 	expectedNew := "New vulnerabilities: 4"
 	expectedFixed := "Fixed vulnerabilities: 18"

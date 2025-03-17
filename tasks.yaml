@@ -38,6 +38,7 @@ tasks:
   - name: test
     description: run all unit and e2e tests
     actions:
+      - task: build-cli-linux-amd
       - task: unit
       - task: e2e
 

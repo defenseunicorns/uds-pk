@@ -69,10 +69,10 @@ var (
 		},
 		Vulnerabilities: &[]cyclonedx.Vulnerability{commonFixedVuln, commonExistVuln},
 	}
-	commonNewScan = cyclonedx.BOM{
+	commonNewBaseScan = cyclonedx.BOM{
 		Metadata: &cyclonedx.Metadata{
 			Component: &cyclonedx.Component{
-				Name:    "NewComponent",
+				Name:    "BaseComponent",
 				Version: "2.0",
 			},
 		},
@@ -339,8 +339,8 @@ func TestSortRows_Empty(t *testing.T) {
 
 func TestGenerateComparisonMarkdown_Success(t *testing.T) {
 	// Use the common BOMs.
-	vulnStatus := GenerateComparisonMap(commonBaseScan, commonNewScan)
-	markdown, err := GenerateComparisonMarkdown(commonBaseScan, commonNewScan, vulnStatus)
+	vulnStatus := GenerateComparisonMap(commonBaseScan, commonNewBaseScan)
+	markdown, err := GenerateComparisonMarkdown(commonBaseScan, commonNewBaseScan, vulnStatus)
 	if err != nil {
 		t.Fatalf("Expected no error, got: %v", err)
 	}

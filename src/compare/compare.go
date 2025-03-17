@@ -66,16 +66,25 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 
 	var outputBuilder strings.Builder
 
-	_, err := outputBuilder.WriteString(
-		fmt.Sprintf(
-			"### %s `%s` -> `%s`\n\n",
-			baseScan.Metadata.Component.Name,
-			baseScan.Metadata.Component.Version,
-			newScan.Metadata.Component.Version,
-		),
-	)
-	if err != nil {
-		return "", err
+	if newScan.Metadata.Component.Name == baseScan.Metadata.Component.Name {
+		outputBuilder.WriteString(
+			fmt.Sprintf(
+				"### %s `%s` -> `%s`\n\n",
+				baseScan.Metadata.Component.Name,
+				baseScan.Metadata.Component.Version,
+				newScan.Metadata.Component.Version,
+			),
+		)
+	} else {
+		outputBuilder.WriteString(
+			fmt.Sprintf(
+				"### `%s:%s` -> `%s:%s`\n\n",
+				baseScan.Metadata.Component.Name,
+				baseScan.Metadata.Component.Version,
+				newScan.Metadata.Component.Name,
+				newScan.Metadata.Component.Version,
+			),
+		)
 	}
 
 	outputBuilder.WriteString(fmt.Sprintf("New vulnerabilities: %d\n", newCount))
@@ -128,6 +137,17 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	outputBuilder.WriteString("\n---\n")
 
 	return outputBuilder.String(), nil
+}
+
+func TrimDockerRegistryPrefixes(name string) string {
+	name = strings.TrimPrefix(name, "docker.io/library/")
+	name = strings.TrimPrefix(name, "docker.io/")
+	name = strings.TrimPrefix(name, "registry.hub.docker.com/library/")
+	name = strings.TrimPrefix(name, "registry.hub.docker.com/")
+	name = strings.TrimPrefix(name, "index.docker.io/library/")
+	name = strings.TrimPrefix(name, "index.docker.io/")
+
+	return name
 }
 
 func sortRows(rows [][]string) [][]string {
