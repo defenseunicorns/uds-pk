@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,13 +26,13 @@ func TestCompareScansCommand(t *testing.T) {
 	expectedExisting := "Existing vulnerabilities: 4"
 
 
-	require.Contains(t, stdout, expecteHeader)
-	require.Contains(t, stdout, expectedNew)
-	require.Contains(t, stdout, expectedFixed)
-	require.Contains(t, stdout, expectedExisting)
+	assert.Contains(t, stdout, expecteHeader)
+	assert.Contains(t, stdout, expectedNew)
+	assert.Contains(t, stdout, expectedFixed)
+	assert.Contains(t, stdout, expectedExisting)
 
 	for _, header := range expectedTableHeaders {
-		require.Contains(t, stdout, strings.ToUpper(header))
+		assert.Contains(t, stdout, strings.ToUpper(header))
 	}
 }
 
@@ -51,12 +52,12 @@ func TestCompareScansCommandAllowDifferentImages(t *testing.T) {
 	expectedFixed := "Fixed vulnerabilities: 18"
 	expectedExisting := "Existing vulnerabilities: 0"
 
-	require.Contains(t, stdout, expectedHeader)
-	require.Contains(t, stdout, expectedNew)
-	require.Contains(t, stdout, expectedFixed)
-	require.Contains(t, stdout, expectedExisting)
+	assert.Contains(t, stdout, expectedHeader)
+	assert.Contains(t, stdout, expectedNew)
+	assert.Contains(t, stdout, expectedFixed)
+	assert.Contains(t, stdout, expectedExisting)
 
 	for _, header := range expectedTableHeaders {
-		require.Contains(t, stdout, strings.ToUpper(header))
+		assert.Contains(t, stdout, strings.ToUpper(header))
 	}
 }

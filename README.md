@@ -61,7 +61,10 @@ flavors:
 
 The `compare-scans` command allows you to compare two grype scans using the cyclonedx-json output format. This can be useful to identify new, existing, and fixed vulnerabilities between two different scans.
 
-### Usage
+> [!NOTE]
+> We prefer the syft format for SBOMs, but grype doesn't output scans in syft, and the native grype format is not useful for vulnerability comparison. The cyclonedx-json format is the best option for this use case but Syft should be used elsewhere.
+
+### `compare-scans` Usage
 
 ```bash
 uds-pk compare-scans BASE_SCAN NEW_SCAN [flags]
@@ -72,7 +75,7 @@ uds-pk compare-scans BASE_SCAN NEW_SCAN [flags]
 
 ### Flags
 
--d, --allow-different-images: Allow comparing scans for different images. By default, the command will error out if the scans are for different images.
+`-d`, `--allow-different-images`: Allow comparing scans for different images. By default, the command will error out if the scans are for different images.
 
 Example
 
@@ -80,7 +83,7 @@ Example
 uds-pk compare-scans base_scan.json new_scan.json
 ```
 
-This command will output a markdown table summarizing the new, existing, and fixed vulnerabilities between the two scans. If the scans are for different images, you can use the --allow-different-images flag to bypass the error:
+This command will output a markdown table summarizing the new, existing, and fixed vulnerabilities between the two scans. If the scans are for different images, you can use the `--allow-different-images` flag to bypass the error:
 
 ```bash
 uds-pk compare-scans base_scan.json new_scan.json --allow-different-images
