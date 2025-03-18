@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -190,7 +191,7 @@ components:
 			t.Fatalf("failed to write test YAML file: %v", err)
 		}
 
-		got, err := getNamespaces(commonZarfYamlPath, rootZarfYamlPath)
+		got, err := utils.GetNamespaces(commonZarfYamlPath, rootZarfYamlPath)
 
 		require.Equal(t, err, nil)
 		require.Equal(t, got, tt.want)

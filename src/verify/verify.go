@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/zarf-dev/zarf/src/pkg/message"
-	"gopkg.in/yaml.v3"
+	syaml "sigs.k8s.io/yaml"
 )
 
 // ==========================================================
@@ -50,20 +49,20 @@ func VerifyBadge(baseDir string) error {
 
 	commonZarfPath := filepath.Join(baseDir, "common/zarf.yaml")
 	rootZarfPath := filepath.Join(baseDir, "zarf.yaml")
-	commonZarfYamlExists := fileExists(commonZarfPath)
+	packageName, err := utils.EvaluateYqToString(".metadata.name", rootZarfPath)
+	commonZarfYamlExists := utils.FileExists(commonZarfPath)
 	codeOwnersPath := filepath.Join(baseDir, "CODEOWNERS")
 	testsDir := filepath.Join(baseDir, "tests")
 	testsYamlPath := filepath.Join(baseDir, "tasks/test.yaml")
 	udsValuesPath := filepath.Join(baseDir, "chart/values.yaml")
-	udsPackagePath := filepath.Join(baseDir, "chart/tempates/uds-package.yaml")
+	udsPackagePath := filepath.Join(baseDir, "chart/templates/uds-package.yaml")
 
-	packageName, err := utils.EvaluateYqToString(".metadata.name", rootZarfPath)
 	if err != nil {
 		message.Warnf("Unable to read package name. %s", err.Error())
 		return err
 	}
 
-	namespaces, err := getNamespaces(commonZarfPath, rootZarfPath)
+	namespaces, err := utils.GetNamespaces(commonZarfPath, rootZarfPath)
 	if len(namespaces) == 0 {
 		message.Warnf("No namespaces found. %s", err.Error())
 		return err
@@ -97,7 +96,7 @@ func VerifyBadge(baseDir string) error {
 	allResults.Merge(results)
 
 	// Check if sso is enabled
-	results = checkKeycloakClient(udsValuesPath, udsPackagePath)
+	results = checkKeycloakClient(udsValuesPath, udsPackagePath, packageName)
 	allResults.Merge(results)
 
 	if len(allResults.Warnings) > 0 {
@@ -123,7 +122,7 @@ func VerifyBadge(baseDir string) error {
 func checkForManifests(zarfYamlFile string) CheckResults {
 	var results CheckResults
 
-	exists, err := atLeastOneExists(".components[] | select(.manifests != null)", zarfYamlFile)
+	exists, err := utils.AtLeastOneExists(".components[] | select(.manifests != null)", zarfYamlFile)
 	if err != nil {
 		results.Errors = append(results.Errors, fmt.Sprintf("Unable to determine if manifests exist in %s", zarfYamlFile))
 	} else {
@@ -145,7 +144,7 @@ func checkForManifests(zarfYamlFile string) CheckResults {
 func checkForFlavors(zarfYamlFile string) CheckResults {
 	var results CheckResults
 
-	exists, err := atLeastOneExists(".components[] | select(.only.flavor != null)", zarfYamlFile)
+	exists, err := utils.AtLeastOneExists(".components[] | select(.only.flavor != null)", zarfYamlFile)
 
 	if err != nil {
 		results.Errors = append(results.Errors, fmt.Sprintf("Unable to determine if flavors are defined in %s", zarfYamlFile))
@@ -174,10 +173,9 @@ func checkCodeOwners(codeOwnersPath string, codeOwnersValues []string) CheckResu
 		fileContent := string(data)
 		lines := strings.Split(fileContent, "\n")
 
-		// Loop over each expected value in the slice.
 		for _, expected := range codeOwnersValues {
 			found := false
-			// Check each line in the file.
+
 			for _, line := range lines {
 				trimmedLine := strings.TrimSpace(line)
 				if strings.Contains(trimmedLine, expected) {
@@ -185,7 +183,7 @@ func checkCodeOwners(codeOwnersPath string, codeOwnersValues []string) CheckResu
 					break
 				}
 			}
-			// Record results based on whether the expected value was found.
+
 			if found {
 				results.Successes = append(results.Successes, fmt.Sprintf("Found: %s", expected))
 			} else {
@@ -218,64 +216,88 @@ func checkForTests(testsPath, yamlPath string) CheckResults {
 	return results
 }
 
-func checkKeycloakClient(valuesPath, udsPackagePath string) CheckResults {
+// check to see if sso is enabled in values.yaml
+// if enabled, verify the clientID and secret name are standardized
+func checkKeycloakClient(valuesPath, udsPackagePath, packageName string) CheckResults {
 	var results CheckResults
 
-	// Define SSOEntry struct to match each item in the sso list
-	type SSOEntry struct {
-		Name     string `yaml:"name"`
-		ClientID string `yaml:"clientId"`
-	}
-
-	// Define Spec struct to hold the sso slice
-	type Spec struct {
-		SSO []SSOEntry `yaml:"sso"`
-	}
-
-	// Define Package struct to represent the entire YAML structure
-	type Package struct {
-		Spec Spec `yaml:"spec"`
-	}
-
-	// Check if sso key exists in values.yaml
-	exists, err := atLeastOneExists(".sso | select(.enabled != null)", valuesPath)
+	// Check if sso key exists in values.yaml.
+	exists, err := utils.AtLeastOneExists(".sso | select(.enabled != null)", valuesPath)
 	if err != nil {
 		results.Errors = append(results.Errors, fmt.Sprintf("Unable to determine if SSO is enabled in %s", valuesPath))
 	}
-
 	enabled, err := utils.EvaluateYqToString(".sso.enabled", valuesPath)
-
 	if err != nil {
 		results.Errors = append(results.Errors, fmt.Sprintf("Unable to determine if SSO is enabled in %s", valuesPath))
 	} else if exists && enabled == "true" {
 		results.Successes = append(results.Successes, fmt.Sprintf("SSO is enabled in %s", valuesPath))
+
+		// if sso is enabled, check for the client id and secret name
+
+		// Define data for template rendering.
+		data := map[string]interface{}{
+			"Values": map[string]interface{}{
+				"sso": map[string]interface{}{
+					"enabled": true,
+				},
+			},
+		}
+
+		// Render the uds-package from the udsPackagePath.
+		renderedBytes, err := utils.RenderTemplate(udsPackagePath, data)
+		if err != nil {
+			results.Errors = append(results.Errors, fmt.Sprintf("Error rendering template from %s: %v", udsPackagePath, err))
+			logResults(results)
+			return results
+		}
+
+		// Define structs to unmarshal the YAML.
+		type SSOEntry struct {
+			Name     string `yaml:"name"`
+			ClientID string `yaml:"clientId"`
+		}
+		type Spec struct {
+			SSO []SSOEntry `yaml:"sso"`
+		}
+		type Package struct {
+			Spec Spec `yaml:"spec"`
+		}
+
+		// Unmarshal the rendered YAML.
+		var pkg Package
+		if err := syaml.Unmarshal(renderedBytes, &pkg); err != nil {
+			results.Errors = append(results.Errors, fmt.Sprintf("Error parsing YAML from %s: %v", udsPackagePath, err))
+			logResults(results)
+			return results
+		}
+
+		// Verify that there is at least one SSO entry.
+		if len(pkg.Spec.SSO) == 0 {
+			results.Errors = append(results.Errors, fmt.Sprintf("SSO is set as enabled, but no 'sso' entries found in %s", udsPackagePath))
+			logResults(results)
+			return results
+		}
+
+		// Validate each SSO entry's ClientID.
+		// Accept if protocol is either "saml" or "oidc".
+		validProtocols := []string{"saml", "oidc"}
+		for _, entry := range pkg.Spec.SSO {
+			match := false
+			for _, prot := range validProtocols {
+				expectedClientID := fmt.Sprintf("uds-package-%s-%s", packageName, prot)
+				if entry.ClientID == expectedClientID {
+					results.Successes = append(results.Successes, fmt.Sprintf("Matching ClientID found for protocol '%s': %s", prot, entry.ClientID))
+					match = true
+					break
+				}
+			}
+			if !match {
+				results.Errors = append(results.Errors, fmt.Sprintf("ClientID in uds-package-%s does not match expected format (uds-package-%s-[saml|oidc])", packageName, packageName))
+			}
+		}
+
 	} else {
 		results.Successes = append(results.Successes, fmt.Sprintf("SSO is not enabled in %s", valuesPath))
-	}
-
-	// Read the YAML file
-	file, err := os.ReadFile(udsPackagePath)
-	fmt.Println(file)
-	if err != nil {
-		fmt.Println("Error reading file:", err)
-	}
-
-	// Unmarshal the YAML content into the Package struct
-	var pkg Package
-	err = yaml.Unmarshal(file, &pkg)
-	if err != nil {
-		fmt.Println("Error parsing YAML:", err)
-	}
-
-	// Check if the sso section exists
-	if len(pkg.Spec.SSO) == 0 {
-		fmt.Println("No 'sso' entries found in 'spec'.")
-	}
-
-	// Iterate over the sso entries and print the name and clientId
-	fmt.Println("SSO Entries:")
-	for _, entry := range pkg.Spec.SSO {
-		fmt.Printf("Name: %s, ClientID: %s\n", entry.Name, entry.ClientID)
 	}
 
 	logResults(results)
@@ -283,9 +305,8 @@ func checkKeycloakClient(valuesPath, udsPackagePath string) CheckResults {
 }
 
 // ==========================================================
-// Logging & Utility Functions
+// Logging
 // ==========================================================
-
 // logResults logs the Errors, Warnings, and Successes from a CheckResults struct using predefined symbols.
 func logResults(results CheckResults) {
 	logMessages(ErrorSymbol, results.Errors)
@@ -298,76 +319,4 @@ func logMessages(prefix rune, messages []string) {
 	for _, m := range messages {
 		message.Infof("%c %s", prefix, m)
 	}
-}
-
-// atLeastOneExists evaluates a YAML query expression against a file and returns true if any result is found,
-// or false along with an error if something goes wrong.
-func atLeastOneExists(expression string, file string) (bool, error) {
-	result, err := utils.EvaluateYqToString(expression, file)
-	if err == nil {
-		return len(result) > 0, nil
-	}
-	return false, nil
-}
-
-// getSliceOfValues runs a YAML query against a file, splits the resulting string by newline,
-// and returns the values as a slice of strings.
-func getSliceOfValues(expression string, file string) ([]string, error) {
-	result, err := utils.EvaluateYqToString(expression, file)
-	if err == nil {
-		if len(result) > 0 {
-			return strings.Split(result, "\n"), nil
-		}
-		return nil, nil
-	}
-	return nil, err
-}
-
-// fileExists checks whether a file exists at the specified path and ensures it is not a directory.
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return !info.IsDir()
-}
-
-// dedupe removes duplicate strings from the provided slice and returns a slice containing only unique values.
-func dedupe(input []string) []string {
-	seen := make(map[string]bool)
-	result := []string{}
-	for _, str := range input {
-		if !seen[str] {
-			seen[str] = true
-			result = append(result, str)
-		}
-	}
-	return result
-}
-
-// getNamespaces extracts namespace values from the common and root Zarf YAML files,
-func getNamespaces(commonZarfPath, rootZarfPath string) ([]string, error) {
-	var namespaces []string
-
-	processPath := func(path string) error {
-		if fileExists(path) {
-			values, err := getSliceOfValues(".components[].charts[].namespace  | select(. != null)", path)
-			if err != nil {
-				message.Infof("Error reading namespaces from %s - %s", path, err)
-				return err
-			}
-			if len(values) > 0 {
-				namespaces = append(namespaces, values...)
-			}
-		}
-		return nil
-	}
-
-	if err := processPath(commonZarfPath); err != nil {
-		message.Infof("Continuing despite error with %s", commonZarfPath)
-	}
-	err := processPath(rootZarfPath)
-	namespaces = dedupe(namespaces)
-	sort.Strings(namespaces)
-	return namespaces, err
 }

@@ -4,11 +4,15 @@
 package utils
 
 import (
+	"bytes"
+	"fmt"
+	"html/template"
 	"os"
 	"path/filepath"
 
 	"github.com/defenseunicorns/uds-pk/src/types"
 	goyaml "github.com/goccy/go-yaml"
+	syaml "sigs.k8s.io/yaml"
 )
 
 func LoadReleaseConfig(dir string) (types.ReleaseConfig, error) {
@@ -43,4 +47,31 @@ func UpdateYaml(path string, srcVar interface{}) error {
 	}
 
 	return os.WriteFile(path, data, yamlInfo.Mode())
+}
+
+// converts interface to yaml
+func ToYaml(v interface{}) (string, error) {
+	b, err := syaml.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+// renderTemplate reads the file at filePath, registers custom functions,
+// and executes the template with the provided data.
+func RenderTemplate(filePath string, data interface{}) ([]byte, error) {
+	tmpl, err := template.New(filepath.Base(filePath)).Funcs(template.FuncMap{
+		"toYaml":  ToYaml,
+		"nindent": Nindent,
+	}).ParseFiles(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("parsing template: %w", err)
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return nil, fmt.Errorf("executing template: %w", err)
+	}
+	return buf.Bytes(), nil
 }
