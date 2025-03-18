@@ -18,7 +18,6 @@ var verifyCommand = &cobra.Command{
 	Short:   "Run Made for UDS badge verification",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := badgeVerify.VerifyBadge(baseDir)
-
 		if err != nil {
 			cmd.SilenceUsage = true
 			message.WarnErr(err, "Errors occurred while running badge verifications.")
