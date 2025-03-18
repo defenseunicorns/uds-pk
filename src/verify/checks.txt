@@ -1,0 +1,8 @@
+The following checks are currently implemented in verify.go
+
+- Check for manifests to be present
+- Check for flavors to be present
+- Check for proper codeowners
+- Check for tests dir and tasks/test.yaml to be present
+- Check if SSO is enabled
+
