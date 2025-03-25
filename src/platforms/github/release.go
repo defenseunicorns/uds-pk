@@ -13,7 +13,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	github "github.com/google/go-github/v66/github"
+	github "github.com/google/go-github/v69/github"
 	"github.com/zarf-dev/zarf/src/pkg/message"
 )
 
@@ -47,10 +47,10 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
 
 	// Create the release
 	release := &github.RepositoryRelease{
-		TagName:              github.String(tagName),
-		Name:                 github.String(releaseName),
-		Body:                 github.String(releaseName), //TODO @corang release notes
-		GenerateReleaseNotes: github.Bool(true),
+		TagName:              github.Ptr(tagName),
+		Name:                 github.Ptr(releaseName),
+		Body:                 github.Ptr(releaseName), //TODO @corang release notes
+		GenerateReleaseNotes: github.Ptr(true),
 	}
 
 	message.Infof("Creating release %s-%s\n", flavor.Version, flavor.Name)
@@ -66,15 +66,15 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
 
 func createGitHubTag(tagName string, releaseName string, hash string) *github.Tag {
 	tag := &github.Tag{
-		Tag:     github.String(tagName),
-		Message: github.String(releaseName),
+		Tag:     github.Ptr(tagName),
+		Message: github.Ptr(releaseName),
 		Object: &github.GitObject{
-			SHA:  github.String(hash),
-			Type: github.String("commit"),
+			SHA:  github.Ptr(hash),
+			Type: github.Ptr("commit"),
 		},
 		Tagger: &github.CommitAuthor{
-			Name:  github.String(os.Getenv("GITHUB_ACTOR")),
-			Email: github.String(os.Getenv("GITHUB_ACTOR") + "@users.noreply.github.com"),
+			Name:  github.Ptr(os.Getenv("GITHUB_ACTOR")),
+			Email: github.Ptr(os.Getenv("GITHUB_ACTOR") + "@users.noreply.github.com"),
 			Date:  &github.Timestamp{Time: time.Now()},
 		},
 	}

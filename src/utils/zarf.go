@@ -4,7 +4,7 @@
 package utils
 
 import (
-	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
+	zarf "github.com/zarf-dev/zarf/src/api/v1beta1"
 )
 
 func GetPackageName() (string, error) {

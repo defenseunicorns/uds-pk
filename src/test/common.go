@@ -5,9 +5,6 @@ package test
 
 import (
 	"context"
-	"fmt"
-	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,7 +14,7 @@ import (
 	uds "github.com/defenseunicorns/uds-cli/src/types"
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"
-	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
+	zarf "github.com/zarf-dev/zarf/src/api/v1beta1"
 	"github.com/zarf-dev/zarf/src/pkg/utils/exec"
 )
 
@@ -142,38 +139,6 @@ func (e2e *UDSPKE2ETest) GetUdsVersion(t *testing.T) string {
 	stdOut, stdErr, err := e2e.UDSPK("version")
 	require.NoError(t, err, stdOut, stdErr)
 	return strings.Trim(stdOut, "\n")
-}
-
-func downloadFile(url string, outputDir string) error {
-	response, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", response.StatusCode)
-	}
-
-	if err := os.MkdirAll(outputDir, 0o755); err != nil {
-		return err
-	}
-
-	outputFileName := filepath.Base(url)
-	outputFilePath := filepath.Join(outputDir, outputFileName)
-
-	outputFile, err := os.Create(outputFilePath)
-	if err != nil {
-		return err
-	}
-	defer outputFile.Close()
-
-	_, err = io.Copy(outputFile, response.Body)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // GetGitRevision returns the current git revision
