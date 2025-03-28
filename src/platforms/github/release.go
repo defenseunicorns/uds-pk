@@ -19,7 +19,7 @@ import (
 
 type Platform struct{}
 
-func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
+func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageNameFlag string) error {
 	remoteURL, _, err := utils.GetRepoInfo()
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
 		return err
 	}
 
-	tagName := fmt.Sprintf("%s-%s", flavor.Version, flavor.Name)
+	tagName := utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)
 	releaseName := fmt.Sprintf("%s %s", zarfPackageName, tagName)
 
 	// Create the release

@@ -88,6 +88,19 @@ func (e2e *UDSPKE2ETest) CreateZarfYaml(t *testing.T, dir string) {
 	require.NoError(t, err)
 }
 
+func (e2e *UDSPKE2ETest) CreateAltZarfYaml(t *testing.T, name string, dir string) {
+	// Create a zarf.yaml file for our tests
+	var zarfPackage zarf.ZarfPackage
+	zarfPackage.Metadata.Name = name
+	zarfPackage.Metadata.Version = "devel"
+
+	data, err := goyaml.Marshal(zarfPackage)
+	require.NoError(t, err)
+
+	err = os.WriteFile(filepath.Join(dir, "zarf.yaml"), data, 0o644)
+	require.NoError(t, err)
+}
+
 func (e2e *UDSPKE2ETest) CreateUDSBundleYaml(t *testing.T, dir string) {
 	// Create a uds-bundle.yaml file for our tests
 	var udsBundle uds.UDSBundle
@@ -98,6 +111,32 @@ func (e2e *UDSPKE2ETest) CreateUDSBundleYaml(t *testing.T, dir string) {
 		Ref:  "devel",
 	}
 	udsBundle.Packages = []uds.Package{testingPackage}
+
+	data, err := goyaml.Marshal(udsBundle)
+	require.NoError(t, err)
+
+	err = os.WriteFile(filepath.Join(dir, "uds-bundle.yaml"), data, 0o644)
+	require.NoError(t, err)
+}
+
+func (e2e *UDSPKE2ETest) CreateUDSBundleYamlMultiPackage(t *testing.T, dir string) {
+	// Create a uds-bundle.yaml file for our tests
+	var udsBundle uds.UDSBundle
+	udsBundle.Metadata.Name = "testing-bundle"
+	udsBundle.Metadata.Version = "devel"
+	basePackage := uds.Package{
+		Name: "testing-package",
+		Ref:  "devel",
+	}
+	firstPackage := uds.Package{
+		Name: "first",
+		Ref:  "devel",
+	}
+	secondPackage := uds.Package{
+		Name: "second",
+		Ref:  "devel",
+	}
+	udsBundle.Packages = []uds.Package{basePackage, firstPackage, secondPackage}
 
 	data, err := goyaml.Marshal(udsBundle)
 	require.NoError(t, err)

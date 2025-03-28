@@ -4,6 +4,8 @@
 package version
 
 import (
+	"path/filepath"
+
 	uds "github.com/defenseunicorns/uds-cli/src/types"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
@@ -11,8 +13,8 @@ import (
 	"github.com/zarf-dev/zarf/src/pkg/message"
 )
 
-func UpdateYamls(flavor types.Flavor) error {
-	packageName, err := updateZarfYaml(flavor)
+func UpdateYamls(flavor types.Flavor, path string) error {
+	packageName, err := updateZarfYaml(flavor, path)
 	if err != nil {
 		return err
 	}
@@ -20,16 +22,17 @@ func UpdateYamls(flavor types.Flavor) error {
 	return updateBundleYaml(flavor, packageName)
 }
 
-func updateZarfYaml(flavor types.Flavor) (packageName string, err error) {
+func updateZarfYaml(flavor types.Flavor, path string) (packageName string, err error) {
 	var zarfPackage zarf.ZarfPackage
-	err = utils.LoadYaml("zarf.yaml", &zarfPackage)
+	zarfPath := filepath.Join(path, "zarf.yaml")
+	err = utils.LoadYaml(zarfPath, &zarfPackage)
 	if err != nil {
 		return "", err
 	}
 
 	zarfPackage.Metadata.Version = flavor.Version
 
-	err = utils.UpdateYaml("zarf.yaml", zarfPackage)
+	err = utils.UpdateYaml(zarfPath, zarfPackage)
 	if err != nil {
 		return zarfPackage.Metadata.Name, err
 	}
