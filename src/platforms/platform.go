@@ -14,10 +14,10 @@ import (
 )
 
 type Platform interface {
-	TagAndRelease(flavor types.Flavor, tokenVarName string) error
+	TagAndRelease(flavor types.Flavor, tokenVarName string, packageName string) error
 }
 
-func LoadAndTag(releaseDir, flavor, tokenVarName string, platform Platform) error {
+func LoadAndTag(releaseDir, flavor, tokenVarName string, platform Platform, packageName string) error {
 	err := VerifyEnvVar(tokenVarName)
 	if err != nil {
 		return err
@@ -28,12 +28,12 @@ func LoadAndTag(releaseDir, flavor, tokenVarName string, platform Platform) erro
 		return err
 	}
 
-	currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig)
+	_, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
 	if err != nil {
 		return err
 	}
 
-	return platform.TagAndRelease(currentFlavor, tokenVarName)
+	return platform.TagAndRelease(currentFlavor, tokenVarName, packageName)
 }
 
 func VerifyEnvVar(varName string) error {
