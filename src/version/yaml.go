@@ -9,7 +9,7 @@ import (
 	uds "github.com/defenseunicorns/uds-cli/src/types"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	zarf "github.com/zarf-dev/zarf/src/api/v1beta1"
+	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 	"github.com/zarf-dev/zarf/src/pkg/message"
 )
 

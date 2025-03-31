@@ -14,7 +14,7 @@ import (
 	uds "github.com/defenseunicorns/uds-cli/src/types"
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"
-	zarf "github.com/zarf-dev/zarf/src/api/v1beta1"
+	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 	"github.com/zarf-dev/zarf/src/pkg/utils/exec"
 )
 
