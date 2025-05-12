@@ -208,15 +208,11 @@ func generateTableRows(baseVulns []cyclonedx.Vulnerability, newVulns []cyclonedx
 		if err != nil {
 			return newVulnRows, fixedVulnRows, existingVulnRows, err
 		}
-		var advisoryURLs []string
-		for _, advisory := range *vuln.Advisories {
-			advisoryURLs = append(advisoryURLs, advisory.URL)
-		}
 		row := []string{
 			vuln.ID,
 			string((*vuln.Ratings)[0].Severity),
 			vuln.Source.URL,
-			strings.Join(advisoryURLs, ", "),
+			(*vuln.Advisories)[0].URL,
 		}
 		switch status {
 		case 0:
