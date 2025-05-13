@@ -12,7 +12,7 @@ import (
 )
 
 var expectedTableHeaders = []string {
-	"ID", "Severity", "URL", "Advisory List",
+	"ID", "Severity", "URL",
 }
 
 func TestCompareScansCommand(t *testing.T) {
