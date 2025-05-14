@@ -6,6 +6,7 @@ package compare
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"sort"
 	"strings"
@@ -189,7 +190,7 @@ func setupTables(newVulnTableString *strings.Builder, fixedVulnTableString *stri
 	tables := []*tablewriter.Table{newVulnTable, fixedVulnTable, existingVulnTable}
 
 	for _, table := range tables {
-		table.SetHeader([]string{"ID", "Severity", "URL", "Advisory List"})
+		table.SetHeader([]string{"ID", "Severity", "URL"})
 		table.SetCenterSeparator("|")
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 		table.SetColWidth(10000)
@@ -208,11 +209,17 @@ func generateTableRows(baseVulns []cyclonedx.Vulnerability, newVulns []cyclonedx
 		if err != nil {
 			return newVulnRows, fixedVulnRows, existingVulnRows, err
 		}
+		var vulnUrl string
+		parsedUrl, err := url.Parse(vuln.Source.URL)
+		if err != nil || parsedUrl.Scheme == "" {
+			vulnUrl = (*vuln.Advisories)[0].URL
+		} else {
+			vulnUrl = vuln.Source.URL
+		}
 		row := []string{
 			vuln.ID,
 			string((*vuln.Ratings)[0].Severity),
-			vuln.Source.URL,
-			(*vuln.Advisories)[0].URL,
+			vulnUrl,
 		}
 		switch status {
 		case 0:

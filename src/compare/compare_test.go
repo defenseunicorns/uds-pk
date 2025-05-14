@@ -24,9 +24,6 @@ var (
 		Source: &cyclonedx.Source{
 			URL: "http://example.com/fix",
 		},
-		Advisories: &[]cyclonedx.Advisory{
-			{URL: "http://advisory.com/fix"},
-		},
 	}
 	commonExistVuln = cyclonedx.Vulnerability{
 		ID: "VULN-EXIST",
@@ -39,9 +36,6 @@ var (
 		Source: &cyclonedx.Source{
 			URL: "http://example.com/exist",
 		},
-		Advisories: &[]cyclonedx.Advisory{
-			{URL: "http://advisory.com/exist"},
-		},
 	}
 	commonNewVuln = cyclonedx.Vulnerability{
 		ID: "VULN-NEW",
@@ -53,9 +47,6 @@ var (
 		},
 		Source: &cyclonedx.Source{
 			URL: "http://example.com/new",
-		},
-		Advisories: &[]cyclonedx.Advisory{
-			{URL: "http://advisory.com/new"},
 		},
 	}
 
@@ -87,9 +78,6 @@ var (
 		},
 		Ratings: &[]cyclonedx.VulnerabilityRating{{Severity: "high"}},
 		Source:  &cyclonedx.Source{URL: "http://example.com/vuln1"},
-		Advisories: &[]cyclonedx.Advisory{
-			{URL: "http://advisory.com/vuln1"},
-		},
 	}
 	commonVuln2 = cyclonedx.Vulnerability{
 		ID: "VULN-2",
@@ -98,9 +86,6 @@ var (
 		},
 		Ratings: &[]cyclonedx.VulnerabilityRating{{Severity: "medium"}},
 		Source:  &cyclonedx.Source{URL: "http://example.com/vuln2"},
-		Advisories: &[]cyclonedx.Advisory{
-			{URL: "http://advisory.com/vuln2"},
-		},
 	}
 )
 
@@ -114,8 +99,8 @@ func TestSetupTables(t *testing.T) {
 		t.Fatal("Expected all returned tables to be non-nil")
 	}
 
-	dummyRow := []string{"VULN-123", "high", "http://example.com", "http://advise.com"}
-	expectedHeaders := []string{"ID", "Severity", "URL", "Advisory List"}
+	dummyRow := []string{"VULN-123", "high", "http://example.com"}
+	expectedHeaders := []string{"ID", "Severity", "URL"}
 
 	newTable.Append(dummyRow)
 	fixedTable.Append(dummyRow)
@@ -177,9 +162,6 @@ func TestGenerateTableRows(t *testing.T) {
 		if row[2] != commonNewVuln.Source.URL {
 			t.Errorf("Expected new row Source URL %q, got %q", commonNewVuln.Source.URL, row[2])
 		}
-		if row[3] != (*commonNewVuln.Advisories)[0].URL {
-			t.Errorf("Expected new row advisory list %q, got %q", (*commonNewVuln.Advisories)[0].URL, row[3])
-		}
 	}
 
 	if len(fixedRows) != 1 {
@@ -195,9 +177,6 @@ func TestGenerateTableRows(t *testing.T) {
 		if row[2] != commonFixedVuln.Source.URL {
 			t.Errorf("Expected fixed row Source URL %q, got %q", commonFixedVuln.Source.URL, row[2])
 		}
-		if row[3] != (*commonFixedVuln.Advisories)[0].URL {
-			t.Errorf("Expected fixed row advisory list %q, got %q", (*commonFixedVuln.Advisories)[0].URL, row[3])
-		}
 	}
 
 	if len(existRows) != 1 {
@@ -212,9 +191,6 @@ func TestGenerateTableRows(t *testing.T) {
 		}
 		if row[2] != commonExistVuln.Source.URL {
 			t.Errorf("Expected existing row Source URL %q, got %q", commonExistVuln.Source.URL, row[2])
-		}
-		if row[3] != (*commonExistVuln.Advisories)[0].URL {
-			t.Errorf("Expected existing row advisory list %q, got %q", (*commonExistVuln.Advisories)[0].URL, row[3])
 		}
 	}
 }
@@ -249,9 +225,6 @@ func TestGetUniqueVulnId(t *testing.T) {
 		Source: &cyclonedx.Source{
 			URL: "http://example.com/test",
 		},
-		Advisories: &[]cyclonedx.Advisory{
-			{URL: "http://advisory.com/test"},
-		},
 	}
 
 	expected := "VULN-TEST|pkgTest"
@@ -273,9 +246,6 @@ func TestGetUniqueVulnId_MultipleAffects(t *testing.T) {
 		},
 		Source: &cyclonedx.Source{
 			URL: "http://example.com/multi",
-		},
-		Advisories: &[]cyclonedx.Advisory{
-			{URL: "http://advisory.com/multi"},
 		},
 	}
 
