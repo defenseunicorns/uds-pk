@@ -14,3 +14,24 @@ flavors:
     version: "2.0.0-uds.0"
   - name: dummy
     version: "testing"
+
+packages:
+  - name: first
+    path: first/
+    flavors:
+      - name: base
+        version: "1.0.0-flag.0"
+      - name: prerelease
+        version: "1.0.0-flag.1"
+  - name: second
+    path: second/
+    flavors:
+      - name: base
+        version: "2.0.0-flag.0"
+      - name: prerelease
+        version: "2.0.0-flag.1"
+  - name: dummy
+    path: dummy/
+    flavors:
+      - name: dummy
+        version: "testing"
