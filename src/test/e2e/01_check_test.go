@@ -18,7 +18,7 @@ func TestCheckCommand(t *testing.T) {
 	stdout, stderr, err = e2e.UDSPK("release", "check", "dummy", "-d", "src/test")
 	require.Error(t, err, stdout, stderr)
 
-	require.Contains(t, stdout, "Version testing-dummy is already tagged")
+	require.Contains(t, stdout, "Version 0.0.0-testing-dummy is already tagged")
 }
 
 func TestCheckCommandBool(t *testing.T) {

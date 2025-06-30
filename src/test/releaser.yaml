@@ -13,4 +13,4 @@ flavors:
   - name: major
     version: "2.0.0-uds.0"
   - name: dummy
-    version: "testing"
+    version: "0.0.0-testing"
