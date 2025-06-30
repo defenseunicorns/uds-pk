@@ -21,6 +21,7 @@ var checkBoolOutput bool
 var showVersionOnly bool
 var gitlabTokenVarName string
 var githubTokenVarName string
+var disableValidation bool
 
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
@@ -28,7 +29,7 @@ var checkCmd = &cobra.Command{
 	Short: "Check if release is necessary for given flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+		releaseConfig, err := utils.LoadReleaseConfigWithValidation(releaseDir, !disableValidation)
 		if err != nil {
 			return err
 		}
@@ -70,7 +71,7 @@ var showCmd = &cobra.Command{
 	Short: "Show the current version for a given flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+		releaseConfig, err := utils.LoadReleaseConfigWithValidation(releaseDir, !disableValidation)
 		if err != nil {
 			return err
 		}
@@ -98,7 +99,7 @@ var gitlabCmd = &cobra.Command{
 	Short: "Create a tag and release on GitLab based on flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return platforms.LoadAndTag(releaseDir, args[0], gitlabTokenVarName, gitlab.Platform{})
+		return platforms.LoadAndTagWithValidation(releaseDir, args[0], gitlabTokenVarName, gitlab.Platform{}, !disableValidation)
 	},
 }
 
@@ -108,7 +109,7 @@ var githubCmd = &cobra.Command{
 	Short: "Create a tag and release on GitHub based on flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return platforms.LoadAndTag(releaseDir, args[0], githubTokenVarName, github.Platform{})
+		return platforms.LoadAndTagWithValidation(releaseDir, args[0], githubTokenVarName, github.Platform{}, !disableValidation)
 	},
 }
 
@@ -119,7 +120,7 @@ var updateYamlCmd = &cobra.Command{
 	Short:   "Update the version fields in the zarf.yaml and uds-bundle.yaml based on flavor",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+		releaseConfig, err := utils.LoadReleaseConfigWithValidation(releaseDir, !disableValidation)
 		if err != nil {
 			return err
 		}
@@ -151,6 +152,7 @@ func init() {
 	releaseCmd.AddCommand(updateYamlCmd)
 
 	releaseCmd.PersistentFlags().StringVarP(&releaseDir, "dir", "d", ".", "Path to the directory containing the releaser.yaml file")
+	releaseCmd.PersistentFlags().BoolVar(&disableValidation, "disable-validation", false, "Disable semver validation for version strings")
 
 	checkCmd.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
 

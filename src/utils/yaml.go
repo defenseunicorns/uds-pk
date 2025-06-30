@@ -13,6 +13,10 @@ import (
 )
 
 func LoadReleaseConfig(dir string) (types.ReleaseConfig, error) {
+	return LoadReleaseConfigWithValidation(dir, true)
+}
+
+func LoadReleaseConfigWithValidation(dir string, enableValidation bool) (types.ReleaseConfig, error) {
 
 	var config types.ReleaseConfig
 	err := LoadYaml(filepath.Join(dir, "/releaser.yaml"), &config)
@@ -21,9 +25,11 @@ func LoadReleaseConfig(dir string) (types.ReleaseConfig, error) {
 	}
 
 	// Validate that all flavor versions are semver compliant
-	for _, flavor := range config.Flavors {
-		if err := ValidateSemver(flavor.Version); err != nil {
-			return types.ReleaseConfig{}, fmt.Errorf("flavor '%s': %w", flavor.Name, err)
+	if enableValidation {
+		for _, flavor := range config.Flavors {
+			if err := ValidateSemver(flavor.Version); err != nil {
+				return types.ReleaseConfig{}, fmt.Errorf("flavor '%s': %w", flavor.Name, err)
+			}
 		}
 	}
 
