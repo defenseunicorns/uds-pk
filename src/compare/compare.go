@@ -242,6 +242,9 @@ func loadScanJson(filename string) (cyclonedx.BOM, error) {
 	if err := json.Unmarshal(data, &scan); err != nil {
 		return cyclonedx.BOM{}, err
 	}
+	if scan.Vulnerabilities == nil {
+		scan.Vulnerabilities = &[]cyclonedx.Vulnerability{}
+	}
 	return scan, nil
 }
 
