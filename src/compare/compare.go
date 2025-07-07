@@ -26,6 +26,13 @@ func LoadScans(basePath string, newPath string) (cyclonedx.BOM, cyclonedx.BOM, e
 		return cyclonedx.BOM{}, cyclonedx.BOM{}, err
 	}
 
+	if baseScan.Vulnerabilities == nil {
+		baseScan.Vulnerabilities = &[]cyclonedx.Vulnerability{}
+	}
+	if newScan.Vulnerabilities == nil {
+		newScan.Vulnerabilities = &[]cyclonedx.Vulnerability{}
+	}
+
 	return baseScan, newScan, nil
 }
 
@@ -37,6 +44,9 @@ func GenerateComparisonMap(baseScan cyclonedx.BOM, newScan cyclonedx.BOM) map[st
 		vulnStatus[getUniqueVulnId(baseVuln)] = 2
 	}
 
+	if newScan.Vulnerabilities == nil {
+		return vulnStatus
+	}
 	for _, newVuln := range *newScan.Vulnerabilities {
 		vulnUID := getUniqueVulnId(newVuln)
 		if _, ok := vulnStatus[vulnUID]; ok {
