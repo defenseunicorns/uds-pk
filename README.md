@@ -57,6 +57,19 @@ flavors:
     version: "1.0.0-uds.0"
 ```
 
+#### Version Validation
+
+All version strings must be valid [Semantic Versioning 2.0.0](https://semver.org/) format. Examples:
+- Valid: `1.0.0`, `1.0.0-uds.0`, `2.1.3-alpha.1`
+- Invalid: `v1.0.0`, `1.0.0_uds.0`, `1.0.0.0`
+
+To disable validation for backwards compatibility, use the `--disable-validation` flag:
+
+```bash
+uds-pk release show flavor --disable-validation
+uds-pk release check flavor --disable-validation
+```
+
 ## Scan Comparison
 
 The `compare-scans` command allows you to compare two grype scans using the cyclonedx-json output format. This can be useful to identify new, existing, and fixed vulnerabilities between two different scans.

@@ -4,6 +4,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -12,11 +13,24 @@ import (
 )
 
 func LoadReleaseConfig(dir string) (types.ReleaseConfig, error) {
+	return LoadReleaseConfigWithValidation(dir, true)
+}
+
+func LoadReleaseConfigWithValidation(dir string, enableValidation bool) (types.ReleaseConfig, error) {
 
 	var config types.ReleaseConfig
 	err := LoadYaml(filepath.Join(dir, "/releaser.yaml"), &config)
 	if err != nil {
 		return types.ReleaseConfig{}, err
+	}
+
+	// Validate that all flavor versions are semver compliant
+	if enableValidation {
+		for _, flavor := range config.Flavors {
+			if err := ValidateSemver(flavor.Version); err != nil {
+				return types.ReleaseConfig{}, fmt.Errorf("flavor '%s': %w", flavor.Name, err)
+			}
+		}
 	}
 
 	return config, nil

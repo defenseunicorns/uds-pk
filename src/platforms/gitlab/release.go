@@ -13,8 +13,8 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	gitlab "gitlab.com/gitlab-org/api/client-go"
 	"github.com/zarf-dev/zarf/src/pkg/message"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 type Platform struct{}

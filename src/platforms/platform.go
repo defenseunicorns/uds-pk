@@ -18,12 +18,16 @@ type Platform interface {
 }
 
 func LoadAndTag(releaseDir, flavor, tokenVarName string, platform Platform) error {
+	return LoadAndTagWithValidation(releaseDir, flavor, tokenVarName, platform, true)
+}
+
+func LoadAndTagWithValidation(releaseDir, flavor, tokenVarName string, platform Platform, enableValidation bool) error {
 	err := VerifyEnvVar(tokenVarName)
 	if err != nil {
 		return err
 	}
 
-	releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+	releaseConfig, err := utils.LoadReleaseConfigWithValidation(releaseDir, enableValidation)
 	if err != nil {
 		return err
 	}

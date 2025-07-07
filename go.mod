@@ -4,6 +4,7 @@ go 1.24.2
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.9.2
+	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/defenseunicorns/uds-cli v0.27.2
 	github.com/go-git/go-git/v5 v5.16.0
 	github.com/goccy/go-yaml v1.17.1
