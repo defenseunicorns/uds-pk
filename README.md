@@ -45,7 +45,7 @@ When running `uds-pk release github <flavor>` you are expected to have an enviro
 
 ### Release Configuration
 
-UDS Package Kit release commands can be configured using a YAML file named releaser.yaml in your project's root directory.
+UDS Package Kit release commands are configured using a YAML file named releaser.yaml in your project's root directory.
 
 ```yaml
 flavors:
@@ -55,7 +55,30 @@ flavors:
     version: "2.0.0-uds.0"
   - name: unicorn
     version: "1.0.0-uds.0"
+
+packages:
+  - name: second-package
+    path: second-package/
+    flavors:
+      - name: upstream
+        version: "1.0.0-uds.0"
+      - name: registry1
+        version: "2.0.0-uds.0"
+      - name: unicorn
+        version: "1.0.0-uds.0"
 ```
+
+### Multi-Package Support
+
+UDS Package Kit supports multiple packages in a single repository. The `packages` section in the YAML file allows you to define multiple packages, each with its own flavors configuration. The `name` field under `packages` specifies the package name, and the `path` field specifies the relative path to the directory with the package's `zarf.yaml`. Having both the top level `flavors` and `packages` is supported and encouraged. The top level `flavors` are used for the base package in the repo (the `zarf.yaml` at the root) and the `packages` section is used for any additional packages in the repo.
+
+To refer to a package in the `packages` section, you can use the `--package` flag when running the release command. For example:
+
+```bash
+uds-pk release gitlab <flavor> --package second-package
+```
+
+This command will release the `second-package` with the specified flavor.
 
 ## Scan Comparison
 
