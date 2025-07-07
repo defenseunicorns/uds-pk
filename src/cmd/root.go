@@ -4,10 +4,10 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/zarf-dev/zarf/src/pkg/message"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -15,7 +15,7 @@ var rootCmd = &cobra.Command{
 	Use:   "uds-pk",
 	Short: "UDS Package Kit is a tool for managing UDS packages",
 	Long: `UDS Package Kit is a tool that facilitates the development, maintenance and release
-	of UDS packages. It provides commands for automating releases verifying packages and 
+	of UDS packages. It provides commands for automating releases verifying packages and
 	generating configuration.`,
 }
 
@@ -25,7 +25,7 @@ var deprecatedCheckCmd = &cobra.Command{
 	Args:   cobra.ExactArgs(1),
 	Hidden: true,
 	RunE: func(_ *cobra.Command, args []string) error {
-		message.Warn("'uds-pk check' has been move to 'uds-pk release check' use of check at the command root will be removed in v0.1.0")
+		fmt.Println("'uds-pk check' has been moved to 'uds-pk release check' use of check at the command root will be removed in v0.1.0")
 		return checkCmd.RunE(checkCmd, args)
 	},
 }
@@ -36,7 +36,7 @@ var deprecatedShowCmd = &cobra.Command{
 	Args:   cobra.ExactArgs(1),
 	Hidden: true,
 	RunE: func(_ *cobra.Command, args []string) error {
-		message.Warn("'uds-pk show' has been move to 'uds-pk release show' use of check at the command root will be removed in v0.1.0")
+		fmt.Println("'uds-pk show' has been move to 'uds-pk release show' use of check at the command root will be removed in v0.1.0")
 		return showCmd.RunE(showCmd, args)
 	},
 }
@@ -47,7 +47,7 @@ var deprecatedUpdateYamlCmd = &cobra.Command{
 	Args:   cobra.ExactArgs(1),
 	Hidden: true,
 	RunE: func(_ *cobra.Command, args []string) error {
-		message.Warn("'uds-pk update-yaml' has been move to 'uds-pk release update-yaml' use of check at the command root will be removed in v0.1.0")
+		fmt.Println("'uds-pk update-yaml' has been move to 'uds-pk release update-yaml' use of check at the command root will be removed in v0.1.0")
 		return updateYamlCmd.RunE(updateYamlCmd, args)
 	},
 }

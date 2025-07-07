@@ -14,7 +14,6 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
-	"github.com/zarf-dev/zarf/src/pkg/message"
 )
 
 type Platform struct{}
@@ -45,7 +44,7 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
 	// setup the release options
 	releaseOpts := createReleaseOptions(zarfPackageName, flavor, defaultBranch)
 
-	message.Infof("Creating release %s-%s\n", flavor.Version, flavor.Name)
+	fmt.Printf("Creating release %s-%s\n", flavor.Version, flavor.Name)
 
 	err = platforms.VerifyEnvVar("CI_PROJECT_ID")
 	if err != nil {
