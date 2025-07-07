@@ -36,7 +36,7 @@ func GenerateComparisonMap(baseScan cyclonedx.BOM, newScan cyclonedx.BOM) map[st
 	for _, baseVuln := range *baseScan.Vulnerabilities {
 		vulnStatus[getUniqueVulnId(baseVuln)] = 2
 	}
-	
+
 	for _, newVuln := range *newScan.Vulnerabilities {
 		vulnUID := getUniqueVulnId(newVuln)
 		if _, ok := vulnStatus[vulnUID]; ok {
