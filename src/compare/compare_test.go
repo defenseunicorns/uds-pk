@@ -213,6 +213,21 @@ func TestLoadScanJson_FileNotFound(t *testing.T) {
 	}
 }
 
+func TestLoadScanJson_NoVulnerabilities(t *testing.T) {
+	filepath := "../test/scans/busybox_no_vulns.json"
+	bom, err := loadScanJson(filepath)
+	if err != nil {
+		t.Fatalf("Expected no error, got: %v", err)
+	}
+	if bom.Vulnerabilities == nil {
+		t.Errorf("Expected Vulnerabilities field to be non-nil even if empty")
+	}
+	if len(*bom.Vulnerabilities) != 0 {
+		t.Errorf("Expected Vulnerabilities to be empty, got %d items", len(*bom.Vulnerabilities))
+	}
+}
+
+
 func TestGetUniqueVulnId(t *testing.T) {
 	vuln := cyclonedx.Vulnerability{
 		ID: "VULN-TEST",

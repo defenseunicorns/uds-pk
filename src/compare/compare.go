@@ -26,13 +26,6 @@ func LoadScans(basePath string, newPath string) (cyclonedx.BOM, cyclonedx.BOM, e
 		return cyclonedx.BOM{}, cyclonedx.BOM{}, err
 	}
 
-	if baseScan.Vulnerabilities == nil {
-		baseScan.Vulnerabilities = &[]cyclonedx.Vulnerability{}
-	}
-	if newScan.Vulnerabilities == nil {
-		newScan.Vulnerabilities = &[]cyclonedx.Vulnerability{}
-	}
-
 	return baseScan, newScan, nil
 }
 
@@ -251,6 +244,9 @@ func loadScanJson(filename string) (cyclonedx.BOM, error) {
 	var scan cyclonedx.BOM
 	if err := json.Unmarshal(data, &scan); err != nil {
 		return cyclonedx.BOM{}, err
+	}
+	if scan.Vulnerabilities == nil {
+		scan.Vulnerabilities = &[]cyclonedx.Vulnerability{}
 	}
 	return scan, nil
 }
