@@ -14,7 +14,6 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	github "github.com/google/go-github/v69/github"
-	"github.com/zarf-dev/zarf/src/pkg/message"
 )
 
 type Platform struct{}
@@ -53,7 +52,7 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
 		GenerateReleaseNotes: github.Ptr(true),
 	}
 
-	message.Infof("Creating release %s-%s\n", flavor.Version, flavor.Name)
+	fmt.Printf("Creating release %s-%s\n", flavor.Version, flavor.Name)
 
 	_, response, err := githubClient.Repositories.CreateRelease(context.Background(), owner, repoName, release)
 

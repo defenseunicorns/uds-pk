@@ -41,10 +41,10 @@ func TestVerifyEnvVar(t *testing.T) {
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("setVar: %t contents:%s", test.setVar, test.varContents), func(t *testing.T) {
 			if test.setVar {
-				os.Setenv(test.varName, test.varContents)
-				defer os.Unsetenv(test.varName)
+				os.Setenv(test.varName, test.varContents) // nolint:errcheck
+				defer os.Unsetenv(test.varName)           // nolint:errcheck
 			} else {
-				os.Unsetenv(test.varName)
+				os.Unsetenv(test.varName) // nolint:errcheck
 			}
 
 			err := VerifyEnvVar(test.varName)
