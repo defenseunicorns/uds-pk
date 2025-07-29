@@ -5,6 +5,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/types"
@@ -18,7 +19,7 @@ func GetFlavorConfig(flavor string, config types.ReleaseConfig, packageName stri
 				return pkg.Path, f, err
 			}
 		}
-		return "", types.Flavor{}, errors.New("package not found")
+		return "", types.Flavor{}, fmt.Errorf("package %s is not defined in releaser.yaml", packageName)
 	} else {
 		f, err := parseFlavor(flavor, config.Flavors)
 		return "", f, err
