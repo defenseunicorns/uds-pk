@@ -126,27 +126,27 @@ Existing vulnerabilities: <count>
 <details>
 <summary>New vulnerabilities</summary>
 
-| ID | Severity | URL | Advisory List |
-|----|----------|-----|---------------|
-| ... | ... | ... | ... |
+| ID | Severity | URL |
+|----|----------|-----|
+| ... | ... | ... |
 
 </details>
 
 <details>
 <summary>Fixed vulnerabilities</summary>
 
-| ID | Severity | URL | Advisory List |
-|----|----------|-----|---------------|
-| ... | ... | ... | ... |
+| ID | Severity | URL |
+|----|----------|-----|
+| ... | ... | ... |
 
 </details>
 
 <details>
 <summary>Existing vulnerabilities</summary>
 
-| ID | Severity | URL | Advisory List |
-|----|----------|-----|---------------|
-| ... | ... | ... | ... |
+| ID | Severity | URL |
+|----|----------|-----|
+| ... | ... | ... |
 
 </details>
 

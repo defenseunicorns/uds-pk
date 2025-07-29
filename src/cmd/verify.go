@@ -4,8 +4,9 @@
 package cmd
 
 import (
+	"fmt"
+
 	badgeVerify "github.com/defenseunicorns/uds-pk/src/verify"
-	"github.com/zarf-dev/zarf/src/pkg/message"
 
 	"github.com/spf13/cobra"
 )
@@ -20,7 +21,7 @@ var verifyCommand = &cobra.Command{
 		err := badgeVerify.VerifyBadge(baseDir)
 		if err != nil {
 			cmd.SilenceUsage = true
-			message.WarnErr(err, "Errors occurred while running badge verifications.")
+			fmt.Println(err, "Errors occurred while running badge verifications.")
 		}
 		return err
 	},

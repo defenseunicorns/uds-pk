@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	"github.com/zarf-dev/zarf/src/pkg/message"
 )
 
 const NamespaceExpression = ".components[0].charts[0].namespace"
@@ -42,19 +41,19 @@ func VerifyBadge(baseDir string) error {
 
 	packageName, err := utils.EvaluateYqToString(".metadata.name", rootZarfPath)
 	if err != nil {
-		message.Warnf("Unable to read package name. %s", err.Error())
+		fmt.Printf("Unable to read package name. %s\n", err.Error())
 		return err
 	}
 
 	namespaces, err := getNamespaces(commonZarfPath, rootZarfPath)
 
 	if len(namespaces) == 0 {
-		message.Warnf("No namespaces found. %s", err.Error())
+		fmt.Printf("No namespaces found. %s\n", err.Error())
 		return err
 	}
 
-	message.Infof("Package Name: %s\n", packageName)
-	message.Infof("Namespaces (%d): %v\n", len(namespaces), namespaces)
+	fmt.Printf("Package Name: %s\n", packageName)
+	fmt.Printf("Namespaces (%d): %v\n", len(namespaces), namespaces)
 
 	// manifests should not be found in common/zarf.yaml or zarf.yaml
 	if commonZarfYamlExists {
@@ -69,12 +68,12 @@ func VerifyBadge(baseDir string) error {
 	allResults.Merge(results)
 
 	if len(allResults.Warnings) > 0 {
-		message.Infof("The following warnings were found:")
+		fmt.Println("The following warnings were found:")
 		logMessages(WarningSymbol, allResults.Warnings)
 	}
 
 	if len(allResults.Errors) > 0 {
-		message.Infof("The following errors were found:")
+		fmt.Println("The following errors were found:")
 		logMessages(ErrorSymbol, allResults.Errors)
 		return fmt.Errorf("%d errors were found while performing badge verification", len(allResults.Errors))
 	}
@@ -89,7 +88,7 @@ func getNamespaces(commonZarfPath, rootZarfPath string) ([]string, error) {
 		if fileExists(path) {
 			values, err := getSliceOfValues(".components[].charts[].namespace  | select(. != null)", path)
 			if err != nil {
-				message.Infof("Error reading namespaces from %s - %s", path, err)
+				fmt.Printf("Error reading namespaces from %s - %s\n", path, err)
 				return err
 			}
 			if len(values) > 0 {
@@ -100,7 +99,7 @@ func getNamespaces(commonZarfPath, rootZarfPath string) ([]string, error) {
 	}
 
 	if err := processPath(commonZarfPath); err != nil {
-		message.Infof("Continuing despite error with %s", commonZarfPath)
+		fmt.Printf("Continuing despite error with %s\n", commonZarfPath)
 	}
 	err := processPath(rootZarfPath)
 
@@ -173,7 +172,7 @@ func logResults(results CheckResults) {
 
 func logMessages(prefix rune, messages []string) {
 	for _, m := range messages {
-		message.Infof("%c %s", prefix, m)
+		fmt.Printf("%c %s\n", prefix, m)
 	}
 }
 
