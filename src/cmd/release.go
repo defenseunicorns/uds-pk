@@ -28,6 +28,8 @@ var checkCmd = &cobra.Command{
 	Short: "Check if release is necessary for given flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
@@ -37,8 +39,6 @@ var checkCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		rootCmd.SilenceUsage = true
 
 		formattedVersion := utils.GetFormattedVersion(packageName, currentFlavor.Version, currentFlavor.Name)
 
@@ -70,6 +70,8 @@ var showCmd = &cobra.Command{
 	Short: "Show the current version for a given flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
@@ -79,8 +81,6 @@ var showCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		rootCmd.SilenceUsage = true
 
 		if showVersionOnly {
 			fmt.Printf("%s\n", currentFlavor.Version)
@@ -119,6 +119,8 @@ var updateYamlCmd = &cobra.Command{
 	Short:   "Update the version fields in the zarf.yaml and uds-bundle.yaml based on flavor",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
@@ -128,8 +130,6 @@ var updateYamlCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		rootCmd.SilenceUsage = true
 
 		return version.UpdateYamls(currentFlavor, path)
 	},
