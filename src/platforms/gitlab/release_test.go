@@ -19,9 +19,25 @@ func TestCreateReleaseOptions(t *testing.T) {
 
 	defaultBranch := "main"
 
-	releaseOpts := createReleaseOptions(packageName, flavor, defaultBranch)
+	releaseOpts := createReleaseOptions(packageName, flavor, defaultBranch, "")
 
 	assert.Equal(t, "testing-package 1.0.0-uds.0-unicorn", *releaseOpts.Name)
+	assert.Equal(t, "1.0.0-uds.0-unicorn", *releaseOpts.TagName)
+}
+
+func TestCreateReleaseOptionsWithPackageFlag(t *testing.T) {
+	packageName := "testing-package"
+	flavor := types.Flavor{
+		Name:    "unicorn",
+		Version: "1.0.0-uds.0",
+	}
+
+	defaultBranch := "main"
+
+	releaseOpts := createReleaseOptions(packageName, flavor, defaultBranch, "plugin-package")
+
+	assert.Equal(t, "testing-package 1.0.0-uds.0-unicorn", *releaseOpts.Name)
+	assert.Equal(t, "plugin-package-1.0.0-uds.0-unicorn", *releaseOpts.TagName)
 }
 
 func TestGetGitlabBaseUrl(t *testing.T) {

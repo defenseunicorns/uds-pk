@@ -18,7 +18,7 @@ import (
 
 type Platform struct{}
 
-func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
+func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageNameFlag string) error {
 	remoteURL, defaultBranch, err := utils.GetRepoInfo()
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
 	}
 
 	// setup the release options
-	releaseOpts := createReleaseOptions(zarfPackageName, flavor, defaultBranch)
+	releaseOpts := createReleaseOptions(zarfPackageName, flavor, defaultBranch, packageNameFlag)
 
 	fmt.Printf("Creating release %s-%s\n", flavor.Version, flavor.Name)
 
@@ -61,10 +61,10 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string) error {
 	return nil
 }
 
-func createReleaseOptions(zarfPackageName string, flavor types.Flavor, branchRef string) *gitlab.CreateReleaseOptions {
+func createReleaseOptions(zarfPackageName string, flavor types.Flavor, branchRef string, packageNameFlag string) *gitlab.CreateReleaseOptions {
 	return &gitlab.CreateReleaseOptions{
 		Name:        gitlab.Ptr(fmt.Sprintf("%s %s-%s", zarfPackageName, flavor.Version, flavor.Name)),
-		TagName:     gitlab.Ptr(fmt.Sprintf("%s-%s", flavor.Version, flavor.Name)),
+		TagName:     gitlab.Ptr(utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)),
 		Description: gitlab.Ptr(fmt.Sprintf("%s %s-%s", zarfPackageName, flavor.Version, flavor.Name)),
 		Ref:         gitlab.Ptr(branchRef),
 	}

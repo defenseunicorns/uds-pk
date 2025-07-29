@@ -16,6 +16,7 @@ import (
 )
 
 var releaseDir string
+var packageName string
 var checkBoolOutput bool
 var showVersionOnly bool
 var gitlabTokenVarName string
@@ -27,21 +28,21 @@ var checkCmd = &cobra.Command{
 	Short: "Check if release is necessary for given flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
 		}
 
-		currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig)
+		_, currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig, packageName)
 		if err != nil {
 			return err
 		}
 
-		rootCmd.SilenceUsage = true
+		formattedVersion := utils.GetFormattedVersion(packageName, currentFlavor.Version, currentFlavor.Name)
 
-		versionAndFlavor := fmt.Sprintf("%s-%s", currentFlavor.Version, currentFlavor.Name)
-
-		tagExists, err := utils.DoesTagExist(versionAndFlavor)
+		tagExists, err := utils.DoesTagExist(formattedVersion)
 		if err != nil {
 			return err
 		}
@@ -49,14 +50,14 @@ var checkCmd = &cobra.Command{
 			if checkBoolOutput {
 				fmt.Println("false")
 			} else {
-				fmt.Printf("Version %s is already tagged\n", versionAndFlavor)
+				fmt.Printf("Version %s is already tagged\n", formattedVersion)
 				return errors.New("no release necessary")
 			}
 		} else {
 			if checkBoolOutput {
 				fmt.Println("true")
 			} else {
-				fmt.Printf("Version %s is not tagged\n", versionAndFlavor)
+				fmt.Printf("Version %s is not tagged\n", formattedVersion)
 			}
 		}
 		return nil
@@ -69,17 +70,17 @@ var showCmd = &cobra.Command{
 	Short: "Show the current version for a given flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
 		}
 
-		currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig)
+		_, currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig, packageName)
 		if err != nil {
 			return err
 		}
-
-		rootCmd.SilenceUsage = true
 
 		if showVersionOnly {
 			fmt.Printf("%s\n", currentFlavor.Version)
@@ -97,7 +98,7 @@ var gitlabCmd = &cobra.Command{
 	Short: "Create a tag and release on GitLab based on flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return platforms.LoadAndTag(releaseDir, args[0], gitlabTokenVarName, gitlab.Platform{})
+		return platforms.LoadAndTag(releaseDir, args[0], gitlabTokenVarName, gitlab.Platform{}, packageName)
 	},
 }
 
@@ -107,7 +108,7 @@ var githubCmd = &cobra.Command{
 	Short: "Create a tag and release on GitHub based on flavor",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return platforms.LoadAndTag(releaseDir, args[0], githubTokenVarName, github.Platform{})
+		return platforms.LoadAndTag(releaseDir, args[0], githubTokenVarName, github.Platform{}, packageName)
 	},
 }
 
@@ -118,19 +119,19 @@ var updateYamlCmd = &cobra.Command{
 	Short:   "Update the version fields in the zarf.yaml and uds-bundle.yaml based on flavor",
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
 		}
 
-		currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig)
+		path, currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig, packageName)
 		if err != nil {
 			return err
 		}
 
-		rootCmd.SilenceUsage = true
-
-		return version.UpdateYamls(currentFlavor)
+		return version.UpdateYamls(currentFlavor, path)
 	},
 }
 
@@ -150,6 +151,7 @@ func init() {
 	releaseCmd.AddCommand(updateYamlCmd)
 
 	releaseCmd.PersistentFlags().StringVarP(&releaseDir, "dir", "d", ".", "Path to the directory containing the releaser.yaml file")
+	releaseCmd.PersistentFlags().StringVarP(&packageName, "package", "p", "", "Name of package to run uds-pk against. Must match an entry under packages in the releaser.yaml file. If not provided, the top level flavors will be used.")
 
 	checkCmd.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
 
