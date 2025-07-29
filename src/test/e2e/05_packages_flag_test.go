@@ -72,7 +72,7 @@ func TestPackageFlagUpdateYaml(t *testing.T) {
 
 	require.Equal(t, "devel", zarfPackage.Metadata.Version)
 
-	// Check that the first zarf.yaml wasn updated
+	// Check that the first zarf.yaml was updated
 	err = e2e.LoadYaml("src/test/sandbox/first/zarf.yaml", &zarfPackage)
 	require.NoError(t, err)
 
@@ -84,5 +84,7 @@ func TestPackageFlagUpdateYaml(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "1.0.0-flag.0", bundle.Metadata.Version)
+	require.Equal(t, "devel", bundle.Packages[0].Ref)
 	require.Equal(t, "1.0.0-flag.0", bundle.Packages[1].Ref)
+	require.Equal(t, "devel", bundle.Packages[2].Ref)
 }
