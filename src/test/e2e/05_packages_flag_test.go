@@ -8,7 +8,7 @@ import (
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
 	"github.com/stretchr/testify/require"
-	zarf "github.com/zarf-dev/zarf/src/api/v1beta1"
+	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
 
 func TestPackageFlagCheck(t *testing.T) {

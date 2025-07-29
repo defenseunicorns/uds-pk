@@ -50,14 +50,14 @@ var checkCmd = &cobra.Command{
 			if checkBoolOutput {
 				fmt.Println("false")
 			} else {
-				fmt.Printf("Version %s is already tagged\n", versionAndFlavor)
+				fmt.Printf("Version %s is already tagged\n", formattedVersion)
 				return errors.New("no release necessary")
 			}
 		} else {
 			if checkBoolOutput {
 				fmt.Println("true")
 			} else {
-				fmt.Printf("Version %s is not tagged\n", versionAndFlavor)
+				fmt.Printf("Version %s is not tagged\n", formattedVersion)
 			}
 		}
 		return nil
