@@ -26,22 +26,22 @@ After installation, you can use uds-pk via the command line:
 Pseudo flow for CI/CD:
 
 ```bash
-uds-pk release check <flavor>
+uds-pk release check [flavor]
 
-uds-pk release update-yaml <flavor>
+uds-pk release update-yaml [flavor]
 
 # publish the package #
 
-uds-pk release <platform> <flavor>
+uds-pk release <platform> [flavor]
 ```
 
 ### Gitlab
 
-When running `uds-pk release gitlab <flavor>` you are expected to have an environment variable set to a GitLab token that has write permissions for your current project. This defaults to `GITLAB_RELEASE_TOKEN` but can be changed with the `--token-var-name` flag.
+When running `uds-pk release gitlab` you are expected to have an environment variable set to a GitLab token that has write permissions for your current project. This defaults to `GITLAB_RELEASE_TOKEN` but can be changed with the `--token-var-name` flag.
 
 ### GitHub
 
-When running `uds-pk release github <flavor>` you are expected to have an environment variable set to a GitHub token that has write permissions for your current project. This defaults to `GITHUB_TOKEN` but can be changed with the `--token-var-name` flag.
+When running `uds-pk release github` you are expected to have an environment variable set to a GitHub token that has write permissions for your current project. This defaults to `GITHUB_TOKEN` but can be changed with the `--token-var-name` flag.
 
 ### Release Configuration
 
@@ -55,6 +55,7 @@ flavors:
     version: "2.0.0-uds.0"
   - name: unicorn
     version: "1.0.0-uds.0"
+  - version: "1.0.0-flavorless.0" # A flavor without a name is valid and will be used when the [flavor] argument is not provided to the various release commands.
 
 packages:
   - name: second-package
@@ -66,6 +67,7 @@ packages:
         version: "2.0.0-uds.0"
       - name: unicorn
         version: "1.0.0-uds.0"
+      - version: "1.0.0-flavorless.0" # A flavor without a name is valid and will be used when the [flavor] argument is not provided to the various release commands.
 ```
 
 ### Multi-Package Support
@@ -75,10 +77,24 @@ UDS Package Kit supports multiple packages in a single repository. The `packages
 To refer to a package in the `packages` section, you can use the `--package` flag when running the release command. For example:
 
 ```bash
-uds-pk release gitlab <flavor> --package second-package
+uds-pk release gitlab [flavor] --package second-package
 ```
 
 This command will release the `second-package` with the specified flavor.
+
+### Flavorless Support
+
+UDS Package Kit supports flavorless releases. If you want to release a package without specifying a flavor, you can define a flavor without a name in the `releaser.yaml` file. This is useful for packages that do not have a need for different flavors. When running any `uds-pk release` command simply omit the flavor argument:
+
+```bash
+uds-pk release gitlab
+uds-pk release github
+uds-pk release show
+uds-pk release check -p second-package
+uds-pk release update-yaml
+```
+
+When using flavorless support, tags will simply be the version specified, or in the case of multi-package support the package name and the version joined with a hyphen, e.g. `second-package-1.0.0-flavorless.0`.
 
 ## Scan Comparison
 

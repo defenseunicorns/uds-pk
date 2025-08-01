@@ -44,7 +44,7 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 	// setup the release options
 	releaseOpts := createReleaseOptions(zarfPackageName, flavor, defaultBranch, packageNameFlag)
 
-	fmt.Printf("Creating release %s-%s\n", flavor.Version, flavor.Name)
+	fmt.Printf("Creating release %s\n", utils.JoinNonEmpty("-", flavor.Version, flavor.Name))
 
 	err = platforms.VerifyEnvVar("CI_PROJECT_ID")
 	if err != nil {
@@ -63,9 +63,9 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 
 func createReleaseOptions(zarfPackageName string, flavor types.Flavor, branchRef string, packageNameFlag string) *gitlab.CreateReleaseOptions {
 	return &gitlab.CreateReleaseOptions{
-		Name:        gitlab.Ptr(fmt.Sprintf("%s %s-%s", zarfPackageName, flavor.Version, flavor.Name)),
+		Name:        gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
 		TagName:     gitlab.Ptr(utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)),
-		Description: gitlab.Ptr(fmt.Sprintf("%s %s-%s", zarfPackageName, flavor.Version, flavor.Name)),
+		Description: gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
 		Ref:         gitlab.Ptr(branchRef),
 	}
 }

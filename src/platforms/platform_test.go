@@ -107,6 +107,42 @@ func TestReleaseExists(t *testing.T) {
 			flavor:             types.Flavor{Name: "test", Version: "1.0"},
 			expectError:        true,
 		},
+		{
+			expectedStatusCode: 409,
+			receivedStatusCode: 200,
+			err:                nil,
+			pattern:            "already_exists",
+			packageName:        "test",
+			flavor:             types.Flavor{Name: "", Version: "1.0"},
+			expectError:        false,
+		},
+		{
+			expectedStatusCode: 409,
+			receivedStatusCode: 409,
+			err:                fmt.Errorf("message: already_exists"),
+			pattern:            "already_exists",
+			packageName:        "test",
+			flavor:             types.Flavor{Name: "", Version: "1.0"},
+			expectError:        false,
+		},
+		{
+			expectedStatusCode: 409,
+			receivedStatusCode: 409,
+			err:                fmt.Errorf("message: other error"),
+			pattern:            "already_exists",
+			packageName:        "test",
+			flavor:             types.Flavor{Name: "", Version: "1.0"},
+			expectError:        true,
+		},
+		{
+			expectedStatusCode: 409,
+			receivedStatusCode: 411,
+			err:                fmt.Errorf("message: other error"),
+			pattern:            "already_exists",
+			packageName:        "test",
+			flavor:             types.Flavor{Name: "", Version: "1.0"},
+			expectError:        true,
+		},
 	}
 
 	for _, test := range tests {

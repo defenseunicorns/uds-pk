@@ -52,7 +52,7 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 		GenerateReleaseNotes: github.Ptr(true),
 	}
 
-	fmt.Printf("Creating release %s-%s\n", flavor.Version, flavor.Name)
+	fmt.Printf("Creating release %s\n", releaseName)
 
 	_, response, err := githubClient.Repositories.CreateRelease(context.Background(), owner, repoName, release)
 

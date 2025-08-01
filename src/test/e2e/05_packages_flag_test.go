@@ -40,6 +40,21 @@ func TestPackageFlagShow(t *testing.T) {
 	require.Equal(t, "1.0.0-flag.0\n", stdout)
 }
 
+func TestFlagsWithEmptyStrings(t *testing.T) {
+	// Test that the flags can be used with empty strings
+	stdoutNoFlag, stderrNoFlag, errNoFlag := e2e.UDSPK("release", "check", "base", "-d", "src/test")
+	stdout, stderr, err := e2e.UDSPK("release", "check", "base", "-d", "src/test", "-p", "")
+	require.Equal(t, stdoutNoFlag, stdout)
+	require.Equal(t, stderrNoFlag, stderr)
+	require.Equal(t, errNoFlag, err)
+
+	stdoutNoFlag, stderrNoFlag, errNoFlag = e2e.UDSPK("release", "show", "base", "-d", "src/test")
+	stdout, stderr, err = e2e.UDSPK("release", "show", "base", "-d", "src/test", "-p", "")
+	require.Equal(t, stdoutNoFlag, stdout)
+	require.Equal(t, stderrNoFlag, stderr)
+	require.Equal(t, errNoFlag, err)
+}
+
 func TestPackageFlagUpdateYaml(t *testing.T) {
 	e2e.CreateSandboxDir(t, "bundle", "first", "second")
 	defer e2e.CleanupSandboxDir(t)

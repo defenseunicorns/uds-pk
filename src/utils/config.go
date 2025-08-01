@@ -27,11 +27,7 @@ func GetFlavorConfig(flavor string, config types.ReleaseConfig, packageName stri
 }
 
 func GetFormattedVersion(packageName string, version string, flavor string) string {
-	if packageName != "" {
-		return strings.Join([]string{packageName, version, flavor}, "-")
-	} else {
-		return strings.Join([]string{version, flavor}, "-")
-	}
+	return JoinNonEmpty("-", packageName, version, flavor)
 }
 
 func parseFlavor(flavor string, flavors []types.Flavor) (types.Flavor, error) {
@@ -41,4 +37,15 @@ func parseFlavor(flavor string, flavors []types.Flavor) (types.Flavor, error) {
 		}
 	}
 	return types.Flavor{}, errors.New("flavor not found")
+}
+
+// JoinNonEmpty works like strings.Join but drops any empty elements.
+func JoinNonEmpty(sep string, elems ...string) string {
+    var nonEmptyStrings []string
+    for _, s := range elems {
+        if s != "" {
+            nonEmptyStrings = append(nonEmptyStrings, s)
+        }
+    }
+    return strings.Join(nonEmptyStrings, sep)
 }
