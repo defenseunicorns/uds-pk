@@ -26,13 +26,13 @@ After installation, you can use uds-pk via the command line:
 Pseudo flow for CI/CD:
 
 ```bash
-uds-pk release check <flavor>
+uds-pk release check [flavor]
 
-uds-pk release update-yaml <flavor>
+uds-pk release update-yaml [flavor]
 
 # publish the package #
 
-uds-pk release <platform> <flavor>
+uds-pk release <platform> [flavor]
 ```
 
 ### Gitlab
@@ -77,7 +77,7 @@ UDS Package Kit supports multiple packages in a single repository. The `packages
 To refer to a package in the `packages` section, you can use the `--package` flag when running the release command. For example:
 
 ```bash
-uds-pk release gitlab <flavor> --package second-package
+uds-pk release gitlab [flavor] --package second-package
 ```
 
 This command will release the `second-package` with the specified flavor.
