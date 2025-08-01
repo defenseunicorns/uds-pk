@@ -24,18 +24,26 @@ var githubTokenVarName string
 
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
-	Use:   "check flavor",
-	Short: "Check if release is necessary for given flavor",
-	Args:  cobra.ExactArgs(1),
+	Use:   "check [flavor]",
+	Short: "Check if a release is necessary",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rootCmd.SilenceUsage = true
+
+		var flavor string
+		if len(args) == 0 {
+			flavor = ""
+		} else {
+			flavor = args[0]
+		}
+
 
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
 		}
 
-		_, currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig, packageName)
+		_, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
 		if err != nil {
 			return err
 		}
@@ -66,26 +74,33 @@ var checkCmd = &cobra.Command{
 
 // showCmd represents the show command
 var showCmd = &cobra.Command{
-	Use:   "show flavor",
-	Short: "Show the current version for a given flavor",
-	Args:  cobra.ExactArgs(1),
+	Use:   "show [flavor]",
+	Short: "Show the current version",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rootCmd.SilenceUsage = true
+
+		var flavor string
+		if len(args) == 0 {
+			flavor = ""
+		} else {
+			flavor = args[0]
+		}
 
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
 		}
 
-		_, currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig, packageName)
+		_, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
 		if err != nil {
 			return err
 		}
 
 		if showVersionOnly {
-			fmt.Printf("%s\n", currentFlavor.Version)
+			fmt.Println(currentFlavor.Version)
 		} else {
-			fmt.Printf("%s-%s\n", currentFlavor.Version, currentFlavor.Name)
+			fmt.Println(utils.GetFormattedVersion("", currentFlavor.Version, currentFlavor.Name))
 		}
 
 		return nil
@@ -94,39 +109,60 @@ var showCmd = &cobra.Command{
 
 // gitlabCmd represents the gitlab command
 var gitlabCmd = &cobra.Command{
-	Use:   "gitlab flavor",
-	Short: "Create a tag and release on GitLab based on flavor",
-	Args:  cobra.ExactArgs(1),
+	Use:   "gitlab [flavor]",
+	Short: "Create a tag and release on GitLab",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return platforms.LoadAndTag(releaseDir, args[0], gitlabTokenVarName, gitlab.Platform{}, packageName)
+		var flavor string
+		if len(args) == 0 {
+			flavor = ""
+		} else {
+			flavor = args[0]
+		}
+
+		return platforms.LoadAndTag(releaseDir, flavor, gitlabTokenVarName, gitlab.Platform{}, packageName)
 	},
 }
 
 // githubCmd represents the github command
 var githubCmd = &cobra.Command{
-	Use:   "github flavor",
-	Short: "Create a tag and release on GitHub based on flavor",
-	Args:  cobra.ExactArgs(1),
+	Use:   "github [flavor]",
+	Short: "Create a tag and release on GitHub",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return platforms.LoadAndTag(releaseDir, args[0], githubTokenVarName, github.Platform{}, packageName)
+		var flavor string
+		if len(args) == 0 {
+			flavor = ""
+		} else {
+			flavor = args[0]
+		}
+
+		return platforms.LoadAndTag(releaseDir, flavor, githubTokenVarName, github.Platform{}, packageName)
 	},
 }
 
 // updateYamlCmd represents the updateyaml command
 var updateYamlCmd = &cobra.Command{
-	Use:     "update-yaml flavor",
+	Use:     "update-yaml [flavor]",
 	Aliases: []string{"u"},
-	Short:   "Update the version fields in the zarf.yaml and uds-bundle.yaml based on flavor",
-	Args:    cobra.ExactArgs(1),
+	Short:   "Update the version fields in the zarf.yaml and uds-bundle.yaml",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rootCmd.SilenceUsage = true
+
+		var flavor string
+		if len(args) == 0 {
+			flavor = ""
+		} else {
+			flavor = args[0]
+		}
 
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
 		}
 
-		path, currentFlavor, err := utils.GetFlavorConfig(args[0], releaseConfig, packageName)
+		path, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
 		if err != nil {
 			return err
 		}

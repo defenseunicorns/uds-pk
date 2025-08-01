@@ -18,11 +18,15 @@ func LoadReleaseConfig(dir string) (types.ReleaseConfig, error) {
 	if err != nil {
 		return types.ReleaseConfig{}, err
 	}
+	err = config.VerifyReleaseConfig()
+	if err != nil {
+		return types.ReleaseConfig{}, err
+	}
 
 	return config, nil
 }
 
-func LoadYaml(path string, destVar interface{}) error {
+func LoadYaml(path string, destVar any) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -31,7 +35,7 @@ func LoadYaml(path string, destVar interface{}) error {
 	return goyaml.Unmarshal(data, destVar)
 }
 
-func UpdateYaml(path string, srcVar interface{}) error {
+func UpdateYaml(path string, srcVar any) error {
 	data, err := goyaml.Marshal(srcVar)
 	if err != nil {
 		return err

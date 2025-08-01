@@ -47,14 +47,14 @@ func VerifyEnvVar(varName string) error {
 func ReleaseExists(expectedStatusCode, receivedStatusCode int, err error, pattern string, packageName string, flavor types.Flavor) error {
 	if err != nil {
 		if receivedStatusCode == expectedStatusCode && regexp.MustCompile(pattern).MatchString(err.Error()) {
-			fmt.Printf("Release with tag %s-%s already exists\n", flavor.Version, flavor.Name)
+			fmt.Printf("Release with tag %s already exists\n", utils.JoinNonEmpty("-", flavor.Version, flavor.Name))
 			return nil
 		} else {
 			fmt.Println("Error creating release: ", err)
 			return err
 		}
 	} else {
-		fmt.Printf("Release %s %s-%s created\n", packageName, flavor.Version, flavor.Name)
+		fmt.Printf("Release %s %s created\n", packageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))
 		return nil
 	}
 }

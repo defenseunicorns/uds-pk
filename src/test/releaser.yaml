@@ -14,6 +14,7 @@ flavors:
     version: "2.0.0-uds.0"
   - name: dummy
     version: "testing"
+  - version: "1.0.0-flavorless.0"
 
 packages:
   - name: first
@@ -23,6 +24,7 @@ packages:
         version: "1.0.0-flag.0"
       - name: prerelease
         version: "1.0.0-flag.1"
+      - version: "flavorless-testing"
   - name: second
     path: second/
     flavors:
@@ -35,3 +37,4 @@ packages:
     flavors:
       - name: dummy
         version: "testing"
+      - version: "flavorless-testing"
