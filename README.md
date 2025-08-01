@@ -88,9 +88,10 @@ UDS Package Kit supports flavorless releases. If you want to release a package w
 
 ```bash
 uds-pk release gitlab
-uds-pk check -p second-package
+uds-pk release github
+uds-pk release show
+uds-pk release check -p second-package
 uds-pk release update-yaml
-# etc...
 ```
 
 When using flavorless support, tags will simply be the version specified, or in the case of multi-package support the package name and the version joined with a hyphen, e.g. `second-package-1.0.0-flavorless.0`.
