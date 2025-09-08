@@ -85,7 +85,12 @@ func TestUpdateBundleYaml(t *testing.T) {
 	// Save current working directory
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
-	defer os.Chdir(cwd)
+	defer func() {
+		err := os.Chdir(cwd)
+		if err != nil {
+			t.Logf("Failed to change back to original directory: %v", err)
+		}
+	}()
 
 	tests := []struct {
 		name          string
