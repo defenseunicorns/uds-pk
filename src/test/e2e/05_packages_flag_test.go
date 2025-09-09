@@ -98,8 +98,8 @@ func TestPackageFlagUpdateYaml(t *testing.T) {
 	err = e2e.LoadYaml("src/test/sandbox/bundle/uds-bundle.yaml", &bundle)
 	require.NoError(t, err)
 
-	require.Equal(t, "1.0.0-flag.0", bundle.Metadata.Version)
+	require.Equal(t, "1.0.0-flag.0-base", bundle.Metadata.Version)
 	require.Equal(t, "devel", bundle.Packages[0].Ref)
-	require.Equal(t, "1.0.0-flag.0", bundle.Packages[1].Ref)
+	require.Equal(t, "1.0.0-flag.0-base", bundle.Packages[1].Ref)
 	require.Equal(t, "devel", bundle.Packages[2].Ref)
 }

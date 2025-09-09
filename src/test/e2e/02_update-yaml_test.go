@@ -35,6 +35,6 @@ func TestUpdateYamlCommand(t *testing.T) {
 	err = e2e.LoadYaml("src/test/sandbox/bundle/uds-bundle.yaml", &bundle)
 	require.NoError(t, err)
 
-	require.Equal(t, "1.0.0-uds.0", bundle.Metadata.Version)
-	require.Equal(t, "1.0.0-uds.0", bundle.Packages[0].Ref)
+	require.Equal(t, "1.0.0-uds.0-base", bundle.Metadata.Version)
+	require.Equal(t, "1.0.0-uds.0-base", bundle.Packages[0].Ref)
 }

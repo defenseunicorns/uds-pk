@@ -50,12 +50,14 @@ func updateBundleYaml(flavor types.Flavor, packageName string) error {
 		return err
 	}
 
-	bundle.Metadata.Version = flavor.Version
+	tag := utils.JoinNonEmpty("-", flavor.Version, flavor.Name)
+
+	bundle.Metadata.Version = tag
 
 	// Find the package that matches the package name and update its ref
 	for i, bundledPackage := range bundle.Packages {
 		if bundledPackage.Name == packageName {
-			bundle.Packages[i].Ref = flavor.Version
+			bundle.Packages[i].Ref = tag
 		}
 	}
 
@@ -64,6 +66,6 @@ func updateBundleYaml(flavor types.Flavor, packageName string) error {
 		return err
 	}
 
-	fmt.Printf("Updated uds-bundle.yaml with version %s\n", flavor.Version)
+	fmt.Printf("Updated uds-bundle.yaml with version %s\n", tag)
 	return nil
 }
