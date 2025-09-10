@@ -111,7 +111,7 @@ The `update-yaml` command supports `--package-only` and `--bundle` flags to allo
 
 - `--package-only`: This flag allows you to update only the package files without affecting the bundle files. It has no inputs.
 
-- `--bundle`: This flag allows you to specify a bundle to update without effecting any packages. The name of the bundle is a required input and must be defined in the releaser.yaml. It is incompatible with any package specific flags or flavor inputs.
+- `--bundle`: This flag allows you to specify a bundle to update without affecting any packages. The name of the bundle is a required input and must be defined in the releaser.yaml. It is incompatible with any package specific flags or flavor inputs.
 
 
 
