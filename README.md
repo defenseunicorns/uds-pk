@@ -69,7 +69,7 @@ packages:
         version: "1.0.0-uds.0"
       - version: "1.0.0-flavorless.0" # A flavor without a name is valid and will be used when the [flavor] argument is not provided to the various release commands.
 
-# The bundles entry is only used when `uds release update-yaml --bundle [bundle-name]` is specified
+# The bundles entry is only used when `uds release bundle CMD BUNDLE_NAME` is used
 bundles:
   - name: dev
     path: bundles/dev/
@@ -105,15 +105,27 @@ uds-pk release update-yaml
 
 When using flavorless support, tags will simply be the version specified, or in the case of multi-package support the package name and the version joined with a hyphen, e.g. `second-package-1.0.0-flavorless.0`.
 
-### Package And Bundle Only Flags For `update-yaml`
+### Bundle Release Support
 
-The `update-yaml` command supports `--package-only` and `--bundle` flags to allow for more granular updates to files.
+UDS Package Kit supports releasing UDS Bundles directly without packages present. The functionality is similar to the package support, but the sub commands are under `uds-pk release bundle` and a bundle name is required along with that bundle being defined in the `bundles` section of the `releaser.yaml` file. For example:
 
-- `--package-only`: This flag allows you to update only the package files without affecting the bundle files. It has no inputs.
+```bash
+uds-pk release bundle gitlab BUNDLE_NAME
+uds-pk release bundle github BUNDLE_NAME
+uds-pk release bundle show BUNDLE_NAME
+uds-pk release bundle check BUNDLE_NAME
+uds-pk release bundle update-yaml BUNDLE_NAME
+```
 
-- `--bundle`: This flag allows you to specify a bundle to update without affecting any packages. The name of the bundle is a required input and must be defined in the releaser.yaml. It is incompatible with any package specific flags or flavor inputs.
-
-
+```yaml
+bundles:
+  - name: dev
+    path: bundles/dev/
+    version: 0.0.2
+  - name: prod
+    path: bundles/prod/
+    version: 0.0.1
+```
 
 ## Scan Comparison
 
