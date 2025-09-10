@@ -15,6 +15,7 @@ import (
 
 type Platform interface {
 	TagAndRelease(flavor types.Flavor, tokenVarName string, packageName string) error
+	BundleTagAndRelease(bundle types.Bundle, tokenVarName string) error
 }
 
 func LoadAndTag(releaseDir, flavor, tokenVarName string, platform Platform, packageName string) error {

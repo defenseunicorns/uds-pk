@@ -14,18 +14,13 @@ import (
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
 
-func UpdateYamls(flavor types.Flavor, path string, packageOnly bool) error {
+func UpdateYamls(flavor types.Flavor, path string) error {
 	packageName, err := updateZarfYaml(flavor, path)
 	if err != nil {
 		return err
 	}
 
-	if packageOnly {
-		return nil
-	} else {
-		return updateBundleYaml(flavor, packageName)
-	}
-
+	return updateBundleYaml(flavor, packageName)
 }
 
 func UpdateBundleYamlOnly(bundle types.Bundle) error {

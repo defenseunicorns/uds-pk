@@ -61,11 +61,60 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 	return nil
 }
 
+func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) error {
+	remoteURL, defaultBranch, err := utils.GetRepoInfo()
+	if err != nil {
+		return err
+	}
+
+	// Parse the GitLab base URL from the remote URL
+	gitlabBaseURL, err := getGitlabBaseUrl(remoteURL)
+	if err != nil {
+		return err
+	}
+
+	// Create a new GitLab client
+	gitlabClient, err := gitlab.NewClient(os.Getenv(tokenVarName), gitlab.WithBaseURL(gitlabBaseURL))
+	if err != nil {
+		return err
+	}
+
+	// setup the release options
+	releaseOpts := createBundleReleaseOptions(bundle, defaultBranch)
+
+	fmt.Printf("Creating release %s\n", utils.GetFormattedVersion(bundle.Name, bundle.Version, ""))
+
+	err = platforms.VerifyEnvVar("CI_PROJECT_ID")
+	if err != nil {
+		return err
+	}
+
+	// Create the release
+	_, response, err := gitlabClient.Releases.CreateRelease(os.Getenv("CI_PROJECT_ID"), releaseOpts)
+
+	err = platforms.ReleaseExists(409, response.StatusCode, err, `message: Release already exists`, bundle.Name, types.Flavor{Version: bundle.Version})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+
 func createReleaseOptions(zarfPackageName string, flavor types.Flavor, branchRef string, packageNameFlag string) *gitlab.CreateReleaseOptions {
 	return &gitlab.CreateReleaseOptions{
 		Name:        gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
 		TagName:     gitlab.Ptr(utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)),
 		Description: gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
+		Ref:         gitlab.Ptr(branchRef),
+	}
+}
+
+func createBundleReleaseOptions(bundle types.Bundle, branchRef string) *gitlab.CreateReleaseOptions {
+	return &gitlab.CreateReleaseOptions{
+		Name:        gitlab.Ptr(fmt.Sprintf("%s %s", bundle.Name, bundle.Version)),
+		TagName:     gitlab.Ptr(utils.GetFormattedVersion(bundle.Name, bundle.Version, "")),
+		Description: gitlab.Ptr(fmt.Sprintf("%s %s", bundle.Name, bundle.Version)),
 		Ref:         gitlab.Ptr(branchRef),
 	}
 }

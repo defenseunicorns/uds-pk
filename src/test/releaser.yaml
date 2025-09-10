@@ -40,6 +40,9 @@ packages:
       - version: "flavorless-testing"
 
 bundles:
+  - name: dummy
+    path: bundle/
+    version: bundle-testing-dummy
   - name: bundle1
     path: bundle1/
     version: 1.0.0-bundle.0
