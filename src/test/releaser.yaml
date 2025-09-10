@@ -38,3 +38,11 @@ packages:
       - name: dummy
         version: "testing"
       - version: "flavorless-testing"
+
+bundles:
+  - name: bundle1
+    path: bundle1/
+    version: 1.0.0-bundle.0
+  - name: bundle2
+    path: bundle2/
+    version: 2.0.0-bundle.0

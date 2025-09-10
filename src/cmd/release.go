@@ -21,6 +21,8 @@ var checkBoolOutput bool
 var showVersionOnly bool
 var gitlabTokenVarName string
 var githubTokenVarName string
+var bundleName string
+var packageOnly bool
 
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
@@ -148,6 +150,15 @@ var updateYamlCmd = &cobra.Command{
 	Short:   "Update the version fields in the zarf.yaml and uds-bundle.yaml",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if packageOnly && bundleName != "" {
+			return errors.New("cannot specify both --package-only and --bundle")
+		}
+		if packageName != "" && bundleName != "" {
+			return errors.New("cannot specify both --package and --bundle")
+		}
+		if len(args) > 0 && bundleName != "" {
+			return errors.New("cannot specify both a flavor argument and --bundle")
+		}
 		rootCmd.SilenceUsage = true
 
 		var flavor string
@@ -156,18 +167,26 @@ var updateYamlCmd = &cobra.Command{
 		} else {
 			flavor = args[0]
 		}
-
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
 		}
 
-		path, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
-		if err != nil {
-			return err
-		}
+		if bundleName != "" {
+			bundle, err := utils.GetBundleConfig(releaseConfig, bundleName)
+			if err != nil {
+				return err
+			}
 
-		return version.UpdateYamls(currentFlavor, path)
+			return version.UpdateBundleYamlOnly(bundle)
+		} else {
+
+			path, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
+			if err != nil {
+				return err
+			}
+			return version.UpdateYamls(currentFlavor, path, packageOnly)
+		}
 	},
 }
 
@@ -195,4 +214,7 @@ func init() {
 
 	gitlabCmd.Flags().StringVarP(&gitlabTokenVarName, "token-var-name", "t", "GITLAB_RELEASE_TOKEN", "Environment variable name for GitLab token")
 	githubCmd.Flags().StringVarP(&githubTokenVarName, "token-var-name", "t", "GITHUB_TOKEN", "Environment variable name for GitHub token")
+
+	updateYamlCmd.Flags().StringVarP(&bundleName, "bundle", "b", "", "Name of the bundle to update, mutually exclusive with any package flags or providing a flavor")
+	updateYamlCmd.Flags().BoolVarP(&packageOnly, "package-only", "P", false, "Only update the package version, ignore the bundle")
 }

@@ -14,13 +14,37 @@ import (
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
 
-func UpdateYamls(flavor types.Flavor, path string) error {
+func UpdateYamls(flavor types.Flavor, path string, packageOnly bool) error {
 	packageName, err := updateZarfYaml(flavor, path)
 	if err != nil {
 		return err
 	}
 
-	return updateBundleYaml(flavor, packageName)
+	if packageOnly {
+		return nil
+	} else {
+		return updateBundleYaml(flavor, packageName)
+	}
+
+}
+
+func UpdateBundleYamlOnly(bundle types.Bundle) error {
+	var udsBundle uds.UDSBundle
+	bundlePath := filepath.Join(bundle.Path, "uds-bundle.yaml")
+	err := utils.LoadYaml(bundlePath, &udsBundle)
+	if err != nil {
+		return err
+	}
+
+	udsBundle.Metadata.Version = bundle.Version
+
+	err = utils.UpdateYaml(bundlePath, udsBundle)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Updated uds-bundle.yaml with version %s\n", bundle.Version)
+	return nil
 }
 
 func updateZarfYaml(flavor types.Flavor, path string) (packageName string, err error) {
