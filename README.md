@@ -68,6 +68,15 @@ packages:
       - name: unicorn
         version: "1.0.0-uds.0"
       - version: "1.0.0-flavorless.0" # A flavor without a name is valid and will be used when the [flavor] argument is not provided to the various release commands.
+
+# The bundles entry is only used when `uds release bundle CMD BUNDLE_NAME` is used
+bundles:
+  - name: dev
+    path: bundles/dev/
+    version: 0.0.2
+  - name: prod
+    path: bundles/prod/
+    version: 0.0.1
 ```
 
 ### Multi-Package Support
@@ -95,6 +104,28 @@ uds-pk release update-yaml
 ```
 
 When using flavorless support, tags will simply be the version specified, or in the case of multi-package support the package name and the version joined with a hyphen, e.g. `second-package-1.0.0-flavorless.0`.
+
+### Bundle Release Support
+
+UDS Package Kit supports releasing UDS Bundles directly without packages present. The functionality is similar to the package support, but the sub commands are under `uds-pk release bundle` and a bundle name is required along with that bundle being defined in the `bundles` section of the `releaser.yaml` file. For example:
+
+```bash
+uds-pk release bundle gitlab BUNDLE_NAME
+uds-pk release bundle github BUNDLE_NAME
+uds-pk release bundle show BUNDLE_NAME
+uds-pk release bundle check BUNDLE_NAME
+uds-pk release bundle update-yaml BUNDLE_NAME
+```
+
+```yaml
+bundles:
+  - name: dev
+    path: bundles/dev/
+    version: 0.0.2
+  - name: prod
+    path: bundles/prod/
+    version: 0.0.1
+```
 
 ## Scan Comparison
 

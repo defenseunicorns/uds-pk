@@ -25,12 +25,19 @@ type Package struct {
 type ReleaseConfig struct {
 	Flavors  []Flavor  `yaml:"flavors"`
 	Packages []Package `yaml:"packages,omitempty"`
+	Bundles  []Bundle  `yaml:"bundles,omitempty"`
+}
+
+type Bundle struct {
+	Name    string   `yaml:"name"`
+	Path    string   `yaml:"path"`
+	Version string   `yaml:"version"`
 }
 
 func (config ReleaseConfig)VerifyReleaseConfig() error {
 	// There must be at least one flavor or package defined
-	if len(config.Flavors) == 0 && len(config.Packages) == 0 {
-		return errors.New("releaser.yaml must define at least one flavor or package")
+	if len(config.Flavors) == 0 && len(config.Packages) == 0 && len(config.Bundles) == 0 {
+		return errors.New("releaser.yaml must define at least one flavor, package, or bundle")
 	}
 
 	// Each flavor must have a version defined
@@ -111,6 +118,19 @@ func (config ReleaseConfig)VerifyReleaseConfig() error {
 			if flavor.PublishBundle && flavor.PublishBundleUrl == "" {
 				return errors.New("if publishBundle is true, publishBundleUrl must be defined")
 			}
+		}
+	}
+
+	// Each bundle must have a name, path, and version defined
+	for _, bundle := range config.Bundles {
+		if bundle.Name == "" {
+			return errors.New("each bundle must have a name defined")
+		}
+		if bundle.Path == "" {
+			return errors.New("each bundle must have a path defined")
+		}
+		if bundle.Version == "" {
+			return errors.New("each bundle must have a version defined")
 		}
 	}
 

@@ -23,6 +23,25 @@ func UpdateYamls(flavor types.Flavor, path string) error {
 	return updateBundleYaml(flavor, packageName)
 }
 
+func UpdateBundleYamlOnly(bundle types.Bundle) error {
+	var udsBundle uds.UDSBundle
+	bundlePath := filepath.Join(bundle.Path, "uds-bundle.yaml")
+	err := utils.LoadYaml(bundlePath, &udsBundle)
+	if err != nil {
+		return err
+	}
+
+	udsBundle.Metadata.Version = bundle.Version
+
+	err = utils.UpdateYaml(bundlePath, udsBundle)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Updated uds-bundle.yaml with version %s\n", bundle.Version)
+	return nil
+}
+
 func updateZarfYaml(flavor types.Flavor, path string) (packageName string, err error) {
 	var zarfPackage zarf.ZarfPackage
 	zarfPath := filepath.Join(path, "zarf.yaml")

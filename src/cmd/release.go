@@ -21,6 +21,7 @@ var checkBoolOutput bool
 var showVersionOnly bool
 var gitlabTokenVarName string
 var githubTokenVarName string
+var showTag bool
 
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
@@ -36,7 +37,6 @@ var checkCmd = &cobra.Command{
 		} else {
 			flavor = args[0]
 		}
-
 
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
@@ -146,7 +146,7 @@ var updateYamlCmd = &cobra.Command{
 	Use:     "update-yaml [flavor]",
 	Aliases: []string{"u"},
 	Short:   "Update the version fields in the zarf.yaml and uds-bundle.yaml",
-	Args:  cobra.MaximumNArgs(1),
+	Args:    cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rootCmd.SilenceUsage = true
 
@@ -177,6 +177,150 @@ var releaseCmd = &cobra.Command{
 	Short: "Collection of commands for releasing on different platforms",
 }
 
+var bundleCmd = &cobra.Command{
+	Use:   "bundle cmd",
+	Short: "Collection of commands for releasing bundles",
+}
+
+var updateBundleYaml = &cobra.Command{
+	Use:     "update-yaml BUNDLE_NAME",
+	Aliases: []string{"ub"},
+	Short:   "Update the version field in the specified uds-bundle.yaml",
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
+		bundleName := args[0]
+
+		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+		if err != nil {
+			return err
+		}
+
+		bundle, err := utils.GetBundleConfig(releaseConfig, bundleName)
+		if err != nil {
+			return err
+		}
+
+		return version.UpdateBundleYamlOnly(bundle)
+	},
+}
+
+var checkBundleCommand = &cobra.Command{
+	Use:   "check BUNDLE_NAME",
+	Short: "Check if a release is necessary for the specified bundle",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
+		bundleName := args[0]
+
+		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+		if err != nil {
+			return err
+		}
+
+		bundle, err := utils.GetBundleConfig(releaseConfig, bundleName)
+		if err != nil {
+			return err
+		}
+
+		formattedVersion := utils.GetFormattedVersion(bundle.Name, bundle.Version, "")
+
+		tagExists, err := utils.DoesTagExist(formattedVersion)
+		if err != nil {
+			return err
+		}
+		if tagExists {
+			if checkBoolOutput {
+				fmt.Println("false")
+			} else {
+				fmt.Printf("Version %s is already tagged\n", formattedVersion)
+				return errors.New("no release necessary")
+			}
+		} else {
+			if checkBoolOutput {
+				fmt.Println("true")
+			} else {
+				fmt.Printf("Version %s is not tagged\n", formattedVersion)
+			}
+		}
+		return nil
+	},
+}
+
+var showBundleCommand = &cobra.Command{
+	Use:   "show BUNDLE_NAME",
+	Short: "Show the current version for the specified bundle",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		rootCmd.SilenceUsage = true
+
+		bundleName := args[0]
+
+		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+		if err != nil {
+			return err
+		}
+
+		bundle, err := utils.GetBundleConfig(releaseConfig, bundleName)
+		if err != nil {
+			return err
+		}
+
+		if showTag {
+			fmt.Println(utils.GetFormattedVersion(bundle.Name, bundle.Version, ""))
+		} else {
+			fmt.Println(bundle.Version)
+		}
+		return nil
+	},
+}
+
+var bundleGitlabCmd = &cobra.Command{
+	Use:   "gitlab BUNDLE_NAME",
+	Short: "Create a tag and release for the specified bundle on GitLab",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		bundleName := args[0]
+
+		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+		if err != nil {
+			return err
+		}
+
+		bundle, err := utils.GetBundleConfig(releaseConfig, bundleName)
+		if err != nil {
+			return err
+		}
+
+		gitlab := gitlab.Platform{}
+		return gitlab.BundleTagAndRelease(bundle, gitlabTokenVarName)
+	},
+}
+
+var bundleGithubCmd = &cobra.Command{
+	Use:   "github BUNDLE_NAME",
+	Short: "Create a tag and release for the specified bundle on GitHub",
+	Args:  cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		bundleName := args[0]
+
+		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
+		if err != nil {
+			return err
+		}
+
+		bundle, err := utils.GetBundleConfig(releaseConfig, bundleName)
+		if err != nil {
+			return err
+		}
+
+		github := github.Platform{}
+		return github.BundleTagAndRelease(bundle, githubTokenVarName)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(releaseCmd)
 
@@ -187,7 +331,6 @@ func init() {
 	releaseCmd.AddCommand(updateYamlCmd)
 
 	releaseCmd.PersistentFlags().StringVarP(&releaseDir, "dir", "d", ".", "Path to the directory containing the releaser.yaml file")
-	releaseCmd.PersistentFlags().StringVarP(&packageName, "package", "p", "", "Name of package to run uds-pk against. Must match an entry under packages in the releaser.yaml file. If not provided, the top level flavors will be used.")
 
 	checkCmd.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
 
@@ -195,4 +338,24 @@ func init() {
 
 	gitlabCmd.Flags().StringVarP(&gitlabTokenVarName, "token-var-name", "t", "GITLAB_RELEASE_TOKEN", "Environment variable name for GitLab token")
 	githubCmd.Flags().StringVarP(&githubTokenVarName, "token-var-name", "t", "GITHUB_TOKEN", "Environment variable name for GitHub token")
+
+	// Can't mark as persistent flag because it's not applicable to bundle commands
+	for _, cmd := range []*cobra.Command{releaseCmd, checkCmd, showCmd, gitlabCmd, githubCmd, updateYamlCmd} {
+		cmd.Flags().StringVarP(&packageName, "package", "p", "", "Name of package to run uds-pk against. Must match an entry under packages in the releaser.yaml file. If not provided, the top level flavors will be used.")
+	}
+
+	releaseCmd.AddCommand(bundleCmd)
+
+	bundleCmd.AddCommand(checkBundleCommand)
+	bundleCmd.AddCommand(showBundleCommand)
+	bundleCmd.AddCommand(bundleGitlabCmd)
+	bundleCmd.AddCommand(bundleGithubCmd)
+	bundleCmd.AddCommand(updateBundleYaml)
+
+	bundleGitlabCmd.Flags().StringVarP(&gitlabTokenVarName, "token-var-name", "t", "GITLAB_RELEASE_TOKEN", "Environment variable name for GitLab token")
+	bundleGithubCmd.Flags().StringVarP(&githubTokenVarName, "token-var-name", "t", "GITHUB_TOKEN", "Environment variable name for GitHub token")
+
+	checkBundleCommand.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
+
+	showBundleCommand.Flags().BoolVarP(&showTag, "tag", "t", false, "Show the full tag including bundle name instead of just the version")
 }

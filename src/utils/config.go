@@ -30,6 +30,15 @@ func GetFormattedVersion(packageName string, version string, flavor string) stri
 	return JoinNonEmpty("-", packageName, version, flavor)
 }
 
+func GetBundleConfig(config types.ReleaseConfig, bundleName string) (types.Bundle, error) {
+	for _, b := range config.Bundles {
+		if b.Name == bundleName {
+			return b, nil
+		}
+	}
+	return types.Bundle{}, fmt.Errorf("bundle %s is not defined in releaser.yaml", bundleName)
+}
+
 func parseFlavor(flavor string, flavors []types.Flavor) (types.Flavor, error) {
 	for _, f := range flavors {
 		if f.Name == flavor {

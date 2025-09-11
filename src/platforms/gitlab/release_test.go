@@ -101,3 +101,17 @@ func TestGetGitlabBaseUrl(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateBundleReleaseOptions(t *testing.T) {
+	bundle := types.Bundle{
+		Name:    "bundle1",
+		Version: "1.0.0-bundle.0",
+	}
+
+	defaultBranch := "main"
+
+	releaseOpts := createBundleReleaseOptions(bundle, defaultBranch)
+
+	assert.Equal(t, "bundle1 1.0.0-bundle.0", *releaseOpts.Name)
+	assert.Equal(t, "bundle1-1.0.0-bundle.0", *releaseOpts.TagName)
+}

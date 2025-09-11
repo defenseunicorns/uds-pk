@@ -217,6 +217,55 @@ func TestVerifyReleaseConfig(t *testing.T) {
 			},
 			expectError: true,
 		},
+		{
+			name: "valid config with a single bundle",
+			config: ReleaseConfig{
+				Bundles: []Bundle{
+					{
+						Name:    "test-bundle",
+						Path: 	"test/bundle",
+						Version: "1.0.0-bundle.0",
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid config with a bundle missing name",
+			config: ReleaseConfig{
+				Bundles: []Bundle{
+					{
+						Path: 	"test/bundle",
+						Version: "1.0.0-bundle.0",
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "invalid config with a bundle missing version",
+			config: ReleaseConfig{
+				Bundles: []Bundle{
+					{
+						Name:    "test-bundle",
+						Path: 	"test/bundle",
+					},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "invalid config with a bundle missing path",
+			config: ReleaseConfig{
+				Bundles: []Bundle{
+					{
+						Name:    "test-bundle",
+						Version: "1.0.0-bundle.0",
+					},
+				},
+			},
+			expectError: true,
+		},
 	}
 
 	for _, test := range tests {

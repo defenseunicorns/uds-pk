@@ -63,6 +63,46 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 	return nil
 }
 
+func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) error {
+	remoteURL, _, err := utils.GetRepoInfo()
+	if err != nil {
+		return err
+	}
+
+	// Create a new GitHub client
+	githubClient := github.NewClient(nil)
+
+	// Set the authentication token
+	githubClient = githubClient.WithAuthToken(os.Getenv(tokenVarName))
+
+	owner, repoName, err := getGithubOwnerAndRepo(remoteURL)
+	if err != nil {
+		return err
+	}
+
+	// Create the tag
+	tagName := utils.GetFormattedVersion(bundle.Name, bundle.Version, "")
+	releaseName := fmt.Sprintf("%s %s", bundle.Name, tagName)
+
+	// Create the release
+	release := &github.RepositoryRelease{
+		TagName:              github.Ptr(tagName),
+		Name:                 github.Ptr(releaseName),
+		Body:                 github.Ptr(releaseName), //TODO @corang release notes
+		GenerateReleaseNotes: github.Ptr(true),
+	}
+
+	fmt.Printf("Creating release %s\n", releaseName)
+
+	_, response, err := githubClient.Repositories.CreateRelease(context.Background(), owner, repoName, release)
+
+	err = platforms.ReleaseExists(422, response.StatusCode, err, `already_exists`, bundle.Name, types.Flavor{Version: bundle.Version})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func createGitHubTag(tagName string, releaseName string, hash string) *github.Tag {
 	tag := &github.Tag{
 		Tag:     github.Ptr(tagName),
