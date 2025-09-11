@@ -36,8 +36,8 @@ type Bundle struct {
 
 func (config ReleaseConfig)VerifyReleaseConfig() error {
 	// There must be at least one flavor or package defined
-	if len(config.Flavors) == 0 && len(config.Packages) == 0 {
-		return errors.New("releaser.yaml must define at least one flavor or package")
+	if len(config.Flavors) == 0 && len(config.Packages) == 0 && len(config.Bundles) == 0 {
+		return errors.New("releaser.yaml must define at least one flavor, package, or bundle")
 	}
 
 	// Each flavor must have a version defined
