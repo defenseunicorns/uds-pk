@@ -13,6 +13,8 @@ import (
 
 	"github.com/CycloneDX/cyclonedx-go"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 func LoadScans(basePath string, newPath string) (cyclonedx.BOM, cyclonedx.BOM, error) {
@@ -107,9 +109,15 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	fixedVulnRows = sortRows(fixedVulnRows)
 	existingVulnRows = sortRows(existingVulnRows)
 
-	newVulnTable.AppendBulk(newVulnRows)
-	fixedVulnTable.AppendBulk(fixedVulnRows)
-	existingVulnTable.AppendBulk(existingVulnRows)
+	if err := newVulnTable.Bulk(newVulnRows); err != nil {
+		return "", err
+	}
+	if err := fixedVulnTable.Bulk(fixedVulnRows); err != nil {
+		return "", err
+	}
+	if err := existingVulnTable.Bulk(existingVulnRows); err != nil {
+		return "", err
+	}
 
 	outputBuilder.WriteString("<details>\n")
 	outputBuilder.WriteString("<summary>New vulnerabilities</summary>\n\n")
@@ -183,17 +191,34 @@ func sortRows(rows [][]string) [][]string {
 }
 
 func setupTables(newVulnTableString *strings.Builder, fixedVulnTableString *strings.Builder, existingVulnTableString *strings.Builder) (newVulnTable *tablewriter.Table, fixedVulnTable *tablewriter.Table, existingVulnTable *tablewriter.Table) {
-	newVulnTable = tablewriter.NewWriter(newVulnTableString)
+	/*
+		todo:
+				table.SetCenterSeparator("|")
+				table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+				table.SetColWidth(10000)
+	*/
+	symbols := tw.NewSymbolCustom("uds-pk").
+		WithCenter("|")
+
+	// todo: can we just use markdown style?
+	renderOptions := renderer.NewBlueprint(tw.Rendition{
+		Borders: tw.Border{
+			Left:   tw.On,
+			Right:  tw.On,
+			Top:    tw.Off,
+			Bottom: tw.Off,
+		},
+		Symbols: symbols,
+	})
+	// todo: verify markdown looks similar/good
+	newVulnTable = tablewriter.NewTable(newVulnTableString, tablewriter.WithRenderer(renderOptions))
 	fixedVulnTable = tablewriter.NewWriter(fixedVulnTableString)
 	existingVulnTable = tablewriter.NewWriter(existingVulnTableString)
 
 	tables := []*tablewriter.Table{newVulnTable, fixedVulnTable, existingVulnTable}
 
 	for _, table := range tables {
-		table.SetHeader([]string{"ID", "Severity", "URL"})
-		table.SetCenterSeparator("|")
-		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-		table.SetColWidth(10000)
+		table.Header([]string{"ID", "Severity", "URL"})
 	}
 
 	return newVulnTable, fixedVulnTable, existingVulnTable
