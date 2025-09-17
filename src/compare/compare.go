@@ -210,8 +210,15 @@ func setupTables(newVulnTableString *strings.Builder, fixedVulnTableString *stri
 		},
 		Symbols: symbols,
 	})
+
+	renderConfig := tablewriter.Config{
+		Row: tw.CellConfig{
+			ColMaxWidths: tw.CellWidth{Global: 10000},
+		},
+	}
+
 	// todo: verify markdown looks similar/good
-	newVulnTable = tablewriter.NewTable(newVulnTableString, tablewriter.WithRenderer(renderOptions))
+	newVulnTable = tablewriter.NewTable(newVulnTableString, tablewriter.WithRenderer(renderOptions), tablewriter.WithConfig(renderConfig))
 	fixedVulnTable = tablewriter.NewWriter(fixedVulnTableString)
 	existingVulnTable = tablewriter.NewWriter(existingVulnTableString)
 
