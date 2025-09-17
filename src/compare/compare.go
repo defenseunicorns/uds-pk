@@ -122,7 +122,9 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	outputBuilder.WriteString("<details>\n")
 	outputBuilder.WriteString("<summary>New vulnerabilities</summary>\n\n")
 
-	newVulnTable.Render()
+	if err := newVulnTable.Render(); err != nil {
+		return "", err
+	}
 
 	outputBuilder.WriteString(newVulnTableString.String())
 	outputBuilder.WriteString("\n</details>\n")
@@ -130,7 +132,9 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	outputBuilder.WriteString("<details>\n")
 	outputBuilder.WriteString("<summary>Fixed vulnerabilities</summary>\n\n")
 
-	fixedVulnTable.Render()
+	if err := fixedVulnTable.Render(); err != nil {
+		return "", err
+	}
 
 	outputBuilder.WriteString(fixedVulnTableString.String())
 	outputBuilder.WriteString("\n</details>\n")
@@ -138,7 +142,9 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	outputBuilder.WriteString("<details>\n")
 	outputBuilder.WriteString("<summary>Existing vulnerabilities</summary>\n\n")
 
-	existingVulnTable.Render()
+	if err := existingVulnTable.Render(); err != nil {
+		return "", err
+	}
 
 	outputBuilder.WriteString(existingVulnTableString.String())
 	outputBuilder.WriteString("\n</details>\n")

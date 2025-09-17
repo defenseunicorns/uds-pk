@@ -102,13 +102,25 @@ func TestSetupTables(t *testing.T) {
 	dummyRow := []string{"VULN-123", "high", "http://example.com"}
 	expectedHeaders := []string{"ID", "Severity", "URL"}
 
-	newTable.Append(dummyRow)
-	fixedTable.Append(dummyRow)
-	existingTable.Append(dummyRow)
+	if err := newTable.Append(dummyRow); err != nil {
+		t.Fatalf("Failed to append to newTable: %v", err)
+	}
+	if err := fixedTable.Append(dummyRow); err != nil {
+		t.Fatalf("Failed to append to fixedTable: %v", err)
+	}
+	if err := existingTable.Append(dummyRow); err != nil {
+		t.Fatalf("Failed to append to existingTable: %v", err)
+	}
 
-	newTable.Render()
-	fixedTable.Render()
-	existingTable.Render()
+	if err := newTable.Render(); err != nil {
+		t.Fatalf("Failed to render newTable: %v", err)
+	}
+	if err := fixedTable.Render(); err != nil {
+		t.Fatalf("Failed to render fixedTable: %v", err)
+	}
+	if err := existingTable.Render(); err != nil {
+		t.Fatalf("Failed to render existingTable: %v", err)
+	}
 
 	outputs := map[string]string{
 		"new":      newBuilder.String(),
@@ -226,7 +238,6 @@ func TestLoadScanJson_NoVulnerabilities(t *testing.T) {
 		t.Errorf("Expected Vulnerabilities to be empty, got %d items", len(*bom.Vulnerabilities))
 	}
 }
-
 
 func TestGetUniqueVulnId(t *testing.T) {
 	vuln := cyclonedx.Vulnerability{
