@@ -197,25 +197,6 @@ func sortRows(rows [][]string) [][]string {
 }
 
 func setupTables(newVulnTableString *strings.Builder, fixedVulnTableString *strings.Builder, existingVulnTableString *strings.Builder) (newVulnTable *tablewriter.Table, fixedVulnTable *tablewriter.Table, existingVulnTable *tablewriter.Table) {
-	/*
-		todo:
-				table.SetCenterSeparator("|")
-				table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-				table.SetColWidth(10000)
-	*/
-	symbols := tw.NewSymbolCustom("uds-pk").
-		WithCenter("|")
-
-	// todo: can we just use markdown style?
-	renderOptions := renderer.NewBlueprint(tw.Rendition{
-		Borders: tw.Border{
-			Left:   tw.On,
-			Right:  tw.On,
-			Top:    tw.Off,
-			Bottom: tw.Off,
-		},
-		Symbols: symbols,
-	})
 
 	renderConfig := tablewriter.Config{
 		Row: tw.CellConfig{
@@ -224,9 +205,9 @@ func setupTables(newVulnTableString *strings.Builder, fixedVulnTableString *stri
 	}
 
 	// todo: verify markdown looks similar/good
-	newVulnTable = tablewriter.NewTable(newVulnTableString, tablewriter.WithRenderer(renderOptions), tablewriter.WithConfig(renderConfig))
-	fixedVulnTable = tablewriter.NewWriter(fixedVulnTableString)
-	existingVulnTable = tablewriter.NewWriter(existingVulnTableString)
+	newVulnTable = tablewriter.NewTable(newVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), tablewriter.WithConfig(renderConfig))
+	fixedVulnTable = tablewriter.NewTable(fixedVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), tablewriter.WithConfig(renderConfig))
+	existingVulnTable = tablewriter.NewTable(existingVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), tablewriter.WithConfig(renderConfig))
 
 	tables := []*tablewriter.Table{newVulnTable, fixedVulnTable, existingVulnTable}
 
