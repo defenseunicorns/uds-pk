@@ -13,7 +13,7 @@
       "groupName": "UDS Package Kit Dependencies",
       "labels": ["app-deps"],
       "commitMessageTopic": "app-deps",
-      "matchDatasources": ["go"],
+      "matchManagers": ["gomod"],
       "postUpdateOptions": ["gomodTidy"]
     },
     {
