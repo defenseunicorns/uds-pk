@@ -197,17 +197,15 @@ func sortRows(rows [][]string) [][]string {
 }
 
 func setupTables(newVulnTableString *strings.Builder, fixedVulnTableString *strings.Builder, existingVulnTableString *strings.Builder) (newVulnTable *tablewriter.Table, fixedVulnTable *tablewriter.Table, existingVulnTable *tablewriter.Table) {
-
-	renderConfig := tablewriter.Config{
-		Row: tw.CellConfig{
+	renderConfig :=
+		tablewriter.WithConfig(tablewriter.Config{Header: tw.CellConfig{
+			Alignment:    tw.CellAlignment{Global: tw.AlignLeft},
 			ColMaxWidths: tw.CellWidth{Global: 10000},
-		},
-	}
+		}})
 
-	// todo: verify markdown looks similar/good
-	newVulnTable = tablewriter.NewTable(newVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), tablewriter.WithConfig(renderConfig))
-	fixedVulnTable = tablewriter.NewTable(fixedVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), tablewriter.WithConfig(renderConfig))
-	existingVulnTable = tablewriter.NewTable(existingVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), tablewriter.WithConfig(renderConfig))
+	newVulnTable = tablewriter.NewTable(newVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), renderConfig)
+	fixedVulnTable = tablewriter.NewTable(fixedVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), renderConfig)
+	existingVulnTable = tablewriter.NewTable(existingVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), renderConfig)
 
 	tables := []*tablewriter.Table{newVulnTable, fixedVulnTable, existingVulnTable}
 
