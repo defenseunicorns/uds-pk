@@ -51,21 +51,19 @@ func GenerateComparisonMap(baseScan cyclonedx.BOM, newScan cyclonedx.BOM) map[st
 	return vulnStatus
 }
 
-func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, vulnStatus map[string]int) (string, error) {
-	newCount := 0
-	existingCount := 0
-	fixedCount := 0
+func GenerateComparisonCounts(vulnStatus map[string]int) (string) {
+	newCount, existingCount, fixedCount := countVulnStatus(vulnStatus)
 
-	for _, status := range vulnStatus {
-		switch status {
-		case 0:
-			newCount++
-		case 1:
-			existingCount++
-		case 2:
-			fixedCount++
-		}
-	}
+	var outputBuilder strings.Builder
+	outputBuilder.WriteString(fmt.Sprintf("New vulnerabilities: %d\n", newCount))
+	outputBuilder.WriteString(fmt.Sprintf("Fixed vulnerabilities: %d\n", fixedCount))
+	outputBuilder.WriteString(fmt.Sprintf("Existing vulnerabilities: %d\n", existingCount))
+
+	return outputBuilder.String()
+}
+
+func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, vulnStatus map[string]int) (string, error) {
+	newCount, existingCount, fixedCount := countVulnStatus(vulnStatus)
 
 	var outputBuilder strings.Builder
 
@@ -277,4 +275,19 @@ func getVulnByUID(uid string, vulns []cyclonedx.Vulnerability) (cyclonedx.Vulner
 		}
 	}
 	return cyclonedx.Vulnerability{}, fmt.Errorf("vulnerability not found: %s", uid)
+}
+
+func countVulnStatus(vulnStatus map[string]int) (newCount int, existingCount int, fixedCount int) {
+	for _, status := range vulnStatus {
+		switch status {
+		case 0:
+			newCount++
+		case 1:
+			existingCount++
+		case 2:
+			fixedCount++
+		}
+	}
+
+	return newCount, existingCount, fixedCount
 }

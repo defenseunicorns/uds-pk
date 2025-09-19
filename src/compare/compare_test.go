@@ -398,3 +398,18 @@ func TestGenerateComparisonMarkdown_EmptyVulnerabilities(t *testing.T) {
 		t.Errorf("Expected markdown to show 0 existing vulnerabilities")
 	}
 }
+
+func TestGenerateComparisonCounts(t *testing.T) {
+	vulnStatus := map[string]int{
+		"VULN-NEW|pkgNew":   0, // new
+		"VULN-EXIST|pkgExist": 1, // existing
+		"VULN-FIX|pkgFix":   2, // fixed
+	}
+
+	counts := GenerateComparisonCounts(vulnStatus)
+	expectedOutput := "New vulnerabilities: 1\nFixed vulnerabilities: 1\nExisting vulnerabilities: 1\n"
+
+	if counts != expectedOutput {
+		t.Errorf("Expected counts output:\n%s\nGot:\n%s", expectedOutput, counts)
+	}
+}
