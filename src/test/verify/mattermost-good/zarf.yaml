@@ -39,8 +39,8 @@ components:
         valuesFiles:
           - values/upstream-values.yaml
     images:
-      - curlimages/curl:8.14.1
-      - mattermost/mattermost-enterprise-edition:10.10.0
+      - curlimages/curl:8.16.0
+      - mattermost/mattermost-enterprise-edition:10.12.0
 
   - name: mattermost
     required: true
@@ -57,7 +57,7 @@ components:
           - values/registry1-values.yaml
     images:
       - registry1.dso.mil/ironbank/redhat/ubi/ubi9-minimal:9.6
-      - registry1.dso.mil/ironbank/opensource/mattermost/mattermost:10.9.1
+      - registry1.dso.mil/ironbank/opensource/mattermost/mattermost:10.12.0
 
   - name: mattermost
     required: true

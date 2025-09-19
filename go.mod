@@ -1,24 +1,29 @@
 module github.com/defenseunicorns/uds-pk
 
-go 1.24.2
+go 1.24.6
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.9.2
-	github.com/defenseunicorns/uds-cli v0.27.8
+	github.com/defenseunicorns/uds-cli v0.27.13
 	github.com/go-git/go-git/v5 v5.16.2
 	github.com/goccy/go-yaml v1.18.0
 	github.com/google/go-github/v69 v69.2.0
-	github.com/mikefarah/yq/v4 v4.45.4
-	github.com/olekukonko/tablewriter v0.0.5
-	github.com/spf13/cobra v1.9.1
-	github.com/stretchr/testify v1.10.0
-	github.com/zarf-dev/zarf v0.57.0
+	github.com/mikefarah/yq/v4 v4.47.2
+	github.com/olekukonko/tablewriter v1.0.9
+	github.com/spf13/cobra v1.10.1
+	github.com/stretchr/testify v1.11.1
+	github.com/zarf-dev/zarf v0.61.2
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
 
 require (
+	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/mikelolasagasti/xz v1.0.1 // indirect
 	github.com/minio/minlz v1.0.0 // indirect
+	github.com/olekukonko/errors v1.1.0 // indirect
+	github.com/olekukonko/ll v0.0.9 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect
 )
 
 require (
@@ -70,17 +75,17 @@ require (
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/sorairolake/lzip-go v0.3.5 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
-	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/ulikunitz/xz v0.5.14 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	gitlab.com/gitlab-org/api/client-go v0.134.0
+	gitlab.com/gitlab-org/api/client-go v0.146.0
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.39.0 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/crypto v0.41.0 // indirect
+	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

@@ -13,6 +13,8 @@ import (
 
 	"github.com/CycloneDX/cyclonedx-go"
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/renderer"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 func LoadScans(basePath string, newPath string) (cyclonedx.BOM, cyclonedx.BOM, error) {
@@ -107,14 +109,22 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	fixedVulnRows = sortRows(fixedVulnRows)
 	existingVulnRows = sortRows(existingVulnRows)
 
-	newVulnTable.AppendBulk(newVulnRows)
-	fixedVulnTable.AppendBulk(fixedVulnRows)
-	existingVulnTable.AppendBulk(existingVulnRows)
+	if err := newVulnTable.Bulk(newVulnRows); err != nil {
+		return "", err
+	}
+	if err := fixedVulnTable.Bulk(fixedVulnRows); err != nil {
+		return "", err
+	}
+	if err := existingVulnTable.Bulk(existingVulnRows); err != nil {
+		return "", err
+	}
 
 	outputBuilder.WriteString("<details>\n")
 	outputBuilder.WriteString("<summary>New vulnerabilities</summary>\n\n")
 
-	newVulnTable.Render()
+	if err := newVulnTable.Render(); err != nil {
+		return "", err
+	}
 
 	outputBuilder.WriteString(newVulnTableString.String())
 	outputBuilder.WriteString("\n</details>\n")
@@ -122,7 +132,9 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	outputBuilder.WriteString("<details>\n")
 	outputBuilder.WriteString("<summary>Fixed vulnerabilities</summary>\n\n")
 
-	fixedVulnTable.Render()
+	if err := fixedVulnTable.Render(); err != nil {
+		return "", err
+	}
 
 	outputBuilder.WriteString(fixedVulnTableString.String())
 	outputBuilder.WriteString("\n</details>\n")
@@ -130,7 +142,9 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	outputBuilder.WriteString("<details>\n")
 	outputBuilder.WriteString("<summary>Existing vulnerabilities</summary>\n\n")
 
-	existingVulnTable.Render()
+	if err := existingVulnTable.Render(); err != nil {
+		return "", err
+	}
 
 	outputBuilder.WriteString(existingVulnTableString.String())
 	outputBuilder.WriteString("\n</details>\n")
@@ -183,17 +197,20 @@ func sortRows(rows [][]string) [][]string {
 }
 
 func setupTables(newVulnTableString *strings.Builder, fixedVulnTableString *strings.Builder, existingVulnTableString *strings.Builder) (newVulnTable *tablewriter.Table, fixedVulnTable *tablewriter.Table, existingVulnTable *tablewriter.Table) {
-	newVulnTable = tablewriter.NewWriter(newVulnTableString)
-	fixedVulnTable = tablewriter.NewWriter(fixedVulnTableString)
-	existingVulnTable = tablewriter.NewWriter(existingVulnTableString)
+	renderConfig :=
+		tablewriter.WithConfig(tablewriter.Config{Header: tw.CellConfig{
+			Alignment:    tw.CellAlignment{Global: tw.AlignLeft},
+			ColMaxWidths: tw.CellWidth{Global: 10000},
+		}})
+
+	newVulnTable = tablewriter.NewTable(newVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), renderConfig)
+	fixedVulnTable = tablewriter.NewTable(fixedVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), renderConfig)
+	existingVulnTable = tablewriter.NewTable(existingVulnTableString, tablewriter.WithRenderer(renderer.NewMarkdown()), renderConfig)
 
 	tables := []*tablewriter.Table{newVulnTable, fixedVulnTable, existingVulnTable}
 
 	for _, table := range tables {
-		table.SetHeader([]string{"ID", "Severity", "URL"})
-		table.SetCenterSeparator("|")
-		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-		table.SetColWidth(10000)
+		table.Header([]string{"ID", "Severity", "URL"})
 	}
 
 	return newVulnTable, fixedVulnTable, existingVulnTable
