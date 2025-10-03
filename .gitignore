@@ -27,6 +27,9 @@ go.work.sum
 # vscode
 .vscode
 
+# idea
+.idea
+
 # build artifacts
 build/
 uds-pk

@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/x-cray/logrus-prefixed-formatter"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -52,6 +54,18 @@ var deprecatedUpdateYamlCmd = &cobra.Command{
 	},
 }
 
+var verbose bool
+
+func setLogLevel(_ *cobra.Command, _ []string) {
+	if verbose {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+	logrus.SetFormatter(&prefixed.TextFormatter{
+		FullTimestamp:   true,
+		ForceFormatting: true,
+	})
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -62,6 +76,8 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable debug output")
+	rootCmd.PersistentPreRun = setLogLevel
 	rootCmd.AddCommand(deprecatedCheckCmd)
 	rootCmd.AddCommand(deprecatedShowCmd)
 	rootCmd.AddCommand(deprecatedUpdateYamlCmd)
