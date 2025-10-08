@@ -169,6 +169,9 @@ var scanZarfYamlCmd = &cobra.Command{
 			return err2
 		}
 		tempDir, err := os.MkdirTemp("", "images")
+		if err != nil {
+			return err
+		}
 
 		if !devNoCleanUp {
 			defer func(path string) {
