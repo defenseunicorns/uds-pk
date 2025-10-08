@@ -76,7 +76,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "Enable debug output")
+	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Enable debug output")
 	rootCmd.PersistentPreRun = setLogLevel
 	rootCmd.AddCommand(deprecatedCheckCmd)
 	rootCmd.AddCommand(deprecatedShowCmd)
