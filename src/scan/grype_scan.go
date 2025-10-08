@@ -23,6 +23,8 @@ Scanning logging is heavily inspired by https://github.com/defenseunicorns-navy/
 func Images(images []string, outputDir string, verbose bool) (map[string]string, error) {
 	results := map[string]string{}
 	for _, image := range images {
+		// adding docker to make `grype` use docker to pull the image
+		// this is to use docker auth capabilities
 		if !strings.HasPrefix(image, "docker:") {
 			image = "docker:" + image
 		}
