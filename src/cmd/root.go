@@ -66,8 +66,7 @@ func getLogger(verbose bool) *slog.Logger {
 	if verbose {
 		level = slog.LevelDebug
 	}
-	return slog.New(utils.NewShortHandler(os.Stdout, level))
-	//slog.NewTextHandler(os.Stderr, opts))
+	return slog.New(utils.PrettyLogHandler(os.Stderr, level))
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
