@@ -11,10 +11,8 @@ require (
 	github.com/google/go-github/v73 v73.0.0
 	github.com/mikefarah/yq/v4 v4.47.2
 	github.com/olekukonko/tablewriter v1.0.9
-	github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
-	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	github.com/zarf-dev/zarf v0.61.2
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
@@ -362,6 +360,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.9.5 // indirect
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.9.5 // indirect
 	github.com/sigstore/timestamp-authority v1.2.8 // indirect
+	github.com/sirupsen/logrus v1.9.4-0.20230606125235-dd1b4c2e81af // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spdx/gordf v0.0.0-20201111095634-7098f93598fb // indirect

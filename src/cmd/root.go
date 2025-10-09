@@ -5,11 +5,11 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/defenseunicorns/uds-pk/src/utils"
+	"log/slog"
 	"os"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/x-cray/logrus-prefixed-formatter"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -55,15 +55,19 @@ var deprecatedUpdateYamlCmd = &cobra.Command{
 }
 
 var verbose bool
+var logger *slog.Logger
 
 func setLogLevel(_ *cobra.Command, _ []string) {
+	logger = getLogger(verbose)
+}
+
+func getLogger(verbose bool) *slog.Logger {
+	level := slog.LevelInfo
 	if verbose {
-		logrus.SetLevel(logrus.DebugLevel)
+		level = slog.LevelDebug
 	}
-	logrus.SetFormatter(&prefixed.TextFormatter{
-		FullTimestamp:   true,
-		ForceFormatting: true,
-	})
+	return slog.New(utils.NewShortHandler(os.Stdout, level))
+	//slog.NewTextHandler(os.Stderr, opts))
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -17,7 +18,6 @@ import (
 
 	"github.com/defenseunicorns/uds-pk/src/scan"
 	"github.com/google/go-github/v73/github"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/zarf-dev/zarf/src/api/v1alpha1"
 	"github.com/zarf-dev/zarf/src/config"
@@ -43,12 +43,12 @@ var scanReleasedCmd = &cobra.Command{
 		if outputDirectory == "" {
 			var err error
 			outputDirectory, err = os.MkdirTemp("", "releaseScans")
-			logrus.Infoln("Output directory: ", outputDirectory)
+			logger.Info("Output directory", slog.String("dir", outputDirectory))
 			if err != nil {
 				return err
 			}
 		}
-		logrus.Debugln("Scan command invoked. Zarf location: ", zarfYamlLocation)
+		logger.Debug("Scan command invoked", slog.String("zarfLocation", zarfYamlLocation))
 		pkg, err1 := parseZarfYaml()
 		if err1 != nil {
 			return err1
@@ -57,7 +57,7 @@ var scanReleasedCmd = &cobra.Command{
 		if err2 != nil {
 			return err2
 		}
-		logrus.Debugln("Package name: ", pkgName)
+		logger.Debug("Package name", slog.String("pkgName", pkgName))
 		publicRepoUrl, err3 := determineRepositoryUrl(pkgName, repoOwner, publicPackagesPrefix, "packages/uds")
 		if err3 != nil {
 			return err3
@@ -87,7 +87,7 @@ var scanReleasedCmd = &cobra.Command{
 
 		// create a temporary directory dropped after the program finishes:
 		tempDir, err := os.MkdirTemp("", "sboms")
-		logrus.Debugln("Temporary directory: ", tempDir)
+		logger.Debug("Temporary directory", slog.String("dir", tempDir))
 		if err != nil {
 			return err
 		}
@@ -99,14 +99,14 @@ var scanReleasedCmd = &cobra.Command{
 		}
 
 		flavors := determineFlavors(&pkg)
-		logrus.Debugln("Flavors: ", flavors)
+		logger.Debug("Flavors", slog.Any("flavors", flavors))
 
 		flavorToSboms, err := fetchSbomsForFlavors(&ctx, client, packageUrls, flavors, tempDir)
 		if err != nil {
 			return err
 		}
 
-		logrus.Debugln("Would analyze SBOMs for vulnerabilities: ", flavorToSboms)
+		logger.Debug("Would analyze SBOMs for vulnerabilities", slog.Any("sboms", flavorToSboms))
 
 		targetSbomsDir := tempDir + string(os.PathSeparator) + "targetSboms"
 		if err := os.Mkdir(targetSbomsDir, 0755); err != nil {
@@ -133,14 +133,14 @@ var scanReleasedCmd = &cobra.Command{
 				}
 			}
 			outputDir := outputDirectory + string(os.PathSeparator) + flavor + string(os.PathSeparator)
-			resultFiles, err := scan.SBOMs(targetFlavorDir, outputDir, verbose)
+			resultFiles, err := scan.SBOMs(targetFlavorDir, outputDir, logger, verbose)
 			if err != nil {
 				return err
 			}
 			sbomScanResults[flavor] = resultFiles
 		}
 
-		logrus.Infoln("Successfully scanned SBOMs for a released version of the package.")
+		logger.Info("Successfully scanned SBOMs for a released version of the package.")
 
 		return nil
 	},
@@ -153,18 +153,18 @@ var scanZarfYamlCmd = &cobra.Command{
 		if outputDirectory == "" {
 			var err error
 			outputDirectory, err = os.MkdirTemp("", "zarfScans")
-			logrus.Infoln("Output directory: ", outputDirectory)
+			logger.Info("Output directory", slog.String("dir", outputDirectory))
 			if err != nil {
 				return err
 			}
 		}
-		logrus.Debugln("Scan command invoked. Zarf location: ", zarfYamlLocation)
+		logger.Debug("Scan command invoked", slog.String("zarfLocation", zarfYamlLocation))
 		pkg, err1 := parseZarfYaml()
 		if err1 != nil {
 			return err1
 		}
 		pkgName, err2 := determinePackageName(&pkg)
-		logrus.Debugln("Package name: ", pkgName)
+		logger.Debug("Package name", slog.String("pkgName", pkgName))
 		if err2 != nil {
 			return err2
 		}
@@ -179,19 +179,19 @@ var scanZarfYamlCmd = &cobra.Command{
 			}(tempDir) //nolint:errcheck // best effort cleanup
 		}
 
-		logrus.Debugln("Temporary directory: ", tempDir)
+		logger.Debug("Temporary directory", slog.String("dir", tempDir))
 		flavorToImages := getImages(&pkg)
 		scanImagesResult := make(map[string]map[string]string)
 		for flavor, images := range flavorToImages {
 			targetFlavorDir := outputDirectory + string(os.PathSeparator) + flavor
 			// TODO: cache image fetching and scanning so that we don't redo this on duplicates
-			scanImagesResult[flavor], err = scan.Images(images, targetFlavorDir, verbose)
+			scanImagesResult[flavor], err = scan.Images(images, targetFlavorDir, logger, verbose)
 			if err != nil {
 				return err
 			}
 		}
 
-		logrus.Infoln("Successfully scanned images used in the package.")
+		logger.Info("Successfully scanned images used in the package.")
 
 		return nil
 	},
@@ -217,7 +217,7 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 
 	for _, packageUrl := range packageUrls {
 		encodedPackageUrl := encodePackageUrl(packageUrl)
-		logrus.Debugln("Package url: ", packageUrl, "is encoded as: ", encodedPackageUrl)
+		logger.Debug("Package url", slog.String("packageUrl", packageUrl), slog.String("encodedPackageUrl", encodedPackageUrl))
 		versions, _, err := client.Organizations.PackageGetAllVersions(
 			*ctx,
 			repoOwner,
@@ -225,11 +225,11 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 			packageUrl,
 			&github.PackageListOptions{},
 		)
-		logrus.Debugf("Trying to get package versions for %s\n", encodedPackageUrl)
+		logger.Debug("Trying to get package versions for ", encodedPackageUrl)
 		if err != nil {
-			logrus.Debugf("failed to get package versions: %s\n", err)
+			logger.Debug("failed to get package versions: ", err)
 		} else {
-			logrus.Debugf("package versions found for %s\n", encodedPackageUrl)
+			logger.Debug("package versions found for ", encodedPackageUrl)
 			for _, flavor := range flavors {
 			VersionsFor:
 				for _, v := range versions {
@@ -242,15 +242,15 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 									if tag, ok := tRaw.(string); ok {
 										if strings.HasSuffix(tag, flavor) {
 											ociUrl := fmt.Sprintf("oci://ghcr.io/%s/%s:%s", repoOwner, packageUrl, tag)
-											logrus.Debugln("Inspecting sbom: ", ociUrl)
+											logger.Debug("Inspecting sbom", slog.String("ociUrl", ociUrl))
 											subDir, dirCreationErr := os.MkdirTemp(tempDir, tag)
 											if dirCreationErr != nil {
 												return nil, dirCreationErr
 											}
 											if sboms, err := extractSBOMs(ctx, subDir, ociUrl); err != nil {
-												logrus.Debugln("Error inspecting sbom: ", err)
+												logger.Debug("Error inspecting sbom", err)
 											} else {
-												logrus.Debugln("Sboms: ", sboms)
+												logger.Debug("Sboms", slog.Any("sboms", sboms))
 												flavorToSboms[flavor] = sboms
 											}
 											break VersionsFor
@@ -298,11 +298,11 @@ func extractSBOMs(ctx *context.Context, dir string, src string) ([]string, error
 	}
 	sbomPath, err := filepath.Abs(outputPath)
 	if err != nil {
-		logrus.Debugln("Failed to extract SBOM", "error", err)
+		logger.Debug("Failed to extract SBOM", "error", err)
 		return nil, err
 	}
 	result := []string{}
-	logrus.Debugln("SBOM successfully extracted", "path", sbomPath)
+	logger.Debug("SBOM successfully extracted", slog.String("path", sbomPath))
 	// list json files in the sbom directory
 	err = filepath.Walk(sbomPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -320,7 +320,7 @@ func extractSBOMs(ctx *context.Context, dir string, src string) ([]string, error
 }
 
 func checkPackageExistenceInRepo(client *github.Client, ctx *context.Context, owner string, pkgUrl string) (bool, error) {
-	logrus.Debugf("Checking if package %s exists in %s\n", pkgUrl, owner)
+	logger.Debug("Checking if package %s exists in ", pkgUrl, owner)
 	apiPath := fmt.Sprintf("/orgs/%s/packages/container/%s", owner, pkgUrl)
 	req, err := client.NewRequest("GET", apiPath, nil)
 	if err != nil {
@@ -353,7 +353,7 @@ func encodePackageUrl(url string) string {
 
 func determineRepositoryUrl(pkgName string, repoOwner string, prefix string, path string) (string, error) {
 	const defenseUnicorns = "defenseunicorns"
-	logrus.Debugln("Prefix: ", prefix, "pkg name: ", pkgName, "path: ", path, "repo owner: ", repoOwner, "")
+	logger.Debug("Determining repository URL", slog.String("pkgName", pkgName), slog.String("repoOwner", repoOwner), slog.String("prefix", prefix), slog.String("path", path))
 	if repoOwner == defenseUnicorns {
 		return fmt.Sprintf("%s/%s", path, pkgName), nil
 	}

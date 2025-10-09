@@ -7,20 +7,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/sirupsen/logrus"
 )
 
 /*
 Scanning logging is heavily inspired by https://github.com/defenseunicorns-navy/sonic-components-zarf-scan
 */
 
-func Images(images []string, outputDir string, verbose bool) (map[string]string, error) {
+func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bool) (map[string]string, error) {
 	results := map[string]string{}
 	for _, image := range images {
 		// adding docker to make `grype` use docker to pull the image
@@ -28,8 +27,8 @@ func Images(images []string, outputDir string, verbose bool) (map[string]string,
 		if !strings.HasPrefix(image, "docker:") {
 			image = "docker:" + image
 		}
-		logrus.Debugln("Will scan image", image)
-		outJson, err := scanImage(image, outputDir, verbose)
+		logger.Debug("Will scan image", slog.String("image", image))
+		outJson, err := scanImage(image, outputDir, logger, isVerbose)
 		if err != nil {
 			return nil, err
 		} else {
@@ -39,7 +38,7 @@ func Images(images []string, outputDir string, verbose bool) (map[string]string,
 	return results, nil
 }
 
-func SBOMs(sbomsDir, outputDir string, verbose bool) (map[string]string, error) {
+func SBOMs(sbomsDir, outputDir string, logger *slog.Logger, isVerbose bool) (map[string]string, error) {
 	// Find only JSON files in the sboms directory
 	pattern := filepath.Join(sbomsDir, "*.json")
 	sbomFiles, err := filepath.Glob(pattern)
@@ -53,13 +52,13 @@ func SBOMs(sbomsDir, outputDir string, verbose bool) (map[string]string, error) 
 		return nil, errors.New("no SBOM files found in the Zarf package")
 	}
 
-	logrus.Debugln("Found SBOM files to scan", "count", len(sbomFiles))
+	logger.Debug("Found SBOM files to scan", slog.Int("count", len(sbomFiles)))
 
 	results := map[string]string{}
 	for _, sbomFile := range sbomFiles {
-		outJson, err := scanSBOM(sbomFile, outputDir, verbose)
+		outJson, err := scanSBOM(sbomFile, outputDir, logger, isVerbose)
 		if err != nil {
-			return results, err
+			return nil, err
 		} else {
 			results[sbomFile] = outJson
 		}
@@ -122,8 +121,8 @@ func sanitizeFilename(name string) string {
 	return sanitized
 }
 
-func scanSBOM(sbomFile string, outputDir string, verbose bool) (string, error) {
-	logrus.Debugln("Scanning SBOM", "file", sbomFile)
+func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose bool) (string, error) {
+	logger.Debug("Scanning SBOM", "file", sbomFile)
 
 	// Set up the output path if needed
 	if outputDir == "" {
@@ -145,7 +144,7 @@ func scanSBOM(sbomFile string, outputDir string, verbose bool) (string, error) {
 
 		if err := json.Unmarshal(data, &sbom); err == nil && sbom.Source.Metadata.UserInput != "" {
 			imageRef := sbom.Source.Metadata.UserInput
-			logrus.Debugln("Found image reference in SBOM", "imageRef", imageRef)
+			logger.Debug("Found image reference in SBOM", "imageRef", imageRef)
 			safeImageName = sanitizeFilename(filepath.Base(imageRef))
 		}
 	}
@@ -156,11 +155,11 @@ func scanSBOM(sbomFile string, outputDir string, verbose bool) (string, error) {
 		fileExt := filepath.Ext(baseName)
 		safeImageName = baseName[:len(baseName)-len(fileExt)]
 		safeImageName = sanitizeFilename(safeImageName)
-		logrus.Debugln("Using SBOM filename for output", "safeImageName", safeImageName)
+		logger.Debug("Using SBOM filename for output", "safeImageName", safeImageName)
 	}
 	jsonFileName := safeImageName + ".json"
 	jsonOutputPath := filepath.Join(outputDir, jsonFileName)
-	logrus.Debugln("Saving JSON results to output directory", "fileName", jsonOutputPath)
+	logger.Debug("Saving JSON results to output directory", "fileName", jsonOutputPath)
 
 	// Ensure the output directory exists and is writable
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
@@ -180,11 +179,11 @@ func scanSBOM(sbomFile string, outputDir string, verbose bool) (string, error) {
 	}
 
 	// Try to scan with retries for database issues
-	return runGrypeCommand(args, jsonOutputPath, verbose)
+	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose)
 }
 
-func scanImage(image string, outputDir string, verbose bool) (string, error) {
-	logrus.Debugln("Scanning SBOM", "file", image)
+func scanImage(image string, outputDir string, logger *slog.Logger, isVerbose bool) (string, error) {
+	logger.Debug("Scanning SBOM", "file", image)
 
 	// Set up the output path if needed
 	if outputDir == "" {
@@ -195,7 +194,7 @@ func scanImage(image string, outputDir string, verbose bool) (string, error) {
 	safeImageName := sanitizeFilename(image)
 	jsonFileName := safeImageName + ".json"
 	jsonOutputPath := filepath.Join(outputDir, jsonFileName)
-	logrus.Debugln("Saving JSON results to output directory", "fileName", jsonOutputPath)
+	logger.Debug("Saving JSON results to output directory", "fileName", jsonOutputPath)
 
 	// Ensure the output directory exists and is writable
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
@@ -205,45 +204,46 @@ func scanImage(image string, outputDir string, verbose bool) (string, error) {
 	args := []string{image, "--add-cpes-if-none", "--output", "cyclonedx-json", "-v", "--file", jsonOutputPath}
 
 	// Try to scan with retries for database issues
-	return runGrypeCommand(args, jsonOutputPath, verbose)
+	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose)
 }
 
-func runGrypeCommand(args []string, jsonOutputPath string, verbose bool) (string, error) {
+func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, isVerbose bool) (string, error) {
 	// Maximum retry attempts for handling database issues
 	maxRetries := 3
 	retryCount := 0
 	for retryCount < maxRetries {
 		// Create the command - this needs to be inside the loop because we can't reuse commands
 
-		logrus.Debugln("Running grype command", "args", args)
+		logger.Debug("Running grype command", "args", args)
 		cmd := exec.Command("grype", args...)
-		configureOutput(cmd, verbose)
+		configureOutput(cmd, isVerbose)
 
 		// Print working directory and environment for debugging
 		wd, _ := os.Getwd()
-		logrus.Debugln("Current working directory:", wd)
-		logrus.Debugln("Environment:", os.Environ())
-		logrus.Debugln("Running scan", "attempt", retryCount+1, "command", cmd.String())
+		logger.Debug("Current working directory:", wd)
+		logger.Debug("Environment:", os.Environ())
+		logger.Debug("Running scan", "attempt", retryCount+1, "command", cmd.String())
 
 		// Execute the command
 		err := cmd.Run()
 
 		if err != nil {
-			logrus.Debugln("Error from grype command:", err)
+			logger.Debug("Error from grype command:", err)
 			// Check if this is a database error
 			checkCmd := exec.Command("grype", "db", "status")
+			configureOutput(checkCmd, isVerbose)
 			output, _ := checkCmd.CombinedOutput()
 
 			if strings.Contains(string(output), "failed to load vulnerability db") {
-				logrus.Infoln("Vulnerability database error detected. Running Grype DB update...",
+				logger.Info("Vulnerability database error detected. Running Grype DB update...",
 					"attempt", retryCount+1, "maxRetries", maxRetries)
 
 				// Update the database
 				updateCmd := exec.Command("grype", "db", "update")
-				configureOutput(updateCmd, verbose)
+				configureOutput(updateCmd, isVerbose)
 
 				if updateErr := updateCmd.Run(); updateErr != nil {
-					logrus.Infoln("Failed to update Grype database", "error", updateErr)
+					logger.Info("Failed to update Grype database", "error", updateErr)
 				}
 
 				retryCount++
@@ -259,8 +259,8 @@ func runGrypeCommand(args []string, jsonOutputPath string, verbose bool) (string
 	return "", fmt.Errorf("grype scan failed for %v", args)
 }
 
-func configureOutput(cmd *exec.Cmd, verbose bool) {
-	if verbose {
+func configureOutput(cmd *exec.Cmd, isVerbose bool) {
+	if isVerbose {
 		cmd.Stdout = os.Stderr
 		cmd.Stderr = os.Stderr
 	} else {
