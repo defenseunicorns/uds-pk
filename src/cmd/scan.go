@@ -6,26 +6,21 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/scan"
+	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/google/go-github/v73/github"
 	"github.com/spf13/cobra"
 	"github.com/zarf-dev/zarf/src/api/v1alpha1"
-	"github.com/zarf-dev/zarf/src/config"
-	"github.com/zarf-dev/zarf/src/pkg/packager"
-	"github.com/zarf-dev/zarf/src/pkg/packager/filters"
-	"github.com/zarf-dev/zarf/src/pkg/zoci"
+	"go.yaml.in/yaml/v4"
 	"golang.org/x/oauth2"
-	"gopkg.in/yaml.v3"
 )
 
 var zarfYamlLocation string
@@ -77,11 +72,13 @@ var scanReleasedCmd = &cobra.Command{
 		if exists, err := checkPackageExistenceInRepo(client, &ctx, repoOwner, encodedPublicUrl); err != nil {
 			return fmt.Errorf("failed to check package existence for URL: %s, %w", encodedPublicUrl, err)
 		} else if exists {
+			logger.Debug("Package exists in public repo, adding it to fetch", slog.String("packageUrl", publicRepoUrl))
 			packageUrls = append(packageUrls, publicRepoUrl)
 		}
 		if exists, err := checkPackageExistenceInRepo(client, &ctx, repoOwner, encodedPrivateUrl); err != nil {
 			return fmt.Errorf("failed to check package existence for URL: %s, %w", encodedPrivateUrl, err)
 		} else if exists {
+			logger.Debug("Package exists in private repo, adding it to fetch", slog.String("packageUrl", privateRepoUrl))
 			packageUrls = append(packageUrls, privateRepoUrl)
 		}
 
@@ -199,17 +196,10 @@ var scanZarfYamlCmd = &cobra.Command{
 
 func createGithubClient(ctx *context.Context) *github.Client {
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: os.Getenv("GITHUB_TOKEN")},
+		&oauth2.Token{AccessToken: utils.GetGithubToken()},
 	)
 	tc := oauth2.NewClient(*ctx, ts)
 	return github.NewClient(tc)
-}
-
-func defaultZarfRemoteOptions() packager.RemoteOptions {
-	return packager.RemoteOptions{
-		PlainHTTP:             config.CommonOptions.PlainHTTP,
-		InsecureSkipTLSVerify: config.CommonOptions.InsecureSkipTLSVerify,
-	}
 }
 
 func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUrls []string, flavors []string, tempDir string) (map[string][]string, error) {
@@ -225,13 +215,13 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 			packageUrl,
 			&github.PackageListOptions{},
 		)
-		logger.Debug("Trying to get package versions for ", encodedPackageUrl)
+		logger.Debug("Trying to get package versions for", slog.String("url", encodedPackageUrl))
 		if err != nil {
 			logger.Debug("failed to get package versions: ", err)
 		} else {
-			logger.Debug("package versions found for ", encodedPackageUrl)
+			logger.Debug("package versions found for ", slog.String("url", encodedPackageUrl))
 			for _, flavor := range flavors {
-			VersionsFor:
+			versionsFor:
 				for _, v := range versions {
 					var metadataMap map[string]interface{}
 					if err := json.Unmarshal(v.Metadata, &metadataMap); err == nil {
@@ -241,19 +231,20 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 								for _, tRaw := range tags {
 									if tag, ok := tRaw.(string); ok {
 										if strings.HasSuffix(tag, flavor) {
+											// mstodo: we don't need an oci url, we're changing it to ghcr.io anyway
 											ociUrl := fmt.Sprintf("oci://ghcr.io/%s/%s:%s", repoOwner, packageUrl, tag)
 											logger.Debug("Inspecting sbom", slog.String("ociUrl", ociUrl))
 											subDir, dirCreationErr := os.MkdirTemp(tempDir, tag)
 											if dirCreationErr != nil {
 												return nil, dirCreationErr
 											}
-											if sboms, err := extractSBOMs(ctx, subDir, ociUrl); err != nil {
+											if sboms, err := utils.FetchSboms(ociUrl, subDir, logger); err != nil {
 												logger.Debug("Error inspecting sbom", err)
 											} else {
 												logger.Debug("Sboms", slog.Any("sboms", sboms))
 												flavorToSboms[flavor] = sboms
 											}
-											break VersionsFor
+											break versionsFor
 										}
 									}
 								}
@@ -265,58 +256,6 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 		}
 	}
 	return flavorToSboms, nil
-}
-
-func extractSBOMs(ctx *context.Context, dir string, src string) ([]string, error) {
-	cachePath, err := os.MkdirTemp(dir, "cache")
-	if err != nil {
-		return nil, err
-	}
-
-	loadOpts := packager.LoadOptions{
-		Architecture:            runtime.GOARCH,
-		PublicKeyPath:           "",
-		SkipSignatureValidation: true,
-		LayersSelector:          zoci.SbomLayers,
-		Filter:                  filters.Empty(),
-		OCIConcurrency:          10, // TODO make this configurable?
-		RemoteOptions:           defaultZarfRemoteOptions(),
-		CachePath:               cachePath,
-	}
-	pkgLayout, err := packager.LoadPackage(*ctx, src, loadOpts)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load the package: %w", err)
-	}
-
-	defer func() {
-		err = errors.Join(err, pkgLayout.Cleanup())
-	}()
-	outputPath := filepath.Join(dir, pkgLayout.Pkg.Metadata.Name)
-	err = pkgLayout.GetSBOM(*ctx, outputPath)
-	if err != nil {
-		return nil, fmt.Errorf("could not get SBOM: %w", err)
-	}
-	sbomPath, err := filepath.Abs(outputPath)
-	if err != nil {
-		logger.Debug("Failed to extract SBOM", "error", err)
-		return nil, err
-	}
-	result := []string{}
-	logger.Debug("SBOM successfully extracted", slog.String("path", sbomPath))
-	// list json files in the sbom directory
-	err = filepath.Walk(sbomPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		if filepath.Ext(path) == ".json" {
-			result = append(result, path)
-		}
-		return nil
-	})
-	return result, err
 }
 
 func checkPackageExistenceInRepo(client *github.Client, ctx *context.Context, owner string, pkgUrl string) (bool, error) {

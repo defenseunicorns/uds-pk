@@ -214,21 +214,20 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 	for retryCount < maxRetries {
 		// Create the command - this needs to be inside the loop because we can't reuse commands
 
-		logger.Debug("Running grype command", "args", args)
+		logger.Debug("Running grype command", slog.Any("args", args))
 		cmd := exec.Command("grype", args...)
 		configureOutput(cmd, isVerbose)
 
 		// Print working directory and environment for debugging
 		wd, _ := os.Getwd()
-		logger.Debug("Current working directory:", wd)
-		logger.Debug("Environment:", os.Environ())
-		logger.Debug("Running scan", "attempt", retryCount+1, "command", cmd.String())
+		logger.Debug("Current working directory:", slog.String("directory", wd))
+		logger.Debug("Running scan", slog.Int("attempt", retryCount+1), slog.String("command", cmd.String()))
 
 		// Execute the command
 		err := cmd.Run()
 
 		if err != nil {
-			logger.Debug("Error from grype command:", err)
+			logger.Debug("Error from grype command:", slog.Any("error", err))
 			// Check if this is a database error
 			checkCmd := exec.Command("grype", "db", "status")
 			configureOutput(checkCmd, isVerbose)
