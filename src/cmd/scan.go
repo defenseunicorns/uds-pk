@@ -217,7 +217,7 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 		)
 		logger.Debug("Trying to get package versions for", slog.String("url", encodedPackageUrl))
 		if err != nil {
-			logger.Debug("failed to get package versions: ", err)
+			logger.Debug("failed to get package versions: ", slog.Any("error", err))
 		} else {
 			logger.Debug("package versions found for ", slog.String("url", encodedPackageUrl))
 			for _, flavor := range flavors {
@@ -239,7 +239,7 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 												return nil, dirCreationErr
 											}
 											if sboms, err := utils.FetchSboms(ociUrl, subDir, logger); err != nil {
-												logger.Debug("Error inspecting sbom", err)
+												logger.Debug("Error inspecting sbom", slog.Any("error", err))
 											} else {
 												logger.Debug("Sboms", slog.Any("sboms", sboms))
 												flavorToSboms[flavor] = sboms

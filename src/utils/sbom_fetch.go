@@ -99,7 +99,7 @@ func FetchSboms(url string, outputDir string, logger *slog.Logger) ([]string, er
 
 	var extractedFiles []string
 
-	if err := walkRemoteTarArchive(sbomsUrl, githubToken, func(header *tar.Header, entry io.Reader) error {
+	if err := walkRemoteTarArchive(sbomsUrl, githubToken, logger, func(header *tar.Header, entry io.Reader) error {
 		logger.Debug("extracting sbom", slog.String("name", header.Name))
 		if header.Typeflag == tar.TypeReg && strings.HasSuffix(header.Name, "json") {
 			outPath := filepath.Join(outputDir, header.Name)
@@ -107,7 +107,12 @@ func FetchSboms(url string, outputDir string, logger *slog.Logger) ([]string, er
 			if err != nil {
 				return err
 			}
-			defer outFile.Close()
+			defer func(outFile io.ReadCloser) {
+				err := outFile.Close()
+				if err != nil {
+					logger.Warn("Failed to close output SBOM file", slog.Any("error", err))
+				}
+			}(outFile)
 			_, err = io.Copy(outFile, entry)
 			if err != nil {
 				return fmt.Errorf("failed to copy sbom out of tar: %w", err)
@@ -149,12 +154,17 @@ func getByteArray(url string, githubToken string, contentType string) ([]byte, e
 	return body, err
 }
 
-func walkRemoteTarArchive(url string, githubToken string, entryHandler func(hdr *tar.Header, entry io.Reader) error) error {
+func walkRemoteTarArchive(url string, githubToken string, logger *slog.Logger, entryHandler func(hdr *tar.Header, entry io.Reader) error) error {
 	response, err := get(url, githubToken, "application/octet-stream")
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close() // mstodo this okay?
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			logger.Warn("Failed to close response body: ", slog.Any("error", err))
+		}
+	}(response.Body)
 	tarReader := tar.NewReader(response.Body)
 	for {
 		header, err := tarReader.Next()
