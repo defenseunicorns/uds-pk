@@ -46,10 +46,8 @@ func SBOMs(sbomsDir, outputDir string, logger *slog.Logger, isVerbose bool) (map
 		return nil, fmt.Errorf("error finding SBOM JSON files: %w", err)
 	}
 
-	// No SBOMs to scan
 	if len(sbomFiles) == 0 {
-		// mstodo: message is likely misleading
-		return nil, errors.New("no SBOM files found in the Zarf package")
+		return nil, errors.New("no SBOM files to scan")
 	}
 
 	logger.Debug("Found SBOM files to scan", slog.Int("count", len(sbomFiles)))

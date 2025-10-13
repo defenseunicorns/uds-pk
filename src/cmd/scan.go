@@ -231,9 +231,6 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 								for _, tRaw := range tags {
 									if tag, ok := tRaw.(string); ok {
 										if strings.HasSuffix(tag, flavor) {
-											// mstodo: we don't need an oci url, we're changing it to ghcr.io anyway
-											//ociUrl := fmt.Sprintf("oci://ghcr.io/%s/%s:%s", repoOwner, packageUrl, tag)
-											//logger.Debug("Inspecting sbom", slog.String("ociUrl", ociUrl))
 											subDir, dirCreationErr := os.MkdirTemp(tempDir, tag)
 											if dirCreationErr != nil {
 												return nil, dirCreationErr
