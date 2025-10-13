@@ -43,19 +43,11 @@ func GetGithubToken() string {
 // that contains a single manifest of type `application/vnd.oci.image.manifest.v1+json`
 // in this manifest, it searches for sboms.tar.
 // Contents of this file are extracted to the outputDir, and their names are returned
-func FetchSboms(url string, outputDir string, logger *slog.Logger) ([]string, error) {
+func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slog.Logger) ([]string, error) {
 	githubToken := GetGithubToken()
 
-	/*
-		corresponds to:
-			curl -H "Accept: application/vnd.oci.image.index.v1+json" \
-			     -H "Authorization: Bearer $token" \
-			     https://ghcr.io/v2/defenseunicorns/packages/uds/eck-elasticsearch/manifests/0.13.0-uds.5-registry1
-	*/
-	base, tag, err := splitImageUrl(url)
-	if err != nil {
-		return nil, err
-	}
+	base := "https://ghcr.io/v2/" + repoOwner + "/" + packageUrl
+
 	indexUrl := base + "/manifests/" + tag
 	indexBody, err := getByteArray(indexUrl, githubToken, "application/vnd.oci.image.index.v1+json")
 	if err != nil {
@@ -125,21 +117,6 @@ func FetchSboms(url string, outputDir string, logger *slog.Logger) ([]string, er
 	}
 
 	return extractedFiles, nil
-}
-
-// splitImageUrl splits the image reference into base url and tag
-// it also replaces oci:// with https://
-func splitImageUrl(src string) (string, string, error) {
-	idx := strings.LastIndex(src, ":")
-	if idx == -1 {
-		return "", "", errors.New("invalid image reference")
-	}
-	base := src[:idx]
-	tag := src[idx+1:]
-	if strings.HasPrefix(base, "oci://ghcr.io/") {
-		base = "https://ghcr.io/v2/" + base[14:]
-	}
-	return base, tag, nil
 }
 
 func getByteArray(url string, githubToken string, contentType string) ([]byte, error) {
