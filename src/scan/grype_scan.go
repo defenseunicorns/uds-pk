@@ -120,7 +120,7 @@ func sanitizeFilename(name string) string {
 }
 
 func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose bool) (string, error) {
-	logger.Debug("Scanning SBOM", "file", sbomFile)
+	logger.Debug("Scanning SBOM", slog.String("file", sbomFile))
 
 	// Set up the output path if needed
 	if outputDir == "" {
@@ -142,7 +142,7 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 
 		if err := json.Unmarshal(data, &sbom); err == nil && sbom.Source.Metadata.UserInput != "" {
 			imageRef := sbom.Source.Metadata.UserInput
-			logger.Debug("Found image reference in SBOM", "imageRef", imageRef)
+			logger.Debug("Found image reference in SBOM", slog.String("imageRef", imageRef))
 			safeImageName = sanitizeFilename(filepath.Base(imageRef))
 		}
 	}
@@ -153,11 +153,11 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 		fileExt := filepath.Ext(baseName)
 		safeImageName = baseName[:len(baseName)-len(fileExt)]
 		safeImageName = sanitizeFilename(safeImageName)
-		logger.Debug("Using SBOM filename for output", "safeImageName", safeImageName)
+		logger.Debug("Using SBOM filename for output", slog.String("safeImageName", safeImageName))
 	}
 	jsonFileName := safeImageName + ".json"
 	jsonOutputPath := filepath.Join(outputDir, jsonFileName)
-	logger.Debug("Saving JSON results to output directory", "fileName", jsonOutputPath)
+	logger.Debug("Saving JSON results to output directory", slog.String("fileName", jsonOutputPath))
 
 	// Ensure the output directory exists and is writable
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
@@ -173,7 +173,7 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 
 	// Add output options if needed
 	if outputDir != "" {
-		args = append(args, "--output", "json", "--file", jsonOutputPath)
+		args = append(args, "--file", jsonOutputPath)
 	}
 
 	// Try to scan with retries for database issues
@@ -181,7 +181,7 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 }
 
 func scanImage(image string, outputDir string, logger *slog.Logger, isVerbose bool) (string, error) {
-	logger.Debug("Scanning SBOM", "file", image)
+	logger.Debug("Scanning SBOM", slog.String("file", image))
 
 	// Set up the output path if needed
 	if outputDir == "" {
@@ -192,7 +192,7 @@ func scanImage(image string, outputDir string, logger *slog.Logger, isVerbose bo
 	safeImageName := sanitizeFilename(image)
 	jsonFileName := safeImageName + ".json"
 	jsonOutputPath := filepath.Join(outputDir, jsonFileName)
-	logger.Debug("Saving JSON results to output directory", "fileName", jsonOutputPath)
+	logger.Debug("Saving JSON results to output directory", slog.String("fileName", jsonOutputPath))
 
 	// Ensure the output directory exists and is writable
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
