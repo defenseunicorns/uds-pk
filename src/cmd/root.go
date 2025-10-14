@@ -65,4 +65,5 @@ func init() {
 	rootCmd.AddCommand(deprecatedCheckCmd)
 	rootCmd.AddCommand(deprecatedShowCmd)
 	rootCmd.AddCommand(deprecatedUpdateYamlCmd)
+	rootCmd.AddCommand(initCmd)
 }
