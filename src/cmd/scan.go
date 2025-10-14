@@ -33,6 +33,7 @@ var repoOwner string
 var outputDirectory string
 
 var allowDifferentImages bool
+var imageNameOverrides []string
 
 var scanReleasedCmd = &cobra.Command{
 	Use:   "scan-released",
@@ -142,8 +143,22 @@ var scanAndCompareCmd = &cobra.Command{
 			logger.Debug("Scanning flavor", slog.String("flavor", flavor))
 			if releasedFlavorResults, found := releasedScanResults[flavor]; found {
 				for key, scanFile := range flavorResults {
+					imageName := extractImageName(key)
+					for _, override := range imageNameOverrides {
+						parts := strings.SplitN(override, "=", 2)
+						// mstodo: clean up logging
+						logger.Debug("Checking override", slog.Any("override", override), slog.Any("parts", parts), slog.String("key", key))
+						logger.Debug("Checking override", slog.Int("len", len(parts)), slog.String("parts[1]", parts[1]), slog.String("imageName", imageName))
+						if len(parts) == 2 && parts[1] == imageName {
+							imageName = parts[0]
+							logger.Debug("Found override image name for image", slog.String("image", key), slog.String("override", imageName))
+							break
+						}
+					}
+					// TODO: drop this:
+					logger.Debug("Overrides: ", slog.Any("overrides", imageNameOverrides))
 					logger.Debug("Would compare scan", slog.String("scanFile", scanFile), "for key", slog.String("key", key))
-					if releasedScanFile, err := findMatchingScan(key, releasedFlavorResults, logger); err != nil {
+					if releasedScanFile, err := findMatchingScan(imageName, releasedFlavorResults, logger); err != nil {
 						return err
 					} else {
 						logger.Debug("Comparing files: ", slog.String("base", releasedScanFile), slog.String("new", scanFile))
@@ -175,8 +190,7 @@ func extractImageName(imageURL string) string {
 	return filepath.Base(imagePath)
 }
 
-func findMatchingScan(zarfScanFile string, releasedResults map[string]string, logger *slog.Logger) (string, error) {
-	imageName := extractImageName(zarfScanFile)
+func findMatchingScan(imageName string, releasedResults map[string]string, logger *slog.Logger) (string, error) {
 	for _, scanFile := range releasedResults {
 		if strings.Contains(scanFile, "/"+imageName+"_") {
 			return scanFile, nil
@@ -487,6 +501,7 @@ func init() {
 	scanAndCompareCmd.Flags().StringVarP(&publicPackagesPrefix, "publicPackagesPrefix", "c", "", "The prefix for public packages")
 	scanAndCompareCmd.Flags().StringVarP(&privatePackagesPrefix, "privatePackagesPrefix", "r", "private", "The prefix for private packages")
 	scanAndCompareCmd.Flags().StringVarP(&repoOwner, "repoOwner", "w", "uds-packages", "Repository owner") // TODO: that okay?
+	scanAndCompareCmd.Flags().StringArrayVar(&imageNameOverrides, "image-name-override", []string{}, "Override image name mapping for comparison (format: old=new). Can be repeated.")
 
 	scanAndCompareCmd.Flags().BoolVarP(&allowDifferentImages, "allow-different-images", "d", false, "Allow comparing scans for different images")
 	rootCmd.AddCommand(scanAndCompareCmd)
