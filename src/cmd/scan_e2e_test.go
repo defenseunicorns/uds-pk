@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -20,23 +20,24 @@ import (
 	"github.com/google/go-github/v73/github"
 )
 
-// helper process to fake external commands (grype)
-func TestHelperProcess(t *testing.T) {
-	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
-		return
+// helperProcessLogic contains the core logic for simulating external commands
+func helperProcessLogic(args []string, stdout io.Writer, stderr io.Writer) {
+	if stdout == nil {
+		stdout = io.Discard
 	}
-	args := os.Args
-	// args: [binary -test.run=TestHelperProcess -- grype <args...>]
-	sep := 0
+	if stderr == nil {
+		stderr = io.Discard
+	}
+	sep := -1
 	for i, a := range args {
 		if a == "--" {
 			sep = i
 			break
 		}
 	}
-	if sep == 0 || sep+1 >= len(args) {
-		fmt.Fprintln(os.Stderr, "invalid helper invocation")
-		os.Exit(2)
+	if sep == -1 || sep+1 >= len(args) {
+		fmt.Fprintln(stderr, "invalid helper invocation")
+		return
 	}
 	cmd := args[sep+1]
 	cmdArgs := args[sep+2:]
@@ -45,11 +46,11 @@ func TestHelperProcess(t *testing.T) {
 		// emulate different subcommands
 		if len(cmdArgs) >= 2 && cmdArgs[0] == "db" && cmdArgs[1] == "status" {
 			// print healthy status
-			fmt.Print("ok\n")
-			os.Exit(0)
+			fmt.Fprint(stdout, "ok\n")
+			return
 		}
 		if len(cmdArgs) >= 2 && cmdArgs[0] == "db" && cmdArgs[1] == "update" {
-			os.Exit(0)
+			return
 		}
 		// normal scan: find --file path and write minimal CycloneDX JSON
 		var outPath string
@@ -60,8 +61,8 @@ func TestHelperProcess(t *testing.T) {
 			}
 		}
 		if outPath == "" {
-			fmt.Fprintln(os.Stderr, "--file not provided")
-			os.Exit(3)
+			fmt.Fprintln(stderr, "--file not provided")
+			return
 		}
 		// Decide whether this is an SBOM scan to vary vulnerabilities
 		isSBOM := false
@@ -95,24 +96,56 @@ func TestHelperProcess(t *testing.T) {
 		}
 		f, err := os.Create(outPath)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(4)
+			fmt.Fprintln(stderr, err)
+			return
 		}
 		_ = json.NewEncoder(f).Encode(payload)
 		_ = f.Close()
-		os.Exit(0)
+		return
 	}
-	fmt.Fprintln(os.Stderr, "unknown command")
-	os.Exit(5)
+	fmt.Fprintln(stderr, "unknown command")
+	return
 }
 
-// substitute exec command to call helper process
-func fakeExecCommand(command string, args ...string) *exec.Cmd {
-	cs := []string{"-test.run=TestHelperProcess", "--", command}
-	cs = append(cs, args...)
-	cmd := exec.Command(os.Args[0], cs...)
-	cmd.Env = append(os.Environ(), "GO_WANT_HELPER_PROCESS=1")
-	return cmd
+// FakeCommand simulates a command for testing purposes
+type FakeCommand struct {
+	cmd    string
+	args   []string
+	stdout io.Writer
+	stderr io.Writer
+}
+
+func (f *FakeCommand) Run() error {
+	out := f.stdout
+	if out == nil {
+		out = io.Discard
+	}
+	err := f.stderr
+	if err == nil {
+		err = io.Discard
+	}
+	helperProcessLogic(append([]string{"--", f.cmd}, f.args...), out, err)
+	return nil
+}
+
+func (f *FakeCommand) SetStdout(stdout *os.File) {
+	f.stdout = stdout
+}
+
+func (f *FakeCommand) SetStderr(stderr *os.File) {
+	f.stderr = stderr
+}
+
+// Add CombinedOutput method to FakeCommand
+func (f *FakeCommand) CombinedOutput() ([]byte, error) {
+	var buf bytes.Buffer
+	helperProcessLogic(append([]string{"--", f.cmd}, f.args...), &buf, &buf)
+	return buf.Bytes(), nil
+}
+
+// substitute ExecCommand for tests
+func fakeExecCommand(command string, args ...string) scan.CommandRunner {
+	return &FakeCommand{cmd: command, args: args}
 }
 
 func setupLogger() {

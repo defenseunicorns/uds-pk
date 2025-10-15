@@ -19,7 +19,43 @@ import (
 Scanning logging is heavily inspired by https://github.com/defenseunicorns-navy/sonic-components-zarf-scan
 */
 
-var ExecCommand = exec.Command
+// Extend CommandRunner interface to include CombinedOutput
+
+// Define CommandRunner interface for better testability
+
+type CommandRunner interface {
+	Run() error
+	SetStdout(stdout *os.File)
+	SetStderr(stderr *os.File)
+	CombinedOutput() ([]byte, error)
+}
+
+// RealCommand wraps exec.Cmd for real process execution
+type RealCommand struct {
+	cmd *exec.Cmd
+}
+
+func (r *RealCommand) Run() error {
+	return r.cmd.Run()
+}
+
+func (r *RealCommand) SetStdout(stdout *os.File) {
+	r.cmd.Stdout = stdout
+}
+
+func (r *RealCommand) SetStderr(stderr *os.File) {
+	r.cmd.Stderr = stderr
+}
+
+// Update RealCommand to implement CombinedOutput
+func (r *RealCommand) CombinedOutput() ([]byte, error) {
+	return r.cmd.CombinedOutput()
+}
+
+// Update ExecCommand to use CommandRunner
+var ExecCommand = func(name string, arg ...string) CommandRunner {
+	return &RealCommand{cmd: exec.Command(name, arg...)}
+}
 
 func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bool) (map[string]string, error) {
 	results := map[string]string{}
@@ -182,7 +218,7 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose)
 }
 
-func scanImage(image string, outputDir string, logger *slog.Logger, isVerbose bool) (string, error) {
+func scanImage(image, outputDir string, logger *slog.Logger, isVerbose bool) (string, error) {
 	logger.Debug("Scanning SBOM", slog.String("file", image))
 
 	// Set up the output path if needed
@@ -221,7 +257,7 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 		// Print working directory and environment for debugging
 		wd, _ := os.Getwd()
 		logger.Debug("Current working directory:", slog.String("directory", wd))
-		logger.Debug("Running scan", slog.Int("attempt", retryCount+1), slog.String("command", cmd.String()))
+		logger.Debug("Running scan", slog.Int("attempt", retryCount+1), slog.String("command", "grype "+strings.Join(args, " ")))
 
 		// Execute the command
 		err := cmd.Run()
@@ -258,12 +294,12 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 	return "", fmt.Errorf("grype scan failed for %v", args)
 }
 
-func configureOutput(cmd *exec.Cmd, isVerbose bool) {
+func configureOutput(cmd CommandRunner, isVerbose bool) {
 	if isVerbose {
-		cmd.Stdout = os.Stderr
-		cmd.Stderr = os.Stderr
+		cmd.SetStdout(os.Stderr)
+		cmd.SetStderr(os.Stderr)
 	} else {
-		cmd.Stdout = nil
-		cmd.Stderr = nil
+		cmd.SetStdout(nil)
+		cmd.SetStderr(nil)
 	}
 }
