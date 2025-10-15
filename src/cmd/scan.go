@@ -102,7 +102,7 @@ func compareScans(baseScanPath string, newScanPath string) (string, error) {
 		if !allowDifferentImages {
 			return "", fmt.Errorf("these scans are not for the same image: %s != %s", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)
 		} else {
-			fmt.Fprintf(os.Stderr, "Warning: these scans are not for the same image: %s != %s\n", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)
+			_, _ = fmt.Fprintf(os.Stderr, "Warning: these scans are not for the same image: %s != %s\n", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)
 		}
 	}
 
