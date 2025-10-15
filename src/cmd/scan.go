@@ -146,27 +146,21 @@ var scanAndCompareCmd = &cobra.Command{
 					imageName := extractImageName(key)
 					for _, override := range imageNameOverrides {
 						parts := strings.SplitN(override, "=", 2)
-						// mstodo: clean up logging
-						logger.Debug("Checking override", slog.Any("override", override), slog.Any("parts", parts), slog.String("key", key))
-						logger.Debug("Checking override", slog.Int("len", len(parts)), slog.String("parts[1]", parts[1]), slog.String("imageName", imageName))
 						if len(parts) == 2 && parts[1] == imageName {
 							imageName = parts[0]
 							logger.Debug("Found override image name for image", slog.String("image", key), slog.String("override", imageName))
 							break
 						}
 					}
-					// TODO: drop this:
-					logger.Debug("Overrides: ", slog.Any("overrides", imageNameOverrides))
-					logger.Debug("Would compare scan", slog.String("scanFile", scanFile), "for key", slog.String("key", key))
 					if releasedScanFile, err := findMatchingScan(imageName, releasedFlavorResults, logger); err != nil {
 						return err
 					} else {
 						logger.Debug("Comparing files: ", slog.String("base", releasedScanFile), slog.String("new", scanFile))
-						markdownTable, err := compareScans(scanFile, releasedScanFile)
+						markdownTable, err := compareScans(releasedScanFile, scanFile)
 						if err != nil {
 							return err
 						}
-						// TODO: maybe writing to file would be better?
+						// TODO: write to file?
 						fmt.Println(markdownTable)
 					}
 				}
@@ -263,7 +257,7 @@ func scanReleased(outDirectory string) (map[string]map[string]string, error) {
 	encodedPrivateUrl := encodePackageUrl(privateRepoUrl)
 
 	ctx := context.Background()
-	client := createGithubClient(&ctx)
+	client := NewGithubClient(&ctx)
 
 	var packageUrls []string
 	if exists, err := checkPackageExistenceInRepo(client, &ctx, repoOwner, encodedPublicUrl); err != nil {
@@ -338,6 +332,10 @@ func scanReleased(outDirectory string) (map[string]map[string]string, error) {
 	return sbomScanResults, nil
 }
 
+// Seam variables for testability
+var NewGithubClient = createGithubClient
+var FetchSboms = utils.FetchSboms
+
 func createGithubClient(ctx *context.Context) *github.Client {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: utils.GetGithubToken()},
@@ -364,7 +362,6 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 			logger.Debug("failed to get package versions: ", slog.Any("error", err))
 		} else {
 			logger.Debug("package versions found for ", slog.String("url", encodedPackageUrl))
-			logger.Info("Versions", slog.Any("versions", versions))
 			for _, flavor := range flavors {
 			versionsFor:
 				for _, v := range versions {
@@ -380,7 +377,7 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 											if dirCreationErr != nil {
 												return nil, dirCreationErr
 											}
-											if sboms, err := utils.FetchSboms(repoOwner, packageUrl, tag, subDir, logger); err != nil {
+											if sboms, err := FetchSboms(repoOwner, packageUrl, tag, subDir, logger); err != nil {
 												logger.Debug("Error inspecting sbom", slog.Any("error", err))
 											} else {
 												logger.Debug("Sboms", slog.Any("sboms", sboms))

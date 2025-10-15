@@ -19,6 +19,8 @@ import (
 Scanning logging is heavily inspired by https://github.com/defenseunicorns-navy/sonic-components-zarf-scan
 */
 
+var ExecCommand = exec.Command
+
 func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bool) (map[string]string, error) {
 	results := map[string]string{}
 	for _, image := range images {
@@ -213,7 +215,7 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 		// Create the command - this needs to be inside the loop because we can't reuse commands
 
 		logger.Debug("Running grype command", slog.Any("args", args))
-		cmd := exec.Command("grype", args...)
+		cmd := ExecCommand("grype", args...)
 		configureOutput(cmd, isVerbose)
 
 		// Print working directory and environment for debugging
@@ -227,7 +229,7 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 		if err != nil {
 			logger.Debug("Error from grype command:", slog.Any("error", err))
 			// Check if this is a database error
-			checkCmd := exec.Command("grype", "db", "status")
+			checkCmd := ExecCommand("grype", "db", "status")
 			configureOutput(checkCmd, isVerbose)
 			output, _ := checkCmd.CombinedOutput()
 
@@ -236,7 +238,7 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 					"attempt", retryCount+1, "maxRetries", maxRetries)
 
 				// Update the database
-				updateCmd := exec.Command("grype", "db", "update")
+				updateCmd := ExecCommand("grype", "db", "update")
 				configureOutput(updateCmd, isVerbose)
 
 				if updateErr := updateCmd.Run(); updateErr != nil {
