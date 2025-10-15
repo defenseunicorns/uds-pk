@@ -109,7 +109,6 @@ func grypeCommandSimulation(args []string, stdout io.Writer, stderr io.Writer) {
 		return
 	}
 	_, _ = fmt.Fprintln(stderr, "unknown command")
-	return
 }
 
 // FakeCommand simulates a command for testing purposes
