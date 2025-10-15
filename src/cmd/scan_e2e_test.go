@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-github/v73/github"
 )
 
-func grypeCommandSimulation(args []string, stdout io.Writer, stderr io.Writer) {
+func simulateGrype(args []string, stdout io.Writer, stderr io.Writer) {
 	if stdout == nil {
 		stdout = io.Discard
 	}
@@ -38,7 +38,7 @@ func grypeCommandSimulation(args []string, stdout io.Writer, stderr io.Writer) {
 		}
 	}
 	if sep == -1 || sep+1 >= len(args) {
-		_, _ = fmt.Fprintln(stderr, "invalid grypeCommandSimulation")
+		_, _ = fmt.Fprintln(stderr, "invalid simulateGrype")
 		return
 	}
 	cmd := args[sep+1]
@@ -131,7 +131,7 @@ func (f *FakeCommand) Run() error {
 	if err == nil {
 		err = io.Discard
 	}
-	grypeCommandSimulation(append([]string{"--", f.cmd}, f.args...), out, err)
+	simulateGrype(append([]string{"--", f.cmd}, f.args...), out, err)
 	return nil
 }
 
@@ -145,7 +145,7 @@ func (f *FakeCommand) SetStderr(stderr io.Writer) {
 
 func (f *FakeCommand) CombinedOutput() ([]byte, error) {
 	var buf bytes.Buffer
-	grypeCommandSimulation(append([]string{"--", f.cmd}, f.args...), &buf, &buf)
+	simulateGrype(append([]string{"--", f.cmd}, f.args...), &buf, &buf)
 	return buf.Bytes(), nil
 }
 
