@@ -35,6 +35,9 @@ var outputDirectory string
 var allowDifferentImages bool
 var imageNameOverrides []string
 
+// Optional output file for scan-and-compare markdown
+var scanAndCompareOutputFile string
+
 var scanReleasedCmd = &cobra.Command{
 	Use:   "scan-released",
 	Short: "Scan a released version of a UDS package for vulnerabilities. The scan is based on SBOMs from the latest released version of the package.",
@@ -139,6 +142,8 @@ var scanAndCompareCmd = &cobra.Command{
 		}
 		logger.Debug("Comparing scans", slog.Any("current", zarfYamlScanResults), slog.Any("released", releasedScanResults))
 
+		var builder strings.Builder
+
 		for flavor, flavorResults := range zarfYamlScanResults {
 			logger.Debug("Scanning flavor", slog.String("flavor", flavor))
 			if releasedFlavorResults, found := releasedScanResults[flavor]; found {
@@ -160,10 +165,27 @@ var scanAndCompareCmd = &cobra.Command{
 						if err != nil {
 							return err
 						}
-						// TODO: write to file?
-						fmt.Println(markdownTable)
+						if scanAndCompareOutputFile != "" {
+							if builder.Len() > 0 {
+								builder.WriteString("\n\n")
+							}
+							builder.WriteString(markdownTable)
+						} else {
+							fmt.Println(markdownTable)
+						}
 					}
 				}
+			}
+		}
+		if scanAndCompareOutputFile != "" {
+			// Ensure parent directory exists if provided
+			if dir := filepath.Dir(scanAndCompareOutputFile); dir != "." && dir != "" {
+				if err := os.MkdirAll(dir, 0o755); err != nil {
+					return err
+				}
+			}
+			if err := os.WriteFile(scanAndCompareOutputFile, []byte(builder.String()), 0o644); err != nil {
+				return err
 			}
 		}
 		return nil
@@ -499,6 +521,7 @@ func init() {
 	scanAndCompareCmd.Flags().StringVarP(&privatePackagesPrefix, "privatePackagesPrefix", "r", "private", "The prefix for private packages")
 	scanAndCompareCmd.Flags().StringVarP(&repoOwner, "repoOwner", "w", "uds-packages", "Repository owner") // TODO: that okay?
 	scanAndCompareCmd.Flags().StringArrayVar(&imageNameOverrides, "image-name-override", []string{}, "Override image name mapping for comparison (format: old=new). Can be repeated.")
+	scanAndCompareCmd.Flags().StringVar(&scanAndCompareOutputFile, "output", "", "Write comparison markdown to this file instead of stdout")
 
 	scanAndCompareCmd.Flags().BoolVarP(&allowDifferentImages, "allow-different-images", "d", false, "Allow comparing scans for different images")
 	rootCmd.AddCommand(scanAndCompareCmd)

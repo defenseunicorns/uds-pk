@@ -20,8 +20,7 @@ import (
 	"github.com/google/go-github/v73/github"
 )
 
-// helperProcessLogic contains the core logic for simulating external commands
-func helperProcessLogic(args []string, stdout io.Writer, stderr io.Writer) {
+func grypeCommandSimulation(args []string, stdout io.Writer, stderr io.Writer) {
 	if stdout == nil {
 		stdout = io.Discard
 	}
@@ -36,7 +35,7 @@ func helperProcessLogic(args []string, stdout io.Writer, stderr io.Writer) {
 		}
 	}
 	if sep == -1 || sep+1 >= len(args) {
-		_, _ = fmt.Fprintln(stderr, "invalid helper invocation")
+		_, _ = fmt.Fprintln(stderr, "invalid grypeCommandSimulation")
 		return
 	}
 	cmd := args[sep+1]
@@ -130,7 +129,7 @@ func (f *FakeCommand) Run() error {
 	if err == nil {
 		err = io.Discard
 	}
-	helperProcessLogic(append([]string{"--", f.cmd}, f.args...), out, err)
+	grypeCommandSimulation(append([]string{"--", f.cmd}, f.args...), out, err)
 	return nil
 }
 
@@ -142,14 +141,12 @@ func (f *FakeCommand) SetStderr(stderr io.Writer) {
 	f.stderr = stderr
 }
 
-// Add CombinedOutput method to FakeCommand
 func (f *FakeCommand) CombinedOutput() ([]byte, error) {
 	var buf bytes.Buffer
-	helperProcessLogic(append([]string{"--", f.cmd}, f.args...), &buf, &buf)
+	grypeCommandSimulation(append([]string{"--", f.cmd}, f.args...), &buf, &buf)
 	return buf.Bytes(), nil
 }
 
-// substitute ExecCommand for tests
 func fakeExecCommand(command string, args ...string) scan.CommandRunner {
 	return &FakeCommand{cmd: command, args: args}
 }
@@ -235,11 +232,9 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	// Mock SBOM fetcher using helper
 	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
-	// zarf.yaml with flavor, images can be empty for released path but keep consistent
 	zarfYamlLocation = writeZarfYaml(t, tmp)
 	outDir := filepath.Join(tmp, "out")
 
@@ -288,32 +283,27 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	// Mock SBOM fetcher using helper
 	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
 	zarfYamlLocation = writeZarfYaml(t, tmp)
 	outputDirectory = filepath.Join(tmp, "out")
 
-	// capture stdout
-	origStdout := os.Stdout
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("failed to create pipe: %v", err)
+	// Use --output to write markdown to a file
+	outFile := filepath.Join(tmp, "compare.md")
+	if err := scanAndCompareCmd.Flags().Set("output", outFile); err != nil {
+		t.Fatalf("failed to set output flag: %v", err)
 	}
-	os.Stdout = w
-	err = scanAndCompareCmd.RunE(scanAndCompareCmd, []string{})
-	if cerr := w.Close(); cerr != nil {
-		os.Stdout = origStdout
-		t.Fatalf("failed to close pipe writer: %v", cerr)
-	}
-	os.Stdout = origStdout
+	defer func() { _ = scanAndCompareCmd.Flags().Set("output", "") }()
+
+	err := scanAndCompareCmd.RunE(scanAndCompareCmd, []string{})
 	if err != nil {
 		t.Fatalf("scan-and-compare failed: %v", err)
 	}
-	b, rerr := io.ReadAll(r)
+
+	b, rerr := os.ReadFile(outFile)
 	if rerr != nil {
-		t.Fatalf("failed to read captured output: %v", rerr)
+		t.Fatalf("failed to read output file: %v", rerr)
 	}
 	out := string(b)
 
@@ -362,7 +352,9 @@ func withMockFetchSbomsUserInput(t *testing.T, fileName, userInput string) {
 		if err != nil {
 			return nil, err
 		}
-		defer f.Close()
+		defer func(f *os.File) {
+			_ = f.Close()
+		}(f)
 		if err := json.NewEncoder(f).Encode(sbom); err != nil {
 			return nil, err
 		}
