@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -19,18 +20,14 @@ import (
 Scanning logging is heavily inspired by https://github.com/defenseunicorns-navy/sonic-components-zarf-scan
 */
 
-// Extend CommandRunner interface to include CombinedOutput
-
-// Define CommandRunner interface for better testability
-
+// CommandRunner interface for better testability
 type CommandRunner interface {
 	Run() error
-	SetStdout(stdout *os.File)
-	SetStderr(stderr *os.File)
+	SetStdout(stdout io.Writer)
+	SetStderr(stderr io.Writer)
 	CombinedOutput() ([]byte, error)
 }
 
-// RealCommand wraps exec.Cmd for real process execution
 type RealCommand struct {
 	cmd *exec.Cmd
 }
@@ -39,15 +36,14 @@ func (r *RealCommand) Run() error {
 	return r.cmd.Run()
 }
 
-func (r *RealCommand) SetStdout(stdout *os.File) {
+func (r *RealCommand) SetStdout(stdout io.Writer) {
 	r.cmd.Stdout = stdout
 }
 
-func (r *RealCommand) SetStderr(stderr *os.File) {
+func (r *RealCommand) SetStderr(stderr io.Writer) {
 	r.cmd.Stderr = stderr
 }
 
-// Update RealCommand to implement CombinedOutput
 func (r *RealCommand) CombinedOutput() ([]byte, error) {
 	return r.cmd.CombinedOutput()
 }
@@ -209,10 +205,7 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 
 	args := []string{"sbom:" + sbomFile, "--add-cpes-if-none", "--output", "cyclonedx-json", "-v"}
 
-	// Add output options if needed
-	if outputDir != "" {
-		args = append(args, "--file", jsonOutputPath)
-	}
+	args = append(args, "--file", jsonOutputPath)
 
 	// Try to scan with retries for database issues
 	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose)
@@ -299,7 +292,7 @@ func configureOutput(cmd CommandRunner, isVerbose bool) {
 		cmd.SetStdout(os.Stderr)
 		cmd.SetStderr(os.Stderr)
 	} else {
-		cmd.SetStdout(nil)
-		cmd.SetStderr(nil)
+		cmd.SetStdout(io.Discard)
+		cmd.SetStderr(io.Discard)
 	}
 }

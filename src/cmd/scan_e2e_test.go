@@ -36,7 +36,7 @@ func helperProcessLogic(args []string, stdout io.Writer, stderr io.Writer) {
 		}
 	}
 	if sep == -1 || sep+1 >= len(args) {
-		fmt.Fprintln(stderr, "invalid helper invocation")
+		_, _ = fmt.Fprintln(stderr, "invalid helper invocation")
 		return
 	}
 	cmd := args[sep+1]
@@ -46,7 +46,7 @@ func helperProcessLogic(args []string, stdout io.Writer, stderr io.Writer) {
 		// emulate different subcommands
 		if len(cmdArgs) >= 2 && cmdArgs[0] == "db" && cmdArgs[1] == "status" {
 			// print healthy status
-			fmt.Fprint(stdout, "ok\n")
+			_, _ = fmt.Fprint(stdout, "ok\n")
 			return
 		}
 		if len(cmdArgs) >= 2 && cmdArgs[0] == "db" && cmdArgs[1] == "update" {
@@ -61,7 +61,7 @@ func helperProcessLogic(args []string, stdout io.Writer, stderr io.Writer) {
 			}
 		}
 		if outPath == "" {
-			fmt.Fprintln(stderr, "--file not provided")
+			_, _ = fmt.Fprintln(stderr, "--file not provided")
 			return
 		}
 		// Decide whether this is an SBOM scan to vary vulnerabilities
@@ -96,14 +96,20 @@ func helperProcessLogic(args []string, stdout io.Writer, stderr io.Writer) {
 		}
 		f, err := os.Create(outPath)
 		if err != nil {
-			fmt.Fprintln(stderr, err)
+			_, _ = fmt.Fprintln(stderr, err)
 			return
 		}
-		_ = json.NewEncoder(f).Encode(payload)
-		_ = f.Close()
+		if err := json.NewEncoder(f).Encode(payload); err != nil {
+			_, _ = fmt.Fprintln(stderr, err)
+			_ = f.Close()
+			return
+		}
+		if err := f.Close(); err != nil {
+			_, _ = fmt.Fprintln(stderr, err)
+		}
 		return
 	}
-	fmt.Fprintln(stderr, "unknown command")
+	_, _ = fmt.Fprintln(stderr, "unknown command")
 	return
 }
 
@@ -128,11 +134,11 @@ func (f *FakeCommand) Run() error {
 	return nil
 }
 
-func (f *FakeCommand) SetStdout(stdout *os.File) {
+func (f *FakeCommand) SetStdout(stdout io.Writer) {
 	f.stdout = stdout
 }
 
-func (f *FakeCommand) SetStderr(stderr *os.File) {
+func (f *FakeCommand) SetStderr(stderr io.Writer) {
 	f.stderr = stderr
 }
 
@@ -161,7 +167,7 @@ components:
     only:
       flavor: registry1
     images:
-      - registry1.dso.mil/ironbank/opensource/bitnami/elasticsearch-exporter:1.9.0
+      - example.com/opensource/bitnami/elasticsearch-exporter:1.9.0
 `
 	p := filepath.Join(dir, "zarf.yaml")
 	if err := os.WriteFile(p, []byte(content), 0644); err != nil {
@@ -215,8 +221,8 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 	scan.ExecCommand = fakeExecCommand
 	defer func() { scan.ExecCommand = origExec }()
 
-	// Mock GitHub API with httptest server
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Mock GitHub API with helper
+	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/versions") {
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`[{"id":1, "metadata": {"container": {"tags": ["8.16.0-registry1"]}}}]`))
@@ -228,35 +234,9 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
-	defer srv.Close()
 
-	origNewGH := NewGithubClient
-	NewGithubClient = func(_ *context.Context) *github.Client {
-		c := github.NewClient(srv.Client())
-		// Override BaseURL to test server
-		u, _ := url.Parse(srv.URL + "/")
-		c.BaseURL = u
-		return c
-	}
-	defer func() { NewGithubClient = origNewGH }()
-
-	// Mock SBOM fetcher to write a minimal SBOM to outputDir and return its path
-	origFetch := FetchSboms
-	FetchSboms = func(_ string, _ string, _ string, outDir string, _ *slog.Logger) ([]string, error) {
-		p := filepath.Join(outDir, "elasticsearch_8.16.0.json")
-		// SBOM with userInput to drive scanSBOM naming
-		sbom := map[string]any{"source": map[string]any{"metadata": map[string]any{"userInput": "docker:registry1.dso.mil/ironbank/opensource/bitnami/elasticsearch:8.16.0"}}}
-		f, err := os.Create(p)
-		if err != nil {
-			return nil, err
-		}
-		defer f.Close()
-		if err := json.NewEncoder(f).Encode(sbom); err != nil {
-			return nil, err
-		}
-		return []string{p}, nil
-	}
-	defer func() { FetchSboms = origFetch }()
+	// Mock SBOM fetcher using helper
+	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
 	// zarf.yaml with flavor, images can be empty for released path but keep consistent
@@ -294,8 +274,8 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 	imageNameOverrides = []string{"elasticsearch=elasticsearch-exporter"}
 	defer func() { imageNameOverrides = origOverrides }()
 
-	// Mock GitHub API
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Mock GitHub API with helper
+	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/versions") {
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`[{"id":1, "metadata": {"container": {"tags": ["8.16.0-registry1"]}}}]`))
@@ -307,7 +287,50 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
-	defer srv.Close()
+
+	// Mock SBOM fetcher using helper
+	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
+
+	tmp := t.TempDir()
+	zarfYamlLocation = writeZarfYaml(t, tmp)
+	outputDirectory = filepath.Join(tmp, "out")
+
+	// capture stdout
+	origStdout := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("failed to create pipe: %v", err)
+	}
+	os.Stdout = w
+	err = scanAndCompareCmd.RunE(scanAndCompareCmd, []string{})
+	if cerr := w.Close(); cerr != nil {
+		os.Stdout = origStdout
+		t.Fatalf("failed to close pipe writer: %v", cerr)
+	}
+	os.Stdout = origStdout
+	if err != nil {
+		t.Fatalf("scan-and-compare failed: %v", err)
+	}
+	b, rerr := io.ReadAll(r)
+	if rerr != nil {
+		t.Fatalf("failed to read captured output: %v", rerr)
+	}
+	out := string(b)
+
+	if !strings.Contains(out, "New vulnerabilities: 1") {
+		t.Fatalf("expected one new vulnerability, got output: %s", out)
+	}
+	if !strings.Contains(out, "Fixed vulnerabilities: 0") {
+		t.Fatalf("expected zero fixed vulnerabilities, got output: %s", out)
+	}
+}
+
+// withMockGitHub starts a test HTTP server with the given handler and
+// overrides NewGithubClient to point to it. Cleanup is automatic via t.Cleanup.
+func withMockGitHub(t *testing.T, handler http.Handler) {
+	t.Helper()
+	srv := httptest.NewServer(handler)
+	t.Cleanup(func() { srv.Close() })
 
 	origNewGH := NewGithubClient
 	NewGithubClient = func(_ *context.Context) *github.Client {
@@ -316,12 +339,25 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 		c.BaseURL = u
 		return c
 	}
-	defer func() { NewGithubClient = origNewGH }()
+	t.Cleanup(func() { NewGithubClient = origNewGH })
+}
 
-	origFetch := FetchSboms
-	FetchSboms = func(_ string, _ string, _ string, outDir string, _ *slog.Logger) ([]string, error) {
-		p := filepath.Join(outDir, "elasticsearch_8.16.0.json")
-		sbom := map[string]any{"source": map[string]any{"metadata": map[string]any{"userInput": "docker:registry1.dso.mil/ironbank/opensource/bitnami/elasticsearch:8.16.0"}}}
+// withMockFetchSboms overrides the package-level FetchSboms for the duration
+// of a test and restores it automatically via t.Cleanup.
+func withMockFetchSboms(t *testing.T, fn func(repoOwner, packageUrl, tag string, outputDir string, logger *slog.Logger) ([]string, error)) {
+	t.Helper()
+	orig := FetchSboms
+	FetchSboms = fn
+	t.Cleanup(func() { FetchSboms = orig })
+}
+
+// withMockFetchSbomsUserInput writes a minimal SBOM JSON to outputDir/fileName
+// with the provided source.metadata.userInput and returns that path.
+func withMockFetchSbomsUserInput(t *testing.T, fileName, userInput string) {
+	t.Helper()
+	withMockFetchSboms(t, func(_ string, _ string, _ string, outDir string, _ *slog.Logger) ([]string, error) {
+		p := filepath.Join(outDir, fileName)
+		sbom := map[string]any{"source": map[string]any{"metadata": map[string]any{"userInput": userInput}}}
 		f, err := os.Create(p)
 		if err != nil {
 			return nil, err
@@ -331,30 +367,5 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 			return nil, err
 		}
 		return []string{p}, nil
-	}
-	defer func() { FetchSboms = origFetch }()
-
-	tmp := t.TempDir()
-	zarfYamlLocation = writeZarfYaml(t, tmp)
-	outputDirectory = filepath.Join(tmp, "out")
-
-	// capture stdout
-	origStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-	err := scanAndCompareCmd.RunE(scanAndCompareCmd, []string{})
-	w.Close()
-	os.Stdout = origStdout
-	if err != nil {
-		t.Fatalf("scan-and-compare failed: %v", err)
-	}
-	b, _ := io.ReadAll(r)
-	out := string(b)
-
-	if !strings.Contains(out, "New vulnerabilities: 1") {
-		t.Fatalf("expected one new vulnerability, got output: %s", out)
-	}
-	if !strings.Contains(out, "Fixed vulnerabilities: 0") {
-		t.Fatalf("expected zero fixed vulnerabilities, got output: %s", out)
-	}
+	})
 }
