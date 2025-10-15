@@ -508,7 +508,7 @@ func init() {
 	addCommonFlags(scanReleasedCmd)
 	scanReleasedCmd.Flags().StringVarP(&publicPackagesPrefix, "publicPackagesPrefix", "c", "", "The prefix for public packages")
 	scanReleasedCmd.Flags().StringVarP(&privatePackagesPrefix, "privatePackagesPrefix", "r", "private", "The prefix for private packages")
-	scanReleasedCmd.Flags().StringVarP(&repoOwner, "repoOwner", "w", "uds-packages", "Repository owner") // TODO: that okay?
+	scanReleasedCmd.Flags().StringVarP(&repoOwner, "repoOwner", "w", "uds-packages", "Repository owner")
 	rootCmd.AddCommand(scanReleasedCmd)
 
 	addCommonFlags(scanZarfYamlCmd)
@@ -517,7 +517,7 @@ func init() {
 	addCommonFlags(scanAndCompareCmd)
 	scanAndCompareCmd.Flags().StringVarP(&publicPackagesPrefix, "publicPackagesPrefix", "c", "", "The prefix for public packages")
 	scanAndCompareCmd.Flags().StringVarP(&privatePackagesPrefix, "privatePackagesPrefix", "r", "private", "The prefix for private packages")
-	scanAndCompareCmd.Flags().StringVarP(&repoOwner, "repoOwner", "w", "uds-packages", "Repository owner") // TODO: that okay?
+	scanAndCompareCmd.Flags().StringVarP(&repoOwner, "repoOwner", "w", "uds-packages", "Repository owner")
 	scanAndCompareCmd.Flags().StringArrayVar(&imageNameOverrides, "image-name-override", []string{}, "Override image name mapping for comparison (format: old=new). Can be repeated.")
 	scanAndCompareCmd.Flags().StringVar(&scanAndCompareOutputFile, "output", "", "Write comparison markdown to this file instead of stdout")
 
