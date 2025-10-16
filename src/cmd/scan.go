@@ -24,72 +24,115 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var zarfYamlLocation string
-var publicPackagesPrefix string
-var privatePackagesPrefix string
-var devNoCleanUp bool
-var repoOwner string
-
-var outputDirectory string
-
-var allowDifferentImages bool
-var imageNameOverrides []string
-
-// Optional output file for scan-and-compare markdown
-var scanAndCompareOutputFile string
-
-var scanReleasedCmd = &cobra.Command{
-	Use:   "scan-released",
-	Short: "Scan a released version of a UDS package for vulnerabilities. The scan is based on SBOMs from the latest released version of the package.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if outputDirectory == "" {
-			var err error
-			outputDirectory, err = os.MkdirTemp("", "releaseScans")
-			logger.Info("Output directory", slog.String("dir", outputDirectory))
-			if err != nil {
-				return err
-			}
-		}
-		_, err := scanReleased(outputDirectory)
-		return err
-	},
+type CompareOptions struct {
+	AllowDifferentImages bool
 }
 
-var scanZarfYamlCmd = &cobra.Command{
-	Use:   "scan",
-	Short: "Scan the current Zarf package. This scan is based on the zarf.yaml and the current images it points to.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if outputDirectory == "" {
-			var err error
-			outputDirectory, err = os.MkdirTemp("", "zarfScans")
-			logger.Info("Output directory", slog.String("dir", outputDirectory))
-			if err != nil {
-				return err
-			}
-		}
-		_, err := scanZarfYamlImages(outputDirectory)
-		return err
-	},
+type ImageFetchingOptions struct {
+	PublicPackagesPrefix  string
+	PrivatePackagesPrefix string
+	RepoOwner             string
 }
 
-var compareCmd = &cobra.Command{
-	Use:   "compare-scans BASE_SCAN NEW_SCAN",
-	Short: "Compare two grype scans using the cyclonedx-json output format",
-	Args:  cobra.ExactArgs(2),
-	RunE: func(cmd *cobra.Command, args []string) error {
-		baseScanPath := args[0]
-		newScanPath := args[1]
-		markdownTable, err := compareScans(baseScanPath, newScanPath)
+type CommonScanOptions struct {
+	OutputDirectory  string
+	DevNoCleanUp     bool
+	ZarfYamlLocation string
+}
+
+type ScanReleasedOptions struct {
+	Scan  CommonScanOptions
+	Fetch ImageFetchingOptions
+}
+
+type ScanZarfYamlOptions struct {
+	Scan CommonScanOptions
+}
+
+type ScanAndCompareOptions struct {
+	Scan                     ScanReleasedOptions
+	Compare                  CompareOptions
+	ScanAndCompareOutputFile string
+	ImageNameOverrides       []string
+}
+
+func scanReleasedCmd() *cobra.Command {
+	options := &ScanReleasedOptions{}
+	cmd := &cobra.Command{
+		Use:   "scan-released",
+		Short: "Scan a released version of a UDS package for vulnerabilities. The scan is based on SBOMs from the latest released version of the package.",
+		RunE:  options.run,
+	}
+	addCommonFlags(cmd, &options.Scan)
+	addScanReleasedFlags(cmd, options)
+
+	return cmd
+}
+
+func (options *ScanReleasedOptions) run(_ *cobra.Command, _ []string) error {
+	if options.Scan.OutputDirectory == "" {
+		var err error
+		options.Scan.OutputDirectory, err = os.MkdirTemp("", "releaseScans")
+		logger.Info("Output directory", slog.String("dir", options.Scan.OutputDirectory))
 		if err != nil {
 			return err
 		}
-
-		fmt.Println(markdownTable)
-		return nil
-	},
+	}
+	_, err := scanReleased(options.Scan.OutputDirectory, options)
+	return err
 }
 
-func compareScans(baseScanPath string, newScanPath string) (string, error) {
+func scanZarfYamlCmd() *cobra.Command {
+	options := ScanZarfYamlOptions{}
+	cmd := &cobra.Command{
+		Use:   "scan",
+		Short: "Scan the current Zarf package. This scan is based on the zarf.yaml and the current images it points to.",
+		RunE:  options.run,
+	}
+	addCommonFlags(cmd, &options.Scan)
+
+	return cmd
+}
+
+func (options *ScanZarfYamlOptions) run(_ *cobra.Command, _ []string) error {
+	outputDirectory := options.Scan.OutputDirectory
+	if outputDirectory == "" {
+		var err error
+		outputDirectory, err = os.MkdirTemp("", "zarfScans")
+		logger.Info("Output directory", slog.String("dir", outputDirectory))
+		if err != nil {
+			return err
+		}
+	}
+	_, err := scanZarfYamlImages(outputDirectory, &options.Scan)
+	return err
+}
+
+func compareCmd() *cobra.Command {
+	options := CompareOptions{}
+	cmd := &cobra.Command{
+		Use:   "compare-scans BASE_SCAN NEW_SCAN",
+		Short: "Compare two grype scans using the cyclonedx-json output format",
+		Args:  cobra.ExactArgs(2),
+		RunE:  options.run,
+	}
+	cmd.Flags().BoolVarP(&options.AllowDifferentImages, "allow-different-images", "d", false, "Allow comparing scans for different images")
+	return cmd
+}
+
+func (options *CompareOptions) run(_ *cobra.Command, args []string) error {
+	baseScanPath := args[0]
+	newScanPath := args[1]
+	markdownTable, err := compareScans(baseScanPath, newScanPath, options)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(markdownTable)
+	return nil
+}
+
+func compareScans(baseScanPath string, newScanPath string, options *CompareOptions) (string, error) {
 	baseScan, newScan, err := compare.LoadScans(baseScanPath, newScanPath)
 	if err != nil {
 		return "", err
@@ -99,7 +142,7 @@ func compareScans(baseScanPath string, newScanPath string) (string, error) {
 	newScan.Metadata.Component.Name = compare.TrimDockerRegistryPrefixes(newScan.Metadata.Component.Name)
 
 	if baseScan.Metadata.Component.Name != newScan.Metadata.Component.Name {
-		if !allowDifferentImages {
+		if !options.AllowDifferentImages {
 			return "", fmt.Errorf("these scans are not for the same image: %s != %s", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)
 		} else {
 			_, _ = fmt.Fprintf(os.Stderr, "Warning: these scans are not for the same image: %s != %s\n", baseScan.Metadata.Component.Name, newScan.Metadata.Component.Name)
@@ -115,81 +158,91 @@ func compareScans(baseScanPath string, newScanPath string) (string, error) {
 	return markdownTable, nil
 }
 
-var scanAndCompareCmd = &cobra.Command{
-	Use: "scan-and-compare",
-	Short: "Scan the current Zarf package, scan the last released package, and compare the scans." +
-		"This command is a combination of `scan`, `scan-released`, and `compare-scans`.",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if outputDirectory == "" {
-			var err error
-			outputDirectory, err = os.MkdirTemp("", "scans")
-			logger.Info("Output directory", slog.String("dir", outputDirectory))
-			if err != nil {
-				return err
-			}
-		}
-		zarfYamlScanOutDir := outputDirectory + string(os.PathSeparator) + "zarfYaml"
-		logger.Debug("Scanning zarf.yaml images")
-		zarfYamlScanResults, err := scanZarfYamlImages(zarfYamlScanOutDir)
+func scanAndCompareCmd() *cobra.Command {
+	options := ScanAndCompareOptions{}
+
+	cmd := &cobra.Command{
+		Use: "scan-and-compare",
+		Short: "Scan the current Zarf package, scan the last released package, and compare the scans." +
+			"This command is a combination of `scan`, `scan-released`, and `compare-scans`.",
+		RunE: options.run,
+	}
+	addCommonFlags(cmd, &options.Scan.Scan)
+	addScanReleasedFlags(cmd, &options.Scan)
+	return cmd
+}
+
+func (options *ScanAndCompareOptions) run(_ *cobra.Command, _ []string) error {
+	outputDirectory := options.Scan.Scan.OutputDirectory
+	if outputDirectory == "" {
+		var err error
+		outputDirectory, err = os.MkdirTemp("", "scans")
+		logger.Info("Output directory", slog.String("dir", outputDirectory))
 		if err != nil {
 			return err
 		}
+	}
+	zarfYamlScanOutDir := outputDirectory + string(os.PathSeparator) + "zarfYaml"
+	logger.Debug("Scanning zarf.yaml images")
+	zarfYamlScanResults, err := scanZarfYamlImages(zarfYamlScanOutDir, &options.Scan.Scan)
+	if err != nil {
+		return err
+	}
 
-		releasedScanOutDir := outputDirectory + string(os.PathSeparator) + "released"
-		releasedScanResults, err := scanReleased(releasedScanOutDir)
-		if err != nil {
-			return err
-		}
-		logger.Debug("Comparing scans", slog.Any("current", zarfYamlScanResults), slog.Any("released", releasedScanResults))
+	releasedScanOutDir := outputDirectory + string(os.PathSeparator) + "released"
+	releasedScanResults, err := scanReleased(releasedScanOutDir, &options.Scan)
+	if err != nil {
+		return err
+	}
+	logger.Debug("Comparing scans", slog.Any("current", zarfYamlScanResults), slog.Any("released", releasedScanResults))
 
-		var builder strings.Builder
+	var builder strings.Builder
 
-		for flavor, flavorResults := range zarfYamlScanResults {
-			logger.Debug("Scanning flavor", slog.String("flavor", flavor))
-			if releasedFlavorResults, found := releasedScanResults[flavor]; found {
-				for key, scanFile := range flavorResults {
-					imageName := extractImageName(key)
-					for _, override := range imageNameOverrides {
-						parts := strings.SplitN(override, "=", 2)
-						if len(parts) == 2 && parts[1] == imageName {
-							imageName = parts[0]
-							logger.Debug("Found override image name for image", slog.String("image", key), slog.String("override", imageName))
-							break
-						}
-					}
-					if releasedScanFile, err := findMatchingScan(imageName, releasedFlavorResults, logger); err != nil {
-						return err
-					} else {
-						logger.Debug("Comparing files: ", slog.String("base", releasedScanFile), slog.String("new", scanFile))
-						markdownTable, err := compareScans(releasedScanFile, scanFile)
-						if err != nil {
-							return err
-						}
-						if scanAndCompareOutputFile != "" {
-							if builder.Len() > 0 {
-								builder.WriteString("\n\n")
-							}
-							builder.WriteString(markdownTable)
-						} else {
-							fmt.Println(markdownTable)
-						}
+	for flavor, flavorResults := range zarfYamlScanResults {
+		logger.Debug("Scanning flavor", slog.String("flavor", flavor))
+		if releasedFlavorResults, found := releasedScanResults[flavor]; found {
+			for key, scanFile := range flavorResults {
+				imageName := extractImageName(key)
+				for _, override := range options.ImageNameOverrides {
+					parts := strings.SplitN(override, "=", 2)
+					if len(parts) == 2 && parts[1] == imageName {
+						imageName = parts[0]
+						logger.Debug("Found override image name for image", slog.String("image", key), slog.String("override", imageName))
+						break
 					}
 				}
-			}
-		}
-		if scanAndCompareOutputFile != "" {
-			// Ensure parent directory exists if provided
-			if dir := filepath.Dir(scanAndCompareOutputFile); dir != "." && dir != "" {
-				if err := os.MkdirAll(dir, 0o755); err != nil {
+				if releasedScanFile, err := findMatchingScan(imageName, releasedFlavorResults, logger); err != nil {
 					return err
+				} else {
+					logger.Debug("Comparing files: ", slog.String("base", releasedScanFile), slog.String("new", scanFile))
+					markdownTable, err := compareScans(releasedScanFile, scanFile, &options.Compare)
+					if err != nil {
+						return err
+					}
+					if options.ScanAndCompareOutputFile != "" {
+						if builder.Len() > 0 {
+							builder.WriteString("\n\n")
+						}
+						builder.WriteString(markdownTable)
+					} else {
+						fmt.Println(markdownTable)
+					}
 				}
 			}
-			if err := os.WriteFile(scanAndCompareOutputFile, []byte(builder.String()), 0o644); err != nil {
+		}
+	}
+	if options.ScanAndCompareOutputFile != "" {
+		// Ensure parent directory exists if provided
+		if dir := filepath.Dir(options.ScanAndCompareOutputFile); dir != "." && dir != "" {
+			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return err
 			}
 		}
-		return nil
-	},
+		if err := os.WriteFile(options.ScanAndCompareOutputFile, []byte(builder.String()), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func extractImageName(imageURL string) string {
@@ -215,9 +268,9 @@ func findMatchingScan(imageName string, releasedResults map[string]string, logge
 	return "", fmt.Errorf("could not find matching scan for %s", imageName)
 }
 
-func scanZarfYamlImages(zarfYamlScanOutDir string) (map[string]map[string]string, error) {
+func scanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions) (map[string]map[string]string, error) {
 	scanImagesResult := make(map[string]map[string]string)
-	pkg, err1 := parseZarfYaml()
+	pkg, err1 := parseZarfYaml(options)
 	if err1 != nil {
 		return scanImagesResult, err1
 	}
@@ -231,7 +284,7 @@ func scanZarfYamlImages(zarfYamlScanOutDir string) (map[string]map[string]string
 		return scanImagesResult, err
 	}
 
-	if !devNoCleanUp {
+	if !options.DevNoCleanUp {
 		defer func(path string) {
 			_ = os.RemoveAll(path)
 		}(tempDir) //nolint:errcheck // best effort cleanup
@@ -252,9 +305,9 @@ func scanZarfYamlImages(zarfYamlScanOutDir string) (map[string]map[string]string
 	return scanImagesResult, nil
 }
 
-func scanReleased(outDirectory string) (map[string]map[string]string, error) {
-	logger.Debug("Scan command invoked", slog.String("zarfLocation", zarfYamlLocation))
-	pkg, err1 := parseZarfYaml()
+func scanReleased(outDirectory string, options *ScanReleasedOptions) (map[string]map[string]string, error) {
+	logger.Debug("Scan command invoked", slog.String("zarfLocation", options.Scan.ZarfYamlLocation))
+	pkg, err1 := parseZarfYaml(&options.Scan)
 	sbomScanResults := make(map[string]map[string]string)
 	if err1 != nil {
 		return sbomScanResults, err1
@@ -264,13 +317,13 @@ func scanReleased(outDirectory string) (map[string]map[string]string, error) {
 		return sbomScanResults, err2
 	}
 	logger.Debug("Package name", slog.String("pkgName", pkgName))
-	publicRepoUrl, err3 := determineRepositoryUrl(pkgName, repoOwner, publicPackagesPrefix, "packages/uds")
+	publicRepoUrl, err3 := determineRepositoryUrl(pkgName, options.Fetch.RepoOwner, options.Fetch.PublicPackagesPrefix, "packages/uds")
 	if err3 != nil {
 		return sbomScanResults, err3
 	}
 	encodedPublicUrl := encodePackageUrl(publicRepoUrl)
 
-	privateRepoUrl, err4 := determineRepositoryUrl(pkgName, repoOwner, privatePackagesPrefix, "packages/private/uds")
+	privateRepoUrl, err4 := determineRepositoryUrl(pkgName, options.Fetch.RepoOwner, options.Fetch.PrivatePackagesPrefix, "packages/private/uds")
 	if err4 != nil {
 		return sbomScanResults, err4
 	}
@@ -280,13 +333,13 @@ func scanReleased(outDirectory string) (map[string]map[string]string, error) {
 	client := NewGithubClient(&ctx)
 
 	var packageUrls []string
-	if exists, err := checkPackageExistenceInRepo(client, &ctx, repoOwner, encodedPublicUrl); err != nil {
+	if exists, err := checkPackageExistenceInRepo(client, &ctx, options.Fetch.RepoOwner, encodedPublicUrl); err != nil {
 		return sbomScanResults, fmt.Errorf("failed to check package existence for URL: %s, %w", encodedPublicUrl, err)
 	} else if exists {
 		logger.Debug("Package exists in public repo, adding it to fetch", slog.String("packageUrl", publicRepoUrl))
 		packageUrls = append(packageUrls, publicRepoUrl)
 	}
-	if exists, err := checkPackageExistenceInRepo(client, &ctx, repoOwner, encodedPrivateUrl); err != nil {
+	if exists, err := checkPackageExistenceInRepo(client, &ctx, options.Fetch.RepoOwner, encodedPrivateUrl); err != nil {
 		return sbomScanResults, fmt.Errorf("failed to check package existence for URL: %s, %w", encodedPrivateUrl, err)
 	} else if exists {
 		logger.Debug("Package exists in private repo, adding it to fetch", slog.String("packageUrl", privateRepoUrl))
@@ -300,7 +353,7 @@ func scanReleased(outDirectory string) (map[string]map[string]string, error) {
 		return sbomScanResults, err
 	}
 
-	if !devNoCleanUp {
+	if !options.Scan.DevNoCleanUp {
 		defer func(path string) {
 			_ = os.RemoveAll(path) // best effort cleanup
 		}(tempDir)
@@ -309,7 +362,7 @@ func scanReleased(outDirectory string) (map[string]map[string]string, error) {
 	flavors := determineFlavors(&pkg)
 	logger.Debug("Flavors", slog.Any("flavors", flavors))
 
-	flavorToSboms, err := fetchSbomsForFlavors(&ctx, client, packageUrls, flavors, tempDir)
+	flavorToSboms, err := fetchSbomsForFlavors(&ctx, client, packageUrls, flavors, options.Fetch.RepoOwner, tempDir)
 	if err != nil {
 		return sbomScanResults, err
 	}
@@ -352,7 +405,7 @@ func scanReleased(outDirectory string) (map[string]map[string]string, error) {
 	return sbomScanResults, nil
 }
 
-// Seam variables for testability
+// NewGithubClient exposed for testing purposes
 var NewGithubClient = createGithubClient
 var FetchSboms = utils.FetchSboms
 
@@ -364,7 +417,7 @@ func createGithubClient(ctx *context.Context) *github.Client {
 	return github.NewClient(tc)
 }
 
-func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUrls []string, flavors []string, tempDir string) (map[string][]string, error) {
+func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUrls []string, flavors []string, repoOwner string, tempDir string) (map[string][]string, error) {
 	flavorToSboms := map[string][]string{}
 
 	for _, packageUrl := range packageUrls {
@@ -461,8 +514,8 @@ func determineRepositoryUrl(pkgName string, repoOwner string, prefix string, pat
 	return fmt.Sprintf("%s/%s", prefix, pkgName), nil
 }
 
-func parseZarfYaml() (v1alpha1.ZarfPackage, error) {
-	data, err := os.ReadFile(zarfYamlLocation)
+func parseZarfYaml(options *CommonScanOptions) (v1alpha1.ZarfPackage, error) {
+	data, err := os.ReadFile(options.ZarfYamlLocation)
 	if err != nil {
 		return v1alpha1.ZarfPackage{}, err
 	}
@@ -505,31 +558,20 @@ func determineFlavors(pkg *v1alpha1.ZarfPackage) []string {
 }
 
 func init() {
-	addCommonFlags(scanReleasedCmd)
-	scanReleasedCmd.Flags().StringVarP(&publicPackagesPrefix, "publicPackagesPrefix", "c", "", "The prefix for public packages")
-	scanReleasedCmd.Flags().StringVarP(&privatePackagesPrefix, "privatePackagesPrefix", "r", "private", "The prefix for private packages")
-	scanReleasedCmd.Flags().StringVarP(&repoOwner, "repoOwner", "w", "uds-packages", "Repository owner")
-	rootCmd.AddCommand(scanReleasedCmd)
-
-	addCommonFlags(scanZarfYamlCmd)
-	rootCmd.AddCommand(scanZarfYamlCmd)
-
-	addCommonFlags(scanAndCompareCmd)
-	scanAndCompareCmd.Flags().StringVarP(&publicPackagesPrefix, "publicPackagesPrefix", "c", "", "The prefix for public packages")
-	scanAndCompareCmd.Flags().StringVarP(&privatePackagesPrefix, "privatePackagesPrefix", "r", "private", "The prefix for private packages")
-	scanAndCompareCmd.Flags().StringVarP(&repoOwner, "repoOwner", "w", "uds-packages", "Repository owner")
-	scanAndCompareCmd.Flags().StringArrayVar(&imageNameOverrides, "image-name-override", []string{}, "Override image name mapping for comparison (format: old=new). Can be repeated.")
-	scanAndCompareCmd.Flags().StringVar(&scanAndCompareOutputFile, "output", "", "Write comparison markdown to this file instead of stdout")
-
-	scanAndCompareCmd.Flags().BoolVarP(&allowDifferentImages, "allow-different-images", "d", false, "Allow comparing scans for different images")
-	rootCmd.AddCommand(scanAndCompareCmd)
-
-	compareCmd.Flags().BoolVarP(&allowDifferentImages, "allow-different-images", "d", false, "Allow comparing scans for different images")
-	rootCmd.AddCommand(compareCmd)
+	rootCmd.AddCommand(scanReleasedCmd())
+	rootCmd.AddCommand(scanZarfYamlCmd())
+	rootCmd.AddCommand(scanAndCompareCmd())
+	rootCmd.AddCommand(compareCmd())
 }
 
-func addCommonFlags(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&zarfYamlLocation, "zarfYamlPath", "p", "./zarf.yaml", "Path to the zarf.yaml file")
-	cmd.Flags().StringVarP(&outputDirectory, "outputDirectory", "o", "", "Output directory")
-	cmd.Flags().BoolVar(&devNoCleanUp, "devNoCleanUp", false, "For development: do not clean up temporary files")
+func addScanReleasedFlags(cmd *cobra.Command, options *ScanReleasedOptions) {
+	cmd.Flags().StringVarP(&options.Fetch.PublicPackagesPrefix, "publicPackagesPrefix", "c", "", "The prefix for public packages")
+	cmd.Flags().StringVarP(&options.Fetch.PrivatePackagesPrefix, "privatePackagesPrefix", "r", "private", "The prefix for private packages")
+	cmd.Flags().StringVarP(&options.Fetch.RepoOwner, "repoOwner", "w", "uds-packages", "Repository owner")
+}
+
+func addCommonFlags(cmd *cobra.Command, options *CommonScanOptions) {
+	cmd.Flags().StringVarP(&options.ZarfYamlLocation, "zarfYamlPath", "p", "./zarf.yaml", "Path to the zarf.yaml file")
+	cmd.Flags().StringVarP(&options.OutputDirectory, "outputDirectory", "o", "", "Output directory")
+	cmd.Flags().BoolVar(&options.DevNoCleanUp, "devNoCleanUp", false, "For development: do not clean up temporary files")
 }
