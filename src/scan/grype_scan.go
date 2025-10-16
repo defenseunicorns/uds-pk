@@ -17,7 +17,7 @@ import (
 )
 
 /*
-Scanning logging is heavily inspired by https://github.com/defenseunicorns-navy/sonic-components-zarf-scan
+Scanning logic is heavily inspired by https://github.com/defenseunicorns-navy/sonic-components-zarf-scan
 */
 
 // CommandRunner interface for better testability
