@@ -185,10 +185,11 @@ func TestScanCommand_EndToEnd(t *testing.T) {
 	defer func() { scan.ExecCommand = origExec }()
 
 	tmp := t.TempDir()
-	zarfYamlLocation = writeZarfYaml(t, tmp)
-	outputDirectory = filepath.Join(tmp, "out")
+	outputDirectory := filepath.Join(tmp, "out")
+	scanOptions := CommonScanOptions{}
+	scanOptions.ZarfYamlLocation = writeZarfYaml(t, tmp)
 
-	res, err := scanZarfYamlImages(outputDirectory)
+	res, err := scanZarfYamlImages(outputDirectory, &scanOptions)
 	if err != nil {
 		t.Fatalf("scan failed: %v", err)
 	}
@@ -237,10 +238,13 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
-	zarfYamlLocation = writeZarfYaml(t, tmp)
+
+	scanReleasedOptions := ScanReleasedOptions{}
+
+	scanReleasedOptions.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
 	outDir := filepath.Join(tmp, "out")
 
-	res, err := scanReleased(outDir)
+	res, err := scanReleased(outDir, &scanReleasedOptions)
 	if err != nil {
 		t.Fatalf("scan-released failed: %v", err)
 	}
@@ -266,10 +270,9 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 	scan.ExecCommand = fakeExecCommand
 	defer func() { scan.ExecCommand = origExec }()
 
+	options := ScanAndCompareOptions{}
 	// Apply image name override so elasticsearch-exporter matches elasticsearch released scan
-	origOverrides := imageNameOverrides
-	imageNameOverrides = []string{"elasticsearch=elasticsearch-exporter"}
-	defer func() { imageNameOverrides = origOverrides }()
+	options.ImageNameOverrides = []string{"elasticsearch=elasticsearch-exporter"}
 
 	// Mock GitHub API with helper
 	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -288,17 +291,12 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
-	zarfYamlLocation = writeZarfYaml(t, tmp)
-	outputDirectory = filepath.Join(tmp, "out")
-
-	// Use --output to write markdown to a file
 	outFile := filepath.Join(tmp, "compare.md")
-	if err := scanAndCompareCmd.Flags().Set("output", outFile); err != nil {
-		t.Fatalf("failed to set output flag: %v", err)
-	}
-	defer func() { _ = scanAndCompareCmd.Flags().Set("output", "") }()
+	options.Scan.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
+	options.Scan.Scan.OutputDirectory = filepath.Join(tmp, "out")
+	options.ScanAndCompareOutputFile = outFile
 
-	err := scanAndCompareCmd.RunE(scanAndCompareCmd, []string{})
+	err := options.Run(nil, []string{})
 	if err != nil {
 		t.Fatalf("scan-and-compare failed: %v", err)
 	}

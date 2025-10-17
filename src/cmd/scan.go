@@ -165,14 +165,14 @@ func scanAndCompareCmd() *cobra.Command {
 		Use: "scan-and-compare",
 		Short: "Scan the current Zarf package, scan the last released package, and compare the scans." +
 			"This command is a combination of `scan`, `scan-released`, and `compare-scans`.",
-		RunE: options.run,
+		RunE: options.Run,
 	}
 	addCommonFlags(cmd, &options.Scan.Scan)
 	addScanReleasedFlags(cmd, &options.Scan)
 	return cmd
 }
 
-func (options *ScanAndCompareOptions) run(_ *cobra.Command, _ []string) error {
+func (options *ScanAndCompareOptions) Run(_ *cobra.Command, _ []string) error { //exposed for tests
 	outputDirectory := options.Scan.Scan.OutputDirectory
 	if outputDirectory == "" {
 		var err error
