@@ -435,30 +435,29 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 		} else {
 			logger.Debug("package versions found for ", slog.String("url", encodedPackageUrl))
 			for _, flavor := range flavors {
-			versionsFor:
-				for _, v := range versions {
-					var metadataMap map[string]interface{}
-					if err := json.Unmarshal(v.Metadata, &metadataMap); err == nil {
-						if container, ok := metadataMap["container"].(map[string]interface{}); ok {
-							if tags, ok := container["tags"].([]interface{}); ok {
-								// select the newest tag:
-								for _, tRaw := range tags {
-									if tag, ok := tRaw.(string); ok {
-										if strings.HasSuffix(tag, flavor) {
-											subDir, dirCreationErr := os.MkdirTemp(tempDir, tag)
-											if dirCreationErr != nil {
-												return nil, dirCreationErr
-											}
-											if sboms, err := FetchSboms(repoOwner, packageUrl, tag, subDir, logger); err != nil {
-												logger.Debug("Error inspecting sbom", slog.Any("error", err))
-											} else {
-												logger.Debug("Sboms", slog.Any("sboms", sboms))
-												flavorToSboms[flavor] = sboms
-											}
-											break versionsFor
-										}
-									}
-								}
+				tag, err2 := findNewestTagForFlavor(versions, flavor)
+				sboms, err2 := fetchSboms(tempDir, tag, repoOwner, packageUrl, flavor)
+				if err2 != nil {
+					return flavorToSboms, err2
+				}
+				flavorToSboms[flavor] = sboms
+			}
+		}
+	}
+	return flavorToSboms, nil
+}
+
+func findNewestTagForFlavor(versions []*github.PackageVersion, flavor string) (string, error) {
+	for _, v := range versions {
+		var metadataMap map[string]interface{}
+		if err := json.Unmarshal(v.Metadata, &metadataMap); err == nil {
+			if container, ok := metadataMap["container"].(map[string]interface{}); ok {
+				if tags, ok := container["tags"].([]interface{}); ok {
+					// select the newest tag:
+					for _, tRaw := range tags {
+						if tag, ok := tRaw.(string); ok {
+							if strings.HasSuffix(tag, flavor) {
+								return tag, nil
 							}
 						}
 					}
@@ -466,7 +465,21 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 			}
 		}
 	}
-	return flavorToSboms, nil
+	return "", nil
+}
+
+func fetchSboms(tempDir string, tag string, repoOwner string, packageUrl string, flavor string) ([]string, error) {
+	subDir, dirCreationErr := os.MkdirTemp(tempDir, tag)
+	if dirCreationErr != nil {
+		return nil, dirCreationErr
+	}
+	if sboms, err := FetchSboms(repoOwner, packageUrl, tag, subDir, logger); err != nil {
+		logger.Debug("Error inspecting sbom", slog.Any("error", err))
+		return nil, err
+	} else {
+		logger.Debug("Sboms", slog.Any("sboms", sboms))
+		return sboms, nil
+	}
 }
 
 func checkPackageExistenceInRepo(client *github.Client, ctx *context.Context, owner string, pkgUrl string) (bool, error) {
