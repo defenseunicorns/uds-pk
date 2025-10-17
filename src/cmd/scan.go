@@ -283,7 +283,7 @@ func scanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions) (
 	}
 
 	if !options.DevNoCleanUp {
-		defer os.RemoveAll(tempDir)
+		defer os.RemoveAll(tempDir) //nolint:errcheck
 	}
 
 	logger.Debug("Temporary directory", slog.String("dir", tempDir))
@@ -350,7 +350,7 @@ func scanReleased(outDirectory string, options *ScanReleasedOptions) (map[string
 	}
 
 	if !options.Scan.DevNoCleanUp {
-		defer os.RemoveAll(tempDir)
+		defer os.RemoveAll(tempDir) //nolint:errcheck
 	}
 
 	flavors := determineFlavors(&pkg)
@@ -434,7 +434,7 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 				if err != nil {
 					return flavorToSboms, err
 				}
-				sboms, err := fetchSboms(tempDir, tag, repoOwner, packageUrl, flavor)
+				sboms, err := fetchSboms(tempDir, tag, repoOwner, packageUrl)
 				if err != nil {
 					return flavorToSboms, err
 				}
@@ -466,7 +466,7 @@ func findNewestTagForFlavor(versions []*github.PackageVersion, flavor string) (s
 	return "", nil
 }
 
-func fetchSboms(tempDir string, tag string, repoOwner string, packageUrl string, flavor string) ([]string, error) {
+func fetchSboms(tempDir string, tag string, repoOwner string, packageUrl string) ([]string, error) {
 	subDir, dirCreationErr := os.MkdirTemp(tempDir, tag)
 	if dirCreationErr != nil {
 		return nil, dirCreationErr
@@ -492,7 +492,7 @@ func checkPackageExistenceInRepo(client *github.Client, ctx *context.Context, ow
 	if err != nil {
 		return false, err
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode == http.StatusNotFound {
 		return false, nil
