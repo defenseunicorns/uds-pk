@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -284,9 +283,7 @@ func scanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions) (
 	}
 
 	if !options.DevNoCleanUp {
-		defer func(path string) {
-			_ = os.RemoveAll(path)
-		}(tempDir) //nolint:errcheck // best effort cleanup
+		defer os.RemoveAll(tempDir)
 	}
 
 	logger.Debug("Temporary directory", slog.String("dir", tempDir))
@@ -353,9 +350,7 @@ func scanReleased(outDirectory string, options *ScanReleasedOptions) (map[string
 	}
 
 	if !options.Scan.DevNoCleanUp {
-		defer func(path string) {
-			_ = os.RemoveAll(path) // best effort cleanup
-		}(tempDir)
+		defer os.RemoveAll(tempDir)
 	}
 
 	flavors := determineFlavors(&pkg)
@@ -497,9 +492,7 @@ func checkPackageExistenceInRepo(client *github.Client, ctx *context.Context, ow
 	if err != nil {
 		return false, err
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body) // best effort close
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return false, nil
