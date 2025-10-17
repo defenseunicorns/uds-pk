@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -151,11 +152,7 @@ func compareScans(baseScanPath string, newScanPath string, options *CompareOptio
 
 	vulnStatus := compare.GenerateComparisonMap(baseScan, newScan)
 
-	markdownTable, err := compare.GenerateComparisonMarkdown(baseScan, newScan, vulnStatus)
-	if err != nil {
-		return "", err
-	}
-	return markdownTable, nil
+	return compare.GenerateComparisonMarkdown(baseScan, newScan, vulnStatus)
 }
 
 func scanAndCompareCmd() *cobra.Command {
@@ -177,19 +174,19 @@ func (options *ScanAndCompareOptions) Run(_ *cobra.Command, _ []string) error { 
 	if outputDirectory == "" {
 		var err error
 		outputDirectory, err = os.MkdirTemp("", "scans")
-		logger.Info("Output directory", slog.String("dir", outputDirectory))
 		if err != nil {
 			return err
 		}
+		logger.Info("Output directory", slog.String("dir", outputDirectory))
 	}
-	zarfYamlScanOutDir := outputDirectory + string(os.PathSeparator) + "zarfYaml"
+	zarfYamlScanOutDir := path.Join(outputDirectory, "zarfYaml")
 	logger.Debug("Scanning zarf.yaml images")
 	zarfYamlScanResults, err := scanZarfYamlImages(zarfYamlScanOutDir, &options.Scan.Scan)
 	if err != nil {
 		return err
 	}
 
-	releasedScanOutDir := outputDirectory + string(os.PathSeparator) + "released"
+	releasedScanOutDir := path.Join(outputDirectory, "released")
 	releasedScanResults, err := scanReleased(releasedScanOutDir, &options.Scan)
 	if err != nil {
 		return err
@@ -200,39 +197,41 @@ func (options *ScanAndCompareOptions) Run(_ *cobra.Command, _ []string) error { 
 
 	for flavor, flavorResults := range zarfYamlScanResults {
 		logger.Debug("Scanning flavor", slog.String("flavor", flavor))
-		if releasedFlavorResults, found := releasedScanResults[flavor]; found {
-			for key, scanFile := range flavorResults {
-				imageName := extractImageName(key)
-				for _, override := range options.ImageNameOverrides {
-					parts := strings.SplitN(override, "=", 2)
-					if len(parts) == 2 && parts[1] == imageName {
-						imageName = parts[0]
-						logger.Debug("Found override image name for image", slog.String("image", key), slog.String("override", imageName))
-						break
-					}
+		releasedFlavorResults, found := releasedScanResults[flavor]
+		if !found {
+			logger.Warn("No released scan results found for flavor", slog.String("flavor", flavor))
+			continue // TODO: present scanning results for the flavor that has been added?
+		}
+		for key, scanFile := range flavorResults {
+			imageName := extractImageName(key)
+			for _, override := range options.ImageNameOverrides {
+				parts := strings.SplitN(override, "=", 2)
+				if len(parts) == 2 && parts[1] == imageName {
+					imageName = parts[0]
+					logger.Debug("Found override image name for image", slog.String("image", key), slog.String("override", imageName))
+					break
 				}
-				if releasedScanFile, err := findMatchingScan(imageName, releasedFlavorResults, logger); err != nil {
-					return err
-				} else {
-					logger.Debug("Comparing files: ", slog.String("base", releasedScanFile), slog.String("new", scanFile))
-					markdownTable, err := compareScans(releasedScanFile, scanFile, &options.Compare)
-					if err != nil {
-						return err
-					}
-					if options.ScanAndCompareOutputFile != "" {
-						if builder.Len() > 0 {
-							builder.WriteString("\n\n")
-						}
-						builder.WriteString(markdownTable)
-					} else {
-						fmt.Println(markdownTable)
-					}
+			}
+			releasedScanFile, err := findMatchingScan(imageName, releasedFlavorResults, logger)
+			if err != nil {
+				return err
+			}
+			logger.Debug("Comparing files: ", slog.String("base", releasedScanFile), slog.String("new", scanFile))
+			markdownTable, err := compareScans(releasedScanFile, scanFile, &options.Compare)
+			if err != nil {
+				return err
+			}
+			if options.ScanAndCompareOutputFile != "" {
+				if builder.Len() > 0 {
+					builder.WriteString("\n\n")
 				}
+				builder.WriteString(markdownTable)
+			} else {
+				fmt.Println(markdownTable)
 			}
 		}
 	}
 	if options.ScanAndCompareOutputFile != "" {
-		// Ensure parent directory exists if provided
 		if dir := filepath.Dir(options.ScanAndCompareOutputFile); dir != "." && dir != "" {
 			if err := os.MkdirAll(dir, 0o755); err != nil {
 				return err
@@ -293,7 +292,7 @@ func scanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions) (
 	logger.Debug("Temporary directory", slog.String("dir", tempDir))
 	flavorToImages := getImages(&pkg)
 	for flavor, images := range flavorToImages {
-		targetFlavorDir := zarfYamlScanOutDir + string(os.PathSeparator) + flavor
+		targetFlavorDir := path.Join(zarfYamlScanOutDir, flavor)
 		// TODO: cache image fetching and scanning so that we don't redo this on duplicates
 		scanImagesResult[flavor], err = scan.Images(images, targetFlavorDir, logger, verbose)
 		if err != nil {
@@ -369,14 +368,14 @@ func scanReleased(outDirectory string, options *ScanReleasedOptions) (map[string
 
 	logger.Debug("Would analyze SBOMs for vulnerabilities", slog.Any("sboms", flavorToSboms))
 
-	targetSbomsDir := tempDir + string(os.PathSeparator) + "targetSboms"
+	targetSbomsDir := path.Join(tempDir, "targetSboms")
 	if err := os.Mkdir(targetSbomsDir, 0755); err != nil {
 		return sbomScanResults, err
 	}
 
 	// move flavor jsons to a single directory:
 	for flavor, sboms := range flavorToSboms {
-		targetFlavorDir := targetSbomsDir + string(os.PathSeparator) + flavor
+		targetFlavorDir := path.Join(targetSbomsDir, flavor)
 		if err := os.Mkdir(targetFlavorDir, 0755); err != nil {
 			return sbomScanResults, err
 		}
@@ -392,7 +391,7 @@ func scanReleased(outDirectory string, options *ScanReleasedOptions) (map[string
 				return sbomScanResults, err
 			}
 		}
-		outputDir := outDirectory + string(os.PathSeparator) + flavor + string(os.PathSeparator)
+		outputDir := path.Join(outDirectory, flavor) + string(os.PathSeparator)
 		resultFiles, err := scan.SBOMs(targetFlavorDir, outputDir, logger, verbose)
 		if err != nil {
 			return sbomScanResults, err
