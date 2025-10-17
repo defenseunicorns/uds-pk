@@ -435,10 +435,13 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client, packageUr
 		} else {
 			logger.Debug("package versions found for ", slog.String("url", encodedPackageUrl))
 			for _, flavor := range flavors {
-				tag, err2 := findNewestTagForFlavor(versions, flavor)
-				sboms, err2 := fetchSboms(tempDir, tag, repoOwner, packageUrl, flavor)
-				if err2 != nil {
-					return flavorToSboms, err2
+				tag, err := findNewestTagForFlavor(versions, flavor)
+				if err != nil {
+					return flavorToSboms, err
+				}
+				sboms, err := fetchSboms(tempDir, tag, repoOwner, packageUrl, flavor)
+				if err != nil {
+					return flavorToSboms, err
 				}
 				flavorToSboms[flavor] = sboms
 			}
