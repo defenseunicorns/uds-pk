@@ -108,31 +108,31 @@ func extractImageName(fullPath string) string {
 	return imageName
 }
 
+// Replacer for common characters that are problematic in filenames
+var replacer = strings.NewReplacer(
+	"/", "_",
+	":", "_",
+	" ", "_",
+	",", "_",
+	"@", "_",
+	"&", "_",
+	"=", "_",
+	"?", "_",
+	"#", "_",
+	"%", "_",
+	"*", "_",
+	"\"", "_",
+	"'", "_",
+	"`", "_",
+	"<", "_",
+	">", "_",
+	"|", "_",
+	"\\", "_",
+	"!", "_",
+)
+
 func sanitizeFilename(name string) string {
 	name = extractImageName(name)
-
-	// Replace common characters that are problematic in filenames
-	replacer := strings.NewReplacer(
-		"/", "_",
-		":", "_",
-		" ", "_",
-		",", "_",
-		"@", "_",
-		"&", "_",
-		"=", "_",
-		"?", "_",
-		"#", "_",
-		"%", "_",
-		"*", "_",
-		"\"", "_",
-		"'", "_",
-		"`", "_",
-		"<", "_",
-		">", "_",
-		"|", "_",
-		"\\", "_",
-		"!", "_",
-	)
 
 	// Perform the replacements
 	sanitized := replacer.Replace(name)

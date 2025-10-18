@@ -1,7 +1,7 @@
 // Copyright 2025 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
-package cmd
+package test
 
 import (
 	"bytes"
@@ -19,8 +19,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/defenseunicorns/uds-pk/src/cmd"
 	"github.com/defenseunicorns/uds-pk/src/scan"
 	"github.com/google/go-github/v73/github"
+	"github.com/spf13/cobra"
 )
 
 func simulateGrype(args []string, stdout io.Writer, stderr io.Writer) {
@@ -153,10 +155,6 @@ func fakeExecCommand(command string, args ...string) scan.CommandRunner {
 	return &FakeCommand{cmd: command, args: args}
 }
 
-func setupLogger() {
-	logger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
-}
-
 func writeZarfYaml(t *testing.T, dir string) string {
 	t.Helper()
 	content := `metadata:
@@ -179,17 +177,17 @@ func TestScanCommand_EndToEnd(t *testing.T) {
 	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" && runtime.GOOS != "windows" {
 		t.Skip("exec helper pattern may not work on this OS")
 	}
-	setupLogger()
+	log := cmd.CreateLogger(true)
 	origExec := scan.ExecCommand
 	scan.ExecCommand = fakeExecCommand
 	defer func() { scan.ExecCommand = origExec }()
 
 	tmp := t.TempDir()
 	outputDirectory := filepath.Join(tmp, "out")
-	scanOptions := CommonScanOptions{}
+	scanOptions := cmd.CommonScanOptions{}
 	scanOptions.ZarfYamlLocation = writeZarfYaml(t, tmp)
 
-	res, err := scanZarfYamlImages(outputDirectory, &scanOptions)
+	res, err := cmd.ScanZarfYamlImages(outputDirectory, &scanOptions, log, true)
 	if err != nil {
 		t.Fatalf("scan failed: %v", err)
 	}
@@ -216,7 +214,7 @@ func TestScanCommand_EndToEnd(t *testing.T) {
 }
 
 func TestScanReleased_EndToEnd(t *testing.T) {
-	setupLogger()
+	log := cmd.CreateLogger(true)
 	origExec := scan.ExecCommand
 	scan.ExecCommand = fakeExecCommand
 	defer func() { scan.ExecCommand = origExec }()
@@ -239,12 +237,12 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 
 	tmp := t.TempDir()
 
-	scanReleasedOptions := ScanReleasedOptions{}
+	scanReleasedOptions := cmd.ScanReleasedOptions{}
 
 	scanReleasedOptions.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
 	outDir := filepath.Join(tmp, "out")
 
-	res, err := scanReleased(outDir, &scanReleasedOptions)
+	res, err := cmd.ScanReleased(outDir, &scanReleasedOptions, log, true)
 	if err != nil {
 		t.Fatalf("scan-released failed: %v", err)
 	}
@@ -265,12 +263,11 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 }
 
 func TestScanAndCompare_EndToEnd(t *testing.T) {
-	setupLogger()
 	origExec := scan.ExecCommand
 	scan.ExecCommand = fakeExecCommand
 	defer func() { scan.ExecCommand = origExec }()
 
-	options := ScanAndCompareOptions{}
+	options := cmd.ScanAndCompareOptions{}
 	// Apply image name override so elasticsearch-exporter matches elasticsearch released scan
 	options.ImageNameOverrides = []string{"elasticsearch=elasticsearch-exporter"}
 
@@ -296,7 +293,11 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 	options.Scan.Scan.OutputDirectory = filepath.Join(tmp, "out")
 	options.ScanAndCompareOutputFile = outFile
 
-	err := options.Run(nil, []string{})
+	ctx := context.Background()
+	command := &cobra.Command{}
+	ctx = cmd.InitLoggerContext(true, ctx)
+	command.SetContext(ctx)
+	err := options.Run(command, []string{})
 	if err != nil {
 		t.Fatalf("scan-and-compare failed: %v", err)
 	}
@@ -322,23 +323,23 @@ func withMockGitHub(t *testing.T, handler http.Handler) {
 	srv := httptest.NewServer(handler)
 	t.Cleanup(func() { srv.Close() })
 
-	origNewGH := NewGithubClient
-	NewGithubClient = func(_ *context.Context) *github.Client {
+	origNewGH := cmd.NewGithubClient
+	cmd.NewGithubClient = func(_ *context.Context) *github.Client {
 		c := github.NewClient(srv.Client())
 		u, _ := url.Parse(srv.URL + "/")
 		c.BaseURL = u
 		return c
 	}
-	t.Cleanup(func() { NewGithubClient = origNewGH })
+	t.Cleanup(func() { cmd.NewGithubClient = origNewGH })
 }
 
 // withMockFetchSboms overrides the package-level FetchSboms for the duration
 // of a test and restores it automatically via t.Cleanup.
 func withMockFetchSboms(t *testing.T, fn func(repoOwner, packageUrl, tag string, outputDir string, logger *slog.Logger) ([]string, error)) {
 	t.Helper()
-	orig := FetchSboms
-	FetchSboms = fn
-	t.Cleanup(func() { FetchSboms = orig })
+	orig := cmd.FetchSboms
+	cmd.FetchSboms = fn
+	t.Cleanup(func() { cmd.FetchSboms = orig })
 }
 
 // withMockFetchSbomsUserInput writes a minimal SBOM JSON to outputDir/fileName
