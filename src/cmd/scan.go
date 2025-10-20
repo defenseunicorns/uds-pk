@@ -442,7 +442,7 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client,
 		} else {
 			log.Debug("package versions found for ", slog.String("url", encodedPackageUrl))
 			for _, flavor := range flavors {
-				tag, err := findNewestTagForFlavor(versions, flavor)
+				tag, err := findNewestTagForFlavor(versions, flavor, log)
 				if err != nil {
 					return flavorToSboms, err
 				}
@@ -457,24 +457,30 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client,
 	return flavorToSboms, nil
 }
 
-func findNewestTagForFlavor(versions []*github.PackageVersion, flavor string) (string, error) {
-	for _, v := range versions {
+func findNewestTagForFlavor(versions []*github.PackageVersion, flavor string, log *slog.Logger) (string, error) {
+	for _, version := range versions {
 		var metadataMap map[string]interface{}
-		if err := json.Unmarshal(v.Metadata, &metadataMap); err == nil {
+		if err := json.Unmarshal(version.Metadata, &metadataMap); err == nil {
 			if container, ok := metadataMap["container"].(map[string]interface{}); ok {
 				if tags, ok := container["tags"].([]interface{}); ok {
 					// select the newest tag:
 					for _, tRaw := range tags {
 						if tag, ok := tRaw.(string); ok {
 							if strings.HasSuffix(tag, flavor) {
+								log.Debug("Found tag", slog.String("tag", tag))
 								return tag, nil
+							} else {
+								// mstodo: remove
+								log.Warn("Compared tag with flavor and found they don't match", slog.String("tag", tag), slog.String("flavor", flavor))
 							}
+							// mstodo fix verbose logging
 						}
 					}
 				}
 			}
 		}
 	}
+	log.Warn("No tags found for flavor", slog.String("flavor", flavor))
 	return "", nil
 }
 
