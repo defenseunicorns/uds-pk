@@ -60,7 +60,7 @@ const loggerKey = "logger"
 const verboseKey = "verbose"
 
 func initLogger(cmd *cobra.Command, _ []string) {
-	verbose, err := cmd.PersistentFlags().GetBool("verbose")
+	verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
 	if err != nil {
 		verbose = false
 	}

@@ -57,6 +57,11 @@ type ScanAndCompareOptions struct {
 	ImageNameOverrides       []string
 }
 
+type PackageWithVersion struct {
+	encodedPackageUrl string
+	versions          []*github.PackageVersion
+}
+
 func scanReleasedCmd() *cobra.Command {
 	options := &ScanReleasedOptions{}
 	cmd := &cobra.Command{
@@ -426,6 +431,7 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client,
 	log *slog.Logger) (map[string][]string, error) {
 	flavorToSboms := map[string][]string{}
 
+	var packagesWithVersions []PackageWithVersion
 	for _, packageUrl := range packageUrls {
 		encodedPackageUrl := url.PathEscape(packageUrl)
 		log.Debug("Package url", slog.String("packageUrl", packageUrl), slog.String("encodedPackageUrl", encodedPackageUrl))
@@ -436,44 +442,47 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client,
 			packageUrl,
 			&github.PackageListOptions{},
 		)
-		log.Debug("Trying to get package versions for", slog.String("url", encodedPackageUrl))
 		if err != nil {
 			log.Debug("failed to get package versions: ", slog.Any("error", err))
-		} else {
-			log.Debug("package versions found for ", slog.String("url", encodedPackageUrl))
-			for _, flavor := range flavors {
-				tag, err := findNewestTagForFlavor(versions, flavor, log)
-				if err != nil {
-					return flavorToSboms, err
-				}
-				sboms, err := fetchSboms(tempDir, tag, repoOwner, packageUrl, log)
-				if err != nil {
-					return flavorToSboms, err
-				}
-				flavorToSboms[flavor] = sboms
-			}
 		}
+		packagesWithVersions = append(packagesWithVersions, PackageWithVersion{
+			encodedPackageUrl: encodedPackageUrl,
+			versions:          versions,
+		})
 	}
+
+	for _, flavor := range flavors {
+		tag, packageUrl, err := findNewestTagForFlavor(packagesWithVersions, flavor, log)
+		if err != nil {
+			return flavorToSboms, err
+		}
+		sboms, err := fetchSboms(tempDir, tag, repoOwner, packageUrl, log)
+		if err != nil {
+			return flavorToSboms, err
+		}
+		flavorToSboms[flavor] = sboms
+	}
+
 	return flavorToSboms, nil
 }
 
-func findNewestTagForFlavor(versions []*github.PackageVersion, flavor string, log *slog.Logger) (string, error) {
-	for _, version := range versions {
-		var metadataMap map[string]interface{}
-		if err := json.Unmarshal(version.Metadata, &metadataMap); err == nil {
-			if container, ok := metadataMap["container"].(map[string]interface{}); ok {
-				if tags, ok := container["tags"].([]interface{}); ok {
-					// select the newest tag:
-					for _, tRaw := range tags {
-						if tag, ok := tRaw.(string); ok {
-							if strings.HasSuffix(tag, flavor) {
-								log.Debug("Found tag", slog.String("tag", tag))
-								return tag, nil
-							} else {
-								// mstodo: remove
-								log.Warn("Compared tag with flavor and found they don't match", slog.String("tag", tag), slog.String("flavor", flavor))
+func findNewestTagForFlavor(versions []PackageWithVersion, flavor string, log *slog.Logger) (string, string, error) {
+	for _, packageWithVersion := range versions {
+		packageUrl := packageWithVersion.encodedPackageUrl
+		versions := packageWithVersion.versions
+		for _, version := range versions {
+			var metadataMap map[string]interface{}
+			if err := json.Unmarshal(version.Metadata, &metadataMap); err == nil {
+				if container, ok := metadataMap["container"].(map[string]interface{}); ok {
+					if tags, ok := container["tags"].([]interface{}); ok {
+						// select the newest tag:
+						for _, tRaw := range tags {
+							if tag, ok := tRaw.(string); ok {
+								if strings.HasSuffix(tag, flavor) {
+									log.Debug("Found tag", slog.String("tag", tag))
+									return tag, packageUrl, nil
+								}
 							}
-							// mstodo fix verbose logging
 						}
 					}
 				}
@@ -481,7 +490,7 @@ func findNewestTagForFlavor(versions []*github.PackageVersion, flavor string, lo
 		}
 	}
 	log.Warn("No tags found for flavor", slog.String("flavor", flavor))
-	return "", nil
+	return "", "", nil
 }
 
 func fetchSboms(tempDir string, tag string, repoOwner string, packageUrl string, log *slog.Logger) ([]string, error) {
