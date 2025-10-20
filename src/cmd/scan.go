@@ -588,13 +588,13 @@ func init() {
 }
 
 func addScanReleasedFlags(cmd *cobra.Command, options *ScanReleasedOptions) {
-	cmd.Flags().StringVarP(&options.Fetch.PublicPackagesPrefix, "publicPackagesPrefix", "c", "", "The prefix for public packages")
-	cmd.Flags().StringVarP(&options.Fetch.PrivatePackagesPrefix, "privatePackagesPrefix", "r", "private", "The prefix for private packages")
-	cmd.Flags().StringVarP(&options.Fetch.RepoOwner, "repoOwner", "w", "uds-packages", "Repository owner")
+	cmd.Flags().StringVarP(&options.Fetch.PublicPackagesPrefix, "public-packages-prefix", "c", "", "The prefix for public packages")
+	cmd.Flags().StringVarP(&options.Fetch.PrivatePackagesPrefix, "private-packages-prefix", "r", "private", "The prefix for private packages")
+	cmd.Flags().StringVarP(&options.Fetch.RepoOwner, "repo-owner", "w", "uds-packages", "Repository owner")
 }
 
 func addCommonFlags(cmd *cobra.Command, options *CommonScanOptions) {
-	cmd.Flags().StringVarP(&options.ZarfYamlLocation, "zarfYamlPath", "p", "./zarf.yaml", "Path to the zarf.yaml file")
-	cmd.Flags().StringVarP(&options.OutputDirectory, "outputDirectory", "o", "", "Output directory")
-	cmd.Flags().BoolVar(&options.DevNoCleanUp, "devNoCleanUp", false, "For development: do not clean up temporary files")
+	cmd.Flags().StringVarP(&options.ZarfYamlLocation, "zarf-yaml-path", "p", "./zarf.yaml", "Path to the zarf.yaml file")
+	cmd.Flags().StringVarP(&options.OutputDirectory, "output-directory", "o", "", "Output directory")
+	cmd.Flags().BoolVar(&options.DevNoCleanUp, "dev-no-cleanup", false, "For development: do not clean up temporary files")
 }

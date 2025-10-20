@@ -16,7 +16,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -82,7 +81,6 @@ func simulateGrype(args []string, stdout io.Writer, stderr io.Writer) {
 				panic("failed to parse grype args: " + err.Error())
 			}
 			jsonFile := grypeFlagSet.Arg(0)
-			fmt.Fprintf(stderr, "grype: scanning %s, writing output to %s\t parsed args: %q\n", jsonFile, outFile, args)
 
 			vulns := []map[string]any{}
 			if !strings.HasPrefix(jsonFile, "sbom:") {
@@ -186,9 +184,6 @@ components:
 }
 
 func TestScanCommand_EndToEnd(t *testing.T) {
-	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" && runtime.GOOS != "windows" {
-		t.Skip("exec helper pattern may not work on this OS")
-	}
 	log := cmd.CreateLogger(true)
 	origExec := scan.ExecCommand
 	scan.ExecCommand = fakeExecCommand

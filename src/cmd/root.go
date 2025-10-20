@@ -56,8 +56,10 @@ var deprecatedUpdateYamlCmd = &cobra.Command{
 	},
 }
 
-const loggerKey = "logger"
-const verboseKey = "verbose"
+type contextKey string
+
+const loggerKey contextKey = "logger"
+const verboseKey contextKey = "verbose"
 
 func initLogger(cmd *cobra.Command, _ []string) {
 	verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")

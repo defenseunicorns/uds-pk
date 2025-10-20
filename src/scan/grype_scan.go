@@ -245,42 +245,37 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 		cmd := ExecCommand("grype", args...)
 		configureOutput(cmd, isVerbose)
 
-		// Print working directory and environment for debugging
-		wd, _ := os.Getwd()
-		logger.Debug("Current working directory:", slog.String("directory", wd))
 		logger.Debug("Running scan", slog.Int("attempt", retryCount+1), slog.String("command", "grype "+strings.Join(args, " ")))
 
-		// Execute the command
 		err := cmd.Run()
 
-		if err != nil {
-			logger.Debug("Error from grype command:", slog.Any("error", err))
-			// Check if this is a database error
-			checkCmd := ExecCommand("grype", "db", "status")
-			configureOutput(checkCmd, isVerbose)
-			output, _ := checkCmd.CombinedOutput()
+		if err == nil {
+			return jsonOutputPath, nil
+		}
+		logger.Debug("Error from grype command:", slog.Any("error", err))
+		// Check if this is a database error
+		checkCmd := ExecCommand("grype", "db", "status")
+		configureOutput(checkCmd, isVerbose)
+		output, _ := checkCmd.CombinedOutput()
 
-			if strings.Contains(string(output), "failed to load vulnerability db") {
-				logger.Info("Vulnerability database error detected. Running Grype DB update...",
-					"attempt", retryCount+1, "maxRetries", maxRetries)
+		if strings.Contains(string(output), "failed to load vulnerability db") {
+			logger.Info("Vulnerability database error detected. Running Grype DB update...",
+				"attempt", retryCount+1, "maxRetries", maxRetries)
 
-				// Update the database
-				updateCmd := ExecCommand("grype", "db", "update")
-				configureOutput(updateCmd, isVerbose)
+			// Update the database
+			updateCmd := ExecCommand("grype", "db", "update")
+			configureOutput(updateCmd, isVerbose)
 
-				if updateErr := updateCmd.Run(); updateErr != nil {
-					logger.Info("Failed to update Grype database", "error", updateErr)
-				}
-
-				retryCount++
-				time.Sleep(5 * time.Second) // Wait before retrying
-				continue
+			if updateErr := updateCmd.Run(); updateErr != nil {
+				logger.Info("Failed to update Grype database", "error", updateErr)
 			}
 
-			return "", fmt.Errorf("grype scan failed for %v", args)
+			retryCount++
+			time.Sleep(5 * time.Second) // Wait before retrying
+			continue
 		}
 
-		return jsonOutputPath, nil
+		return "", fmt.Errorf("grype scan failed for %v", args)
 	}
 	return "", fmt.Errorf("grype scan failed for %v", args)
 }
