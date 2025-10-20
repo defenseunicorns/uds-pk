@@ -65,7 +65,7 @@ type PackageWithVersion struct {
 func scanReleasedCmd() *cobra.Command {
 	options := &ScanReleasedOptions{}
 	cmd := &cobra.Command{
-		Use:   "scan-released",
+		Use:   "last-released",
 		Short: "Scan a released version of a UDS package for vulnerabilities. The scan is based on SBOMs from the latest released version of the package.",
 		RunE:  options.run,
 	}
@@ -94,7 +94,7 @@ func (options *ScanReleasedOptions) run(cmd *cobra.Command, _ []string) error {
 func scanZarfYamlCmd() *cobra.Command {
 	options := ScanZarfYamlOptions{}
 	cmd := &cobra.Command{
-		Use:   "scan",
+		Use:   "images",
 		Short: "Scan the current Zarf package. This scan is based on the zarf.yaml and the current images it points to.",
 		RunE:  options.run,
 	}
@@ -174,7 +174,7 @@ func scanAndCompareCmd() *cobra.Command {
 	options := ScanAndCompareOptions{}
 
 	cmd := &cobra.Command{
-		Use: "scan-and-compare",
+		Use: "compare",
 		Short: "Scan the current Zarf package, scan the last released package, and compare the scans." +
 			"This command is a combination of `scan`, `scan-released`, and `compare-scans`.",
 		RunE: options.Run,
@@ -581,10 +581,16 @@ func determineFlavors(pkg *v1alpha1.ZarfPackage) []string {
 }
 
 func init() {
-	rootCmd.AddCommand(scanReleasedCmd())
-	rootCmd.AddCommand(scanZarfYamlCmd())
-	rootCmd.AddCommand(scanAndCompareCmd())
+	scanCmd := &cobra.Command{
+		Use:   "scan",
+		Short: "Collection of commands for scanning packages",
+	}
+	scanCmd.AddCommand(scanReleasedCmd())
+	scanCmd.AddCommand(scanZarfYamlCmd())
+	scanCmd.AddCommand(scanAndCompareCmd())
+
 	rootCmd.AddCommand(compareCmd())
+	rootCmd.AddCommand(scanCmd)
 }
 
 func addScanReleasedFlags(cmd *cobra.Command, options *ScanReleasedOptions) {
