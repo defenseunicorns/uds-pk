@@ -203,9 +203,7 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 	}
 	_ = file.Close()
 
-	args := []string{"sbom:" + sbomFile, "--add-cpes-if-none", "--output", "cyclonedx-json", "-v"}
-
-	args = append(args, "--file", jsonOutputPath)
+	args := []string{"--add-cpes-if-none", "--output", "cyclonedx-json", "-v", "--file", jsonOutputPath, "sbom:" + sbomFile}
 
 	// Try to scan with retries for database issues
 	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose)
@@ -230,7 +228,7 @@ func scanImage(image, outputDir string, logger *slog.Logger, isVerbose bool) (st
 		return "", fmt.Errorf("failed to create output directory %s: %w", outputDir, err)
 	}
 
-	args := []string{image, "--add-cpes-if-none", "--output", "cyclonedx-json", "-v", "--file", jsonOutputPath}
+	args := []string{"--add-cpes-if-none", "--output", "cyclonedx-json", "-v", "--file", jsonOutputPath, image}
 
 	// Try to scan with retries for database issues
 	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose)

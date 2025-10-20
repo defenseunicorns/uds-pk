@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log/slog"
@@ -32,88 +33,99 @@ func simulateGrype(args []string, stdout io.Writer, stderr io.Writer) {
 	if stderr == nil {
 		stderr = io.Discard
 	}
-	sep := -1
-	for i, a := range args {
-		if a == "--" {
-			sep = i
-			break
-		}
-	}
-	if sep == -1 || sep+1 >= len(args) {
-		_, _ = fmt.Fprintln(stderr, "invalid simulateGrype")
-		return
-	}
-	cmd := args[sep+1]
-	cmdArgs := args[sep+2:]
 
-	if cmd == "grype" {
-		// emulate different subcommands
-		if len(cmdArgs) >= 2 && cmdArgs[0] == "db" && cmdArgs[1] == "status" {
-			// print healthy status
-			_, _ = fmt.Fprint(stdout, "ok\n")
-			return
-		}
-		if len(cmdArgs) >= 2 && cmdArgs[0] == "db" && cmdArgs[1] == "update" {
-			return
-		}
-		// normal scan: find --file path and write minimal CycloneDX JSON
-		var outPath string
-		for i := 0; i < len(cmdArgs)-1; i++ {
-			if cmdArgs[i] == "--file" {
-				outPath = cmdArgs[i+1]
-				break
-			}
-		}
-		if outPath == "" {
-			_, _ = fmt.Fprintln(stderr, "--file not provided")
-			return
-		}
-		// Decide whether this is an SBOM scan to vary vulnerabilities
-		isSBOM := false
-		for _, a := range cmdArgs {
-			if strings.HasPrefix(a, "sbom:") {
-				isSBOM = true
-				break
-			}
-		}
-		vulns := []map[string]any{}
-		if !isSBOM {
-			vulns = []map[string]any{
-				{
-					"id":         "CVE-TEST-1",
-					"source":     map[string]any{"url": "https://example.com/CVE-TEST-1"},
-					"advisories": []map[string]any{{"url": "https://adv.example/CVE-TEST-1"}},
-					"ratings":    []map[string]any{{"severity": "high"}},
-					"affects":    []map[string]any{{"ref": "pkg:apk/alpine/busybox@1.36.1"}},
-				},
-			}
-		}
-		// minimal CycloneDX structure required by compare code
-		payload := map[string]any{
-			"metadata": map[string]any{
-				"component": map[string]any{
-					"name":    "elasticsearch-exporter",
-					"version": "1.9.0",
-				},
-			},
-			"vulnerabilities": vulns,
-		}
-		f, err := os.Create(outPath)
-		if err != nil {
-			_, _ = fmt.Fprintln(stderr, err)
-			return
-		}
-		if err := json.NewEncoder(f).Encode(payload); err != nil {
-			_, _ = fmt.Fprintln(stderr, err)
-			_ = f.Close()
-			return
-		}
-		if err := f.Close(); err != nil {
-			_, _ = fmt.Fprintln(stderr, err)
-		}
-		return
+	program := args[0]
+	if program != "grype" {
+		panic("simulateGrype only supports grype: " + program)
 	}
-	_, _ = fmt.Fprintln(stderr, "unknown command")
+
+	if len(args) < 2 {
+		panic("grype requires a command")
+	}
+
+	command := args[1]
+
+	switch command {
+	case "db":
+		if len(args) < 3 {
+			panic("grype db requires a subcommand")
+		}
+		subcommand := args[2]
+		switch subcommand {
+		case "status":
+			{ // grype db status
+				// print healthy status
+				_, _ = fmt.Fprint(stdout, "ok\n")
+				return
+			}
+		case "update":
+			{ // grype db update
+				// print healthy status
+				_, _ = fmt.Fprint(stdout, "ok\n")
+				return
+			}
+		}
+	default:
+		{
+			// in the default mode - we're scanning. The file to scan is a positional argument
+			// after the command.
+			var outFile string
+			var output string
+
+			grypeFlagSet := flag.NewFlagSet("grype", flag.ContinueOnError)
+			grypeFlagSet.StringVar(&outFile, "file", "default-file.json", "")
+			grypeFlagSet.Bool("add-cpes-if-none", false, "")
+			grypeFlagSet.StringVar(&output, "output", "", "")
+			grypeFlagSet.Bool("v", false, "")
+			err := grypeFlagSet.Parse(args[1:])
+			if err != nil {
+				panic("failed to parse grype args: " + err.Error())
+			}
+			jsonFile := grypeFlagSet.Arg(0)
+			fmt.Fprintf(stderr, "grype: scanning %s, writing output to %s\t parsed args: %q\n", jsonFile, outFile, args)
+
+			vulns := []map[string]any{}
+			if !strings.HasPrefix(jsonFile, "sbom:") {
+				vulns = []map[string]any{
+					{
+						"id":         "CVE-TEST-1",
+						"source":     map[string]any{"url": "https://example.com/CVE-TEST-1"},
+						"advisories": []map[string]any{{"url": "https://adv.example/CVE-TEST-1"}},
+						"ratings":    []map[string]any{{"severity": "high"}},
+						"affects":    []map[string]any{{"ref": "pkg:apk/alpine/busybox@1.36.1"}},
+					},
+				}
+			}
+			// minimal CycloneDX structure required by compare code
+			payload := map[string]any{
+				"metadata": map[string]any{
+					"component": map[string]any{
+						"name":    "elasticsearch-exporter",
+						"version": "1.9.0",
+					},
+				},
+				"vulnerabilities": vulns,
+			}
+			f, err := os.Create(outFile)
+			if err != nil {
+				_, _ = fmt.Fprintf(stderr, "failed to open file[%s] for writing: %v\n", outFile, err)
+				return
+			}
+			if err := json.NewEncoder(f).Encode(payload); err != nil {
+				_, _ = fmt.Fprintf(stderr, "failed to write JSON: %v\n", err)
+				_, _ = fmt.Fprintln(stderr, err)
+				_ = f.Close()
+				return
+			} else {
+				_, _ = fmt.Fprintf(stderr, "writen JSON to %s\n", outFile)
+			}
+			if err := f.Close(); err != nil {
+				_, _ = fmt.Fprintln(stderr, err)
+			}
+			return
+
+		}
+	}
 }
 
 // FakeCommand simulates a command for testing purposes
@@ -133,7 +145,7 @@ func (f *FakeCommand) Run() error {
 	if err == nil {
 		err = io.Discard
 	}
-	simulateGrype(append([]string{"--", f.cmd}, f.args...), out, err)
+	simulateGrype(append([]string{f.cmd}, f.args...), out, err)
 	return nil
 }
 
