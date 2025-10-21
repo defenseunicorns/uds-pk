@@ -353,9 +353,7 @@ func withMockFetchSbomsUserInput(t *testing.T, fileName, userInput string) {
 		if err != nil {
 			return nil, err
 		}
-		defer func(f *os.File) {
-			_ = f.Close()
-		}(f)
+		defer f.Close() //nolint:errcheck
 		if err := json.NewEncoder(f).Encode(sbom); err != nil {
 			return nil, err
 		}

@@ -124,9 +124,7 @@ func getByteArray(url string, githubToken string, contentType string) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(response.Body)
+	defer response.Body.Close() //nolint:errcheck
 	body, err := io.ReadAll(response.Body)
 	return body, err
 }
