@@ -10,50 +10,18 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/defenseunicorns/uds-pk/src/utils"
 )
 
 /*
 Scanning logic is heavily inspired by https://github.com/defenseunicorns-navy/sonic-components-zarf-scan
 */
 
-// CommandRunner interface for better testability
-type CommandRunner interface {
-	Run() error
-	SetStdout(stdout io.Writer)
-	SetStderr(stderr io.Writer)
-	CombinedOutput() ([]byte, error)
-}
-
-type RealCommand struct {
-	cmd *exec.Cmd
-}
-
-func (r *RealCommand) Run() error {
-	return r.cmd.Run()
-}
-
-func (r *RealCommand) SetStdout(stdout io.Writer) {
-	r.cmd.Stdout = stdout
-}
-
-func (r *RealCommand) SetStderr(stderr io.Writer) {
-	r.cmd.Stderr = stderr
-}
-
-func (r *RealCommand) CombinedOutput() ([]byte, error) {
-	return r.cmd.CombinedOutput()
-}
-
-// Update ExecCommand to use CommandRunner
-var ExecCommand = func(name string, arg ...string) CommandRunner {
-	return &RealCommand{cmd: exec.Command(name, arg...)}
-}
-
-func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bool) (map[string]string, error) {
+func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (map[string]string, error) {
 	results := map[string]string{}
 	for _, image := range images {
 		// adding docker to make `grype` use docker to pull the image
@@ -62,7 +30,7 @@ func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bo
 			image = "docker:" + image
 		}
 		logger.Debug("Will scan image", slog.String("image", image))
-		outJson, err := scanImage(image, outputDir, logger, isVerbose)
+		outJson, err := scanImage(image, outputDir, logger, isVerbose, processRunner)
 		if err != nil {
 			return nil, err
 		} else {
@@ -72,7 +40,7 @@ func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bo
 	return results, nil
 }
 
-func SBOMs(sbomsDir, outputDir string, logger *slog.Logger, isVerbose bool) (map[string]string, error) {
+func SBOMs(sbomsDir, outputDir string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (map[string]string, error) {
 	// Find only JSON files in the sboms directory
 	pattern := filepath.Join(sbomsDir, "*.json")
 	sbomFiles, err := filepath.Glob(pattern)
@@ -88,7 +56,7 @@ func SBOMs(sbomsDir, outputDir string, logger *slog.Logger, isVerbose bool) (map
 
 	results := map[string]string{}
 	for _, sbomFile := range sbomFiles {
-		outJson, err := scanSBOM(sbomFile, outputDir, logger, isVerbose)
+		outJson, err := scanSBOM(sbomFile, outputDir, logger, isVerbose, processRunner)
 		if err != nil {
 			return nil, err
 		} else {
@@ -153,7 +121,7 @@ func sanitizeFilename(name string) string {
 	return sanitized
 }
 
-func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose bool) (string, error) {
+func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
 	logger.Debug("Scanning SBOM", slog.String("file", sbomFile))
 
 	// Set up the output path if needed
@@ -206,10 +174,10 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 	args := []string{"--add-cpes-if-none", "--output", "cyclonedx-json", "-v", "--file", jsonOutputPath, "sbom:" + sbomFile}
 
 	// Try to scan with retries for database issues
-	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose)
+	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose, processRunner)
 }
 
-func scanImage(image, outputDir string, logger *slog.Logger, isVerbose bool) (string, error) {
+func scanImage(image, outputDir string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
 	logger.Debug("Scanning SBOM", slog.String("file", image))
 
 	// Set up the output path if needed
@@ -231,10 +199,10 @@ func scanImage(image, outputDir string, logger *slog.Logger, isVerbose bool) (st
 	args := []string{"--add-cpes-if-none", "--output", "cyclonedx-json", "-v", "--file", jsonOutputPath, image}
 
 	// Try to scan with retries for database issues
-	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose)
+	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose, processRunner)
 }
 
-func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, isVerbose bool) (string, error) {
+func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
 	// Maximum retry attempts for handling database issues
 	maxRetries := 3
 	retryCount := 0
@@ -242,7 +210,7 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 		// Create the command - this needs to be inside the loop because we can't reuse commands
 
 		logger.Debug("Running grype command", slog.Any("args", args))
-		cmd := ExecCommand("grype", args...)
+		cmd := processRunner("grype", args...)
 		configureOutput(cmd, isVerbose)
 
 		logger.Debug("Running scan", slog.Int("attempt", retryCount+1), slog.String("command", "grype "+strings.Join(args, " ")))
@@ -254,7 +222,7 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 		}
 		logger.Debug("Error from grype command:", slog.Any("error", err))
 		// Check if this is a database error
-		checkCmd := ExecCommand("grype", "db", "status")
+		checkCmd := processRunner("grype", "db", "status")
 		configureOutput(checkCmd, isVerbose)
 		output, _ := checkCmd.CombinedOutput()
 
@@ -263,7 +231,7 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 				"attempt", retryCount+1, "maxRetries", maxRetries)
 
 			// Update the database
-			updateCmd := ExecCommand("grype", "db", "update")
+			updateCmd := processRunner("grype", "db", "update")
 			configureOutput(updateCmd, isVerbose)
 
 			if updateErr := updateCmd.Run(); updateErr != nil {
@@ -280,7 +248,7 @@ func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, 
 	return "", fmt.Errorf("grype scan failed for %v", args)
 }
 
-func configureOutput(cmd CommandRunner, isVerbose bool) {
+func configureOutput(cmd utils.CommandRunner, isVerbose bool) {
 	if isVerbose {
 		cmd.SetStdout(os.Stderr)
 		cmd.SetStderr(os.Stderr)

@@ -25,6 +25,9 @@ import (
 	"golang.org/x/oauth2"
 )
 
+// CommandRunner interface for better testability
+
+// command options
 type CompareOptions struct {
 	AllowDifferentImages bool
 }
@@ -39,6 +42,7 @@ type CommonScanOptions struct {
 	OutputDirectory  string
 	DevNoCleanUp     bool
 	ZarfYamlLocation string
+	ExecCommand      utils.RunProcess
 }
 
 type ScanReleasedOptions struct {
@@ -57,6 +61,7 @@ type ScanAndCompareOptions struct {
 	ImageNameOverrides       []string
 }
 
+// helper structs
 type PackageWithVersion struct {
 	encodedPackageUrl string
 	versions          []*github.PackageVersion
@@ -280,8 +285,6 @@ func findMatchingScan(imageName string, releasedResults map[string]string, logge
 	for _, scanFile := range releasedResults {
 		if strings.Contains(scanFile, "/"+imageName+"_") {
 			return scanFile, nil
-		} else {
-			logger.Debug("no matchy-matchy", slog.String("imageName", imageName), slog.String("scanFile", scanFile))
 		}
 	}
 	return "", fmt.Errorf("could not find matching scan for %s", imageName)
@@ -309,7 +312,7 @@ func ScanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions, l
 	for flavor, images := range flavorToImages {
 		targetFlavorDir := path.Join(zarfYamlScanOutDir, flavor)
 		// TODO: cache image fetching and scanning so that we don't redo this on duplicates
-		scanImagesResult[flavor], err = scan.Images(images, targetFlavorDir, log, verbose)
+		scanImagesResult[flavor], err = scan.Images(images, targetFlavorDir, log, verbose, options.ExecCommand)
 		if err != nil {
 			return scanImagesResult, err
 		}
@@ -402,7 +405,7 @@ func ScanReleased(outDirectory string, options *ScanReleasedOptions, log *slog.L
 			}
 		}
 		outputDir := path.Join(outDirectory, flavor) + string(os.PathSeparator)
-		resultFiles, err := scan.SBOMs(targetFlavorDir, outputDir, log, verbose)
+		resultFiles, err := scan.SBOMs(targetFlavorDir, outputDir, log, verbose, options.Scan.ExecCommand)
 		if err != nil {
 			return sbomScanResults, err
 		}
@@ -603,4 +606,5 @@ func addCommonFlags(cmd *cobra.Command, options *CommonScanOptions) {
 	cmd.Flags().StringVarP(&options.ZarfYamlLocation, "zarf-yaml-path", "p", "./zarf.yaml", "Path to the zarf.yaml file")
 	cmd.Flags().StringVarP(&options.OutputDirectory, "output-directory", "o", "", "Output directory")
 	cmd.Flags().BoolVar(&options.DevNoCleanUp, "dev-no-cleanup", false, "For development: do not clean up temporary files")
+	options.ExecCommand = utils.OsRunProcess
 }

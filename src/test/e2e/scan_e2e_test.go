@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/defenseunicorns/uds-pk/src/cmd"
-	"github.com/defenseunicorns/uds-pk/src/scan"
+	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/google/go-github/v73/github"
 	"github.com/spf13/cobra"
 )
@@ -82,7 +82,7 @@ func simulateGrype(args []string, stdout io.Writer, stderr io.Writer) {
 			}
 			jsonFile := grypeFlagSet.Arg(0)
 
-			vulns := []map[string]any{}
+			var vulns []map[string]any
 			if !strings.HasPrefix(jsonFile, "sbom:") {
 				vulns = []map[string]any{
 					{
@@ -161,7 +161,7 @@ func (f *FakeCommand) CombinedOutput() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func fakeExecCommand(command string, args ...string) scan.CommandRunner {
+func fakeExecCommand(command string, args ...string) utils.CommandRunner {
 	return &FakeCommand{cmd: command, args: args}
 }
 
@@ -185,14 +185,12 @@ components:
 
 func TestScanCommand_EndToEnd(t *testing.T) {
 	log := cmd.CreateLogger(true)
-	origExec := scan.ExecCommand
-	scan.ExecCommand = fakeExecCommand
-	defer func() { scan.ExecCommand = origExec }()
 
 	tmp := t.TempDir()
 	outputDirectory := filepath.Join(tmp, "out")
 	scanOptions := cmd.CommonScanOptions{}
 	scanOptions.ZarfYamlLocation = writeZarfYaml(t, tmp)
+	scanOptions.ExecCommand = fakeExecCommand
 
 	res, err := cmd.ScanZarfYamlImages(outputDirectory, &scanOptions, log, true)
 	if err != nil {
@@ -222,9 +220,6 @@ func TestScanCommand_EndToEnd(t *testing.T) {
 
 func TestScanReleased_EndToEnd(t *testing.T) {
 	log := cmd.CreateLogger(true)
-	origExec := scan.ExecCommand
-	scan.ExecCommand = fakeExecCommand
-	defer func() { scan.ExecCommand = origExec }()
 
 	// Mock GitHub API with helper
 	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -247,6 +242,7 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 	scanReleasedOptions := cmd.ScanReleasedOptions{}
 
 	scanReleasedOptions.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
+	scanReleasedOptions.Scan.ExecCommand = fakeExecCommand
 	outDir := filepath.Join(tmp, "out")
 
 	res, err := cmd.ScanReleased(outDir, &scanReleasedOptions, log, true)
@@ -270,10 +266,6 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 }
 
 func TestScanAndCompare_EndToEnd(t *testing.T) {
-	origExec := scan.ExecCommand
-	scan.ExecCommand = fakeExecCommand
-	defer func() { scan.ExecCommand = origExec }()
-
 	options := cmd.ScanAndCompareOptions{}
 	// Apply image name override so elasticsearch-exporter matches elasticsearch released scan
 	options.ImageNameOverrides = []string{"elasticsearch=elasticsearch-exporter"}
@@ -298,6 +290,7 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 	outFile := filepath.Join(tmp, "compare.md")
 	options.Scan.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
 	options.Scan.Scan.OutputDirectory = filepath.Join(tmp, "out")
+	options.Scan.Scan.ExecCommand = fakeExecCommand
 	options.ScanAndCompareOutputFile = outFile
 
 	ctx := context.Background()
