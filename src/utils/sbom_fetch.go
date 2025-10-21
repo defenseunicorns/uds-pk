@@ -134,12 +134,7 @@ func walkRemoteTarArchive(url string, githubToken string, logger *slog.Logger, e
 	if err != nil {
 		return err
 	}
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			logger.Warn("Failed to close response body: ", slog.Any("error", err))
-		}
-	}(response.Body)
+	defer response.Body.Close() //nolint:errcheck
 	tarReader := tar.NewReader(response.Body)
 	for {
 		header, err := tarReader.Next()
