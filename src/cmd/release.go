@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/platforms/github"
@@ -64,6 +65,8 @@ var checkCmd = &cobra.Command{
 	Short: "Check if a release is necessary",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
+		logger := Logger(&ctx)
 		if repositoryUrl == "" {
 			return errors.New("repository url is required")
 		}
@@ -100,7 +103,7 @@ var checkCmd = &cobra.Command{
 			// otherwise let's see if publishing was successful:
 			result, err := checkPackageExists(repositoryUrl, packageName, repoTag)
 			if err != nil {
-				fmt.Errorf("Failed to check if packages exists, assuming it doesnt %w\n", err) // mstodo replace with log
+				logger.Warn("Failed to check if packages exists, assuming it doesnt", slog.Any("err", err))
 				effectiveResult = false
 			} else {
 				effectiveResult = result
@@ -114,13 +117,13 @@ var checkCmd = &cobra.Command{
 			if checkBoolOutput {
 				fmt.Println("true")
 			} else {
-				fmt.Printf("Version %s is not tagged\n", formattedVersion)
+				logger.Info("Version is not tagged", slog.String("version", formattedVersion))
 			}
 		} else {
 			if checkBoolOutput {
 				fmt.Println("false")
 			} else {
-				fmt.Printf("Version %s is already tagged\n", formattedVersion)
+				logger.Info("Version is already tagged", slog.String("version", formattedVersion))
 				return errors.New("no release necessary")
 			}
 		}
