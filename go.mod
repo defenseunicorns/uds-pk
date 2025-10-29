@@ -8,11 +8,14 @@ require (
 	github.com/go-git/go-git/v5 v5.16.2
 	github.com/goccy/go-yaml v1.18.0
 	github.com/google/go-github/v69 v69.2.0
+	github.com/google/go-github/v73 v73.0.0
 	github.com/mikefarah/yq/v4 v4.47.2
 	github.com/olekukonko/tablewriter v1.0.9
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	github.com/zarf-dev/zarf v0.61.2
+	go.yaml.in/yaml/v4 v4.0.0-rc.2
+	golang.org/x/oauth2 v0.30.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
 
@@ -83,7 +86,6 @@ require (
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
 	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/time v0.12.0 // indirect

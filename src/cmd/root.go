@@ -4,8 +4,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
+
+	"github.com/defenseunicorns/uds-pk/src/utils"
 
 	"github.com/spf13/cobra"
 )
@@ -15,8 +19,8 @@ var rootCmd = &cobra.Command{
 	Use:   "uds-pk",
 	Short: "UDS Package Kit is a tool for managing UDS packages",
 	Long: `UDS Package Kit is a tool that facilitates the development, maintenance and release
-	of UDS packages. It provides commands for automating releases verifying packages and
-	generating configuration.`,
+		of UDS packages. It provides commands for automating releases verifying packages and
+		generating configuration.`,
 }
 
 // deprecatedCheckCmd is the deprecated location for the check command
@@ -52,6 +56,48 @@ var deprecatedUpdateYamlCmd = &cobra.Command{
 	},
 }
 
+type contextKey string
+
+const loggerKey contextKey = "logger"
+const verboseKey contextKey = "verbose"
+
+func initLogger(cmd *cobra.Command, _ []string) {
+	verbose, err := cmd.Root().PersistentFlags().GetBool("verbose")
+	if err != nil {
+		verbose = false
+	}
+	ctx := InitLoggerContext(verbose, cmd.Context())
+	cmd.SetContext(ctx)
+}
+
+func InitLoggerContext(verbose bool, ctx context.Context) context.Context {
+	logger := CreateLogger(verbose)
+	ctx = context.WithValue(ctx, loggerKey, logger)
+	return context.WithValue(ctx, verboseKey, verbose)
+}
+
+func CreateLogger(verbose bool) *slog.Logger {
+	level := slog.LevelInfo
+	if verbose {
+		level = slog.LevelDebug
+	}
+	return slog.New(utils.PrettyLogHandler(os.Stderr, level))
+}
+
+func Logger(ctx *context.Context) *slog.Logger {
+	if ctx == nil {
+		return CreateLogger(false)
+	}
+	return (*ctx).Value(loggerKey).(*slog.Logger)
+}
+
+func Verbose(ctx *context.Context) bool {
+	if ctx == nil {
+		return false
+	}
+	return (*ctx).Value(verboseKey).(bool)
+}
+
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
@@ -62,6 +108,8 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().Bool("verbose", false, "Enable debug output")
+	rootCmd.PersistentPreRun = initLogger
 	rootCmd.AddCommand(deprecatedCheckCmd)
 	rootCmd.AddCommand(deprecatedShowCmd)
 	rootCmd.AddCommand(deprecatedUpdateYamlCmd)
