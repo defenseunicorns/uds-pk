@@ -6,32 +6,83 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 
+	"context"
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/platforms/github"
 	"github.com/defenseunicorns/uds-pk/src/platforms/gitlab"
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/defenseunicorns/uds-pk/src/version"
 	"github.com/spf13/cobra"
+
+	"oras.land/oras-go/v2/registry/remote"
+	"oras.land/oras-go/v2/registry/remote/errcode"
 )
 
 var releaseDir string
 var packageName string
 var checkBoolOutput bool
+var repositoryUrl string
 var showVersionOnly bool
 var gitlabTokenVarName string
 var githubTokenVarName string
 var showTag bool
 
-// checkCmd represents the check command
+// checkPackageExists checks if a specific package tag exists in a remote OCI repository.
+// It returns true if the package is found.
+// It returns false if the package is definitively not found (e.g., a 404 error).
+// It returns an error for any other failure, such as authentication or network issues.
+func checkPackageExists(repositoryURL, packageName, tag string) (bool, error) {
+	fullRepoPath := fmt.Sprintf("%s/%s", repositoryURL, packageName)
+
+	// Create a client for the remote repository.
+	repo, err := remote.NewRepository(fullRepoPath)
+	if err != nil {
+		return false, fmt.Errorf("failed to create repository client for %s: %w", fullRepoPath, err)
+	}
+
+	// Attempt to resolve the tag to a manifest descriptor.
+	// If this call returns no error, the tag exists.
+	_, err = repo.Resolve(context.Background(), tag)
+	if err == nil {
+		return true, nil
+	}
+
+	// If an error occurred, check if it's a standard "not found" error.
+	// OCI registries should return a MANIFEST_UNKNOWN error code for a missing tag.
+	var errResp *errcode.ErrorResponse
+	if errors.As(err, &errResp) {
+		for _, e := range errResp.Errors {
+			if e.Code == errcode.ErrorCodeManifestUnknown {
+				// This is a definitive "not found" error.
+				return false, nil
+			}
+		}
+	}
+
+	// As a fallback, some registries might return non-standard errors.
+	// We can inspect the error string for common "not found" messages.
+	errMsg := strings.ToLower(err.Error())
+	if strings.Contains(errMsg, "manifest unknown") || strings.Contains(errMsg, "not found") {
+		return false, nil
+	}
+
+	// If the error was not a "not found" error, it was an unexpected issue.
+	// We return false and the error to indicate the check could not be completed.
+	return false, err
+}
+
 var checkCmd = &cobra.Command{
 	Use:   "check [flavor]",
 	Short: "Check if a release is necessary",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rootCmd.SilenceUsage = true
-
+		// mstodo: fail if repositoryUrl is not set
 		var flavor string
+
 		if len(args) == 0 {
 			flavor = ""
 		} else {
@@ -54,18 +105,35 @@ var checkCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		effectiveResult := false
+		// if the tag doesn't exist, we're sure we have to re-publish:
 		if tagExists {
+			repoTag := fmt.Sprintf("%s:%s-%s", currentFlavor.Version, currentFlavor.Name)
+			// otherwise let's see if publishing was successful:
+			result, err := checkPackageExists(repositoryUrl, packageName, repoTag)
+			if err != nil {
+				fmt.Errorf("Failed to check if packages exists, assuming it doesnt %w\n", err) // mstodo replace with log
+				effectiveResult = false
+			} else {
+				effectiveResult = result
+			}
+
+		} else {
+			effectiveResult = true
+		}
+
+		if effectiveResult {
+			if checkBoolOutput {
+				fmt.Println("true")
+			} else {
+				fmt.Printf("Version %s is not tagged\n", formattedVersion)
+			}
+		} else {
 			if checkBoolOutput {
 				fmt.Println("false")
 			} else {
 				fmt.Printf("Version %s is already tagged\n", formattedVersion)
 				return errors.New("no release necessary")
-			}
-		} else {
-			if checkBoolOutput {
-				fmt.Println("true")
-			} else {
-				fmt.Printf("Version %s is not tagged\n", formattedVersion)
 			}
 		}
 		return nil
@@ -356,6 +424,7 @@ func init() {
 	bundleGithubCmd.Flags().StringVarP(&githubTokenVarName, "token-var-name", "t", "GITHUB_TOKEN", "Environment variable name for GitHub token")
 
 	checkBundleCommand.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
+	checkBundleCommand.Flags().StringVarP(&repositoryUrl, "repositoryUrl", "r", "", "Repository URL.")
 
 	showBundleCommand.Flags().BoolVarP(&showTag, "tag", "t", false, "Show the full tag including bundle name instead of just the version")
 }
