@@ -4,12 +4,10 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
-	"log"
-	"strings"
 
-	"context"
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/platforms/github"
 	"github.com/defenseunicorns/uds-pk/src/platforms/gitlab"
@@ -37,14 +35,11 @@ var showTag bool
 func checkPackageExists(repositoryURL, packageName, tag string) (bool, error) {
 	fullRepoPath := fmt.Sprintf("%s/%s", repositoryURL, packageName)
 
-	// Create a client for the remote repository.
 	repo, err := remote.NewRepository(fullRepoPath)
 	if err != nil {
 		return false, fmt.Errorf("failed to create repository client for %s: %w", fullRepoPath, err)
 	}
 
-	// Attempt to resolve the tag to a manifest descriptor.
-	// If this call returns no error, the tag exists.
 	_, err = repo.Resolve(context.Background(), tag)
 	if err == nil {
 		return true, nil
@@ -56,21 +51,11 @@ func checkPackageExists(repositoryURL, packageName, tag string) (bool, error) {
 	if errors.As(err, &errResp) {
 		for _, e := range errResp.Errors {
 			if e.Code == errcode.ErrorCodeManifestUnknown {
-				// This is a definitive "not found" error.
 				return false, nil
 			}
 		}
 	}
 
-	// As a fallback, some registries might return non-standard errors.
-	// We can inspect the error string for common "not found" messages.
-	errMsg := strings.ToLower(err.Error())
-	if strings.Contains(errMsg, "manifest unknown") || strings.Contains(errMsg, "not found") {
-		return false, nil
-	}
-
-	// If the error was not a "not found" error, it was an unexpected issue.
-	// We return false and the error to indicate the check could not be completed.
 	return false, err
 }
 
@@ -79,8 +64,11 @@ var checkCmd = &cobra.Command{
 	Short: "Check if a release is necessary",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if repositoryUrl == "" {
+			return errors.New("repository url is required")
+		}
+
 		rootCmd.SilenceUsage = true
-		// mstodo: fail if repositoryUrl is not set
 		var flavor string
 
 		if len(args) == 0 {
