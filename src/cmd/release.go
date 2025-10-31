@@ -6,6 +6,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/url"
+	"regexp"
 
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/platforms/github"
@@ -18,20 +21,62 @@ import (
 var releaseDir string
 var packageName string
 var checkBoolOutput bool
+var usePlainHTTP bool
+var repositoryUrl string
+var arch string
 var showVersionOnly bool
 var gitlabTokenVarName string
 var githubTokenVarName string
 var showTag bool
 
-// checkCmd represents the check command
+var schemeWithSlashes = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.\-]*://`)
+
+func checkPackageExists(repositoryURL, tag, arch string, logger *slog.Logger) (bool, error) {
+	httpScheme := "https"
+	if usePlainHTTP {
+		httpScheme = "http"
+	}
+	logger.Debug("Checking if package exists", slog.String("repository", repositoryURL), slog.String("tag", tag), slog.String("arch", arch))
+	if !schemeWithSlashes.MatchString(repositoryURL) {
+		repositoryURL = fmt.Sprintf("%s://%s", httpScheme, repositoryURL)
+	}
+
+	// repositoryURL is something like https://ghcr.io/defenseunicorns/packages/uds
+	// we need to transform it to v2 api for checking metadata, something like
+	// https://ghcr.io/v2/defenseunicorns/packages/uds/gitlab-runner/manifests/$TAG
+	parsedUrl, err := url.Parse(repositoryURL)
+	if err != nil {
+		logger.Warn("Failed to parse repository URL. Assuming the release is not published", slog.Any("err", err))
+		return false, err
+	}
+	metadataUrl := fmt.Sprintf("%s://%s/v2/%s/manifests/%s", httpScheme, parsedUrl.Host, parsedUrl.Path[1:], tag)
+	logger.Debug("Checking if package exists", slog.String("metadataUrl", metadataUrl), slog.String("http scheme", httpScheme)) // mstodo drop scheme
+	index, err := utils.FetchImageIndex(metadataUrl, logger)
+	if err != nil {
+		return false, err
+	}
+	for _, manifest := range index.Manifests {
+		if manifest.Platform.Architecture == arch {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 var checkCmd = &cobra.Command{
 	Use:   "check [flavor]",
 	Short: "Check if a release is necessary",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		rootCmd.SilenceUsage = true
+		ctx := cmd.Context()
+		logger := Logger(&ctx)
+		if repositoryUrl == "" {
+			return errors.New("repository url is required")
+		}
 
+		rootCmd.SilenceUsage = true
 		var flavor string
+
 		if len(args) == 0 {
 			flavor = ""
 		} else {
@@ -54,18 +99,39 @@ var checkCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		effectiveResult := false
+		// if the tag doesn't exist, we're sure we have to re-publish:
 		if tagExists {
-			if checkBoolOutput {
-				fmt.Println("false")
-			} else {
-				fmt.Printf("Version %s is already tagged\n", formattedVersion)
-				return errors.New("no release necessary")
+			repoTag := currentFlavor.Version
+			if currentFlavor.Name != "" {
+				repoTag = fmt.Sprintf("%s-%s", repoTag, currentFlavor.Name)
 			}
+
+			// otherwise let's see if publishing was successful:
+			result, err := checkPackageExists(repositoryUrl, repoTag, arch, logger)
+			if err != nil {
+				logger.Warn("Failed to check if package exists, assuming it doesn't", slog.Any("err", err))
+				effectiveResult = true
+			} else {
+				effectiveResult = !result
+			}
+
 		} else {
+			effectiveResult = true
+		}
+
+		if effectiveResult {
 			if checkBoolOutput {
 				fmt.Println("true")
 			} else {
-				fmt.Printf("Version %s is not tagged\n", formattedVersion)
+				logger.Info("Version is not published", slog.String("version", formattedVersion))
+			}
+		} else {
+			if checkBoolOutput {
+				fmt.Println("false")
+			} else {
+				logger.Info("Version is already tagged", slog.String("version", formattedVersion))
+				return errors.New("no release necessary")
 			}
 		}
 		return nil
@@ -333,6 +399,9 @@ func init() {
 	releaseCmd.PersistentFlags().StringVarP(&releaseDir, "dir", "d", ".", "Path to the directory containing the releaser.yaml file")
 
 	checkCmd.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
+	checkCmd.Flags().StringVarP(&repositoryUrl, "repository-url", "r", "", "Repository URL.")
+	checkCmd.Flags().StringVarP(&arch, "arch", "a", "amd64", "Architecture to check (e.g. amd64, arm64). amd64 by default.")
+	checkCmd.Flags().BoolVar(&usePlainHTTP, "plain-http", false, "TEST ONLY Use plain HTTP instead of HTTPS for repository URL")
 
 	showCmd.Flags().BoolVarP(&showVersionOnly, "version-only", "v", false, "Show only the version without flavor appended")
 
@@ -356,6 +425,5 @@ func init() {
 	bundleGithubCmd.Flags().StringVarP(&githubTokenVarName, "token-var-name", "t", "GITHUB_TOKEN", "Environment variable name for GitHub token")
 
 	checkBundleCommand.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
-
 	showBundleCommand.Flags().BoolVarP(&showTag, "tag", "t", false, "Show the full tag including bundle name instead of just the version")
 }
