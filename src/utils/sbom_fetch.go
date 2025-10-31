@@ -125,7 +125,7 @@ func FetchImageIndex(indexUrl string, logger *slog.Logger) (ImageIndex, error) {
 
 	indexBody, err := getByteArray(indexUrl, githubToken, "application/vnd.oci.image.index.v1+json")
 	if err != nil {
-		return ImageIndex{}, fmt.Errorf("failed to get index json: %w from: %s", err, indexUrl)
+		return ImageIndex{}, fmt.Errorf("failed to get index json: '%w' from: %s", err, indexUrl)
 	}
 
 	logger.Debug("successfully fetched index json")

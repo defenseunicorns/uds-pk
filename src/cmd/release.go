@@ -21,6 +21,7 @@ import (
 var releaseDir string
 var packageName string
 var checkBoolOutput bool
+var usePlainHTTP bool
 var repositoryUrl string
 var arch string
 var showVersionOnly bool
@@ -31,9 +32,13 @@ var showTag bool
 var schemeWithSlashes = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.\-]*://`)
 
 func checkPackageExists(repositoryURL, tag, arch string, logger *slog.Logger) (bool, error) {
+	httpScheme := "https"
+	if usePlainHTTP {
+		httpScheme = "http"
+	}
 	logger.Debug("Checking if package exists", slog.String("repository", repositoryURL), slog.String("tag", tag), slog.String("arch", arch))
 	if !schemeWithSlashes.MatchString(repositoryURL) {
-		repositoryURL = fmt.Sprintf("https://%s", repositoryURL)
+		repositoryURL = fmt.Sprintf("%s://%s", httpScheme, repositoryURL)
 	}
 
 	// repositoryURL is something like https://ghcr.io/defenseunicorns/packages/uds
@@ -44,8 +49,8 @@ func checkPackageExists(repositoryURL, tag, arch string, logger *slog.Logger) (b
 		logger.Warn("Failed to parse repository URL. Assuming the release is not published", slog.Any("err", err))
 		return false, err
 	}
-	metadataUrl := fmt.Sprintf("https://%s/v2/%s/manifests/%s", parsedUrl.Host, parsedUrl.Path[1:], tag)
-
+	metadataUrl := fmt.Sprintf("%s://%s/v2/%s/manifests/%s", httpScheme, parsedUrl.Host, parsedUrl.Path[1:], tag)
+	logger.Debug("Checking if package exists", slog.String("metadataUrl", metadataUrl), slog.String("http scheme", httpScheme)) // mstodo drop scheme
 	index, err := utils.FetchImageIndex(metadataUrl, logger)
 	if err != nil {
 		return false, err
@@ -393,6 +398,7 @@ func init() {
 	checkCmd.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
 	checkCmd.Flags().StringVarP(&repositoryUrl, "repository-url", "r", "", "Repository URL.")
 	checkCmd.Flags().StringVarP(&arch, "arch", "a", "amd64", "Architecture to check (e.g. amd64, arm64). amd64 by default.")
+	checkCmd.Flags().BoolVar(&usePlainHTTP, "plain-http", false, "TEST ONLY Use plain HTTP instead of HTTPS for repository URL")
 
 	showCmd.Flags().BoolVarP(&showVersionOnly, "version-only", "v", false, "Show only the version without flavor appended")
 
