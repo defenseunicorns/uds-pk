@@ -392,7 +392,7 @@ func init() {
 
 	checkCmd.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
 	checkCmd.Flags().StringVarP(&repositoryUrl, "repository-url", "r", "", "Repository URL.")
-	checkCmd.Flags().StringVarP(&arch, "arch", "a", "", "Architecture to check (e.g. amd64, arm64). amd64 by default.")
+	checkCmd.Flags().StringVarP(&arch, "arch", "a", "amd64", "Architecture to check (e.g. amd64, arm64). amd64 by default.")
 
 	showCmd.Flags().BoolVarP(&showVersionOnly, "version-only", "v", false, "Show only the version without flavor appended")
 
