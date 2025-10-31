@@ -18,7 +18,13 @@ import (
 )
 
 type IndexEntry struct {
-	Digest string `json:"digest"`
+	Digest   string   `json:"digest"`
+	Platform Platform `json:"platform"`
+}
+
+type Platform struct {
+	Architecture string `json:"architecture"`
+	OS           string `json:"os"`
 }
 
 type ImageIndex struct {
@@ -44,22 +50,17 @@ func GetGithubToken() string {
 // in this manifest, it searches for sboms.tar.
 // Contents of this file are extracted to the outputDir, and their names are returned
 func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slog.Logger) ([]string, error) {
-	githubToken := GetGithubToken()
 
 	base := "https://ghcr.io/v2/" + repoOwner + "/" + packageUrl
 
 	indexUrl := base + "/manifests/" + tag
-	indexBody, err := getByteArray(indexUrl, githubToken, "application/vnd.oci.image.index.v1+json")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get index json: %w from: %s", err, indexUrl)
+
+	idx, err2 := FetchImageIndex(indexUrl, logger)
+	if err2 != nil {
+		return nil, err2
 	}
 
-	logger.Debug("successfully fetched index json")
-	var idx ImageIndex
-	if err := json.Unmarshal(indexBody, &idx); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal index json: %w %s", err, string(indexBody))
-	}
-
+	githubToken := GetGithubToken()
 	var indexDigest = ""
 	for _, manifest := range idx.Manifests {
 		// we expect only one index manifest
@@ -119,6 +120,22 @@ func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slo
 	return extractedFiles, nil
 }
 
+func FetchImageIndex(indexUrl string, logger *slog.Logger) (ImageIndex, error) {
+	githubToken := GetGithubToken()
+
+	indexBody, err := getByteArray(indexUrl, githubToken, "application/vnd.oci.image.index.v1+json")
+	if err != nil {
+		return ImageIndex{}, fmt.Errorf("failed to get index json: %w from: %s", err, indexUrl)
+	}
+
+	logger.Debug("successfully fetched index json")
+	var idx ImageIndex
+	if err := json.Unmarshal(indexBody, &idx); err != nil {
+		return ImageIndex{}, fmt.Errorf("failed to unmarshal index json: %w %s", err, string(indexBody))
+	}
+	return idx, nil
+}
+
 func getByteArray(url string, githubToken string, contentType string) ([]byte, error) {
 	response, err := get(url, githubToken, contentType)
 	if err != nil {
@@ -157,8 +174,10 @@ func get(url string, githubToken string, contentType string) (*http.Response, er
 		return nil, err
 	}
 	request.Header.Set("Accept", contentType)
-	encodedToken := base64.StdEncoding.EncodeToString([]byte(githubToken))
-	request.Header.Set("Authorization", "Bearer "+encodedToken)
+	if githubToken != "" {
+		encodedToken := base64.StdEncoding.EncodeToString([]byte(githubToken))
+		request.Header.Set("Authorization", "Bearer "+encodedToken)
+	}
 
 	client := &http.Client{}
 	response, err := client.Do(request)
