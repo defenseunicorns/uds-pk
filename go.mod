@@ -17,7 +17,6 @@ require (
 	go.yaml.in/yaml/v4 v4.0.0-rc.2
 	golang.org/x/oauth2 v0.30.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
-	oras.land/oras-go/v2 v2.6.0
 )
 
 require (
@@ -26,11 +25,8 @@ require (
 	github.com/minio/minlz v1.0.0 // indirect
 	github.com/olekukonko/errors v1.1.0 // indirect
 	github.com/olekukonko/ll v0.0.9 // indirect
-	github.com/opencontainers/go-digest v1.0.0 // indirect
-	github.com/opencontainers/image-spec v1.1.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20250808145144-a408d31f581a // indirect
-	golang.org/x/sync v0.16.0 // indirect
 )
 
 require (
