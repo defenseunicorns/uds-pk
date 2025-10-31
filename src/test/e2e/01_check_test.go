@@ -32,6 +32,16 @@ func TestCheckCommand(t *testing.T) {
 	require.NoError(t, err, stdout, stderr)
 
 	require.Contains(t, stderr, "Version is not published version=\"testing-dummy\"")
+
+	stdout, stderr, err = e2e.UDSPK("release", "check", "-d", "src/test", "-r", srv.URL+"/registry-path", "--verbose", "--plain-http")
+	require.NoError(t, err, stdout, stderr)
+
+	require.Contains(t, stderr, "Version is not published version=\"1.0.0-flavorless.0\"")
+
+	stdout, stderr, err = e2e.UDSPK("release", "check", "-d", "src/test", "-p", "dummy", "-r", srv.URL+"/registry-path", "--plain-http")
+	require.Error(t, err, stdout, stderr)
+
+	require.Contains(t, stderr, "no release necessary")
 }
 
 func TestCheckCommandBool(t *testing.T) {
@@ -55,7 +65,7 @@ func mockRepositoryServer() *httptest.Server {
 		fmt.Println("[http mock] handling" + r.URL.Path)
 		if strings.HasPrefix(r.URL.Path, "/v2/registry-path/manifests/") {
 			tag := strings.TrimPrefix(r.URL.Path, "/v2/registry-path/manifests/")
-			if tag == "testing-dummy" {
+			if tag == "testing-dummy" || tag == "flavorless-testing" {
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = w.Write([]byte(`{
   							"manifests": [

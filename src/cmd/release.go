@@ -102,7 +102,10 @@ var checkCmd = &cobra.Command{
 		effectiveResult := false
 		// if the tag doesn't exist, we're sure we have to re-publish:
 		if tagExists {
-			repoTag := fmt.Sprintf("%s-%s", currentFlavor.Version, currentFlavor.Name)
+			repoTag := currentFlavor.Version
+			if currentFlavor.Name != "" {
+				repoTag = fmt.Sprintf("%s-%s", repoTag, currentFlavor.Name)
+			}
 
 			// otherwise let's see if publishing was successful:
 			result, err := checkPackageExists(repositoryUrl, repoTag, arch, logger)
