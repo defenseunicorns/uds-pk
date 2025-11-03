@@ -237,9 +237,11 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 					break
 				}
 			}
-			releasedScanFile, err := findMatchingScan(imageName, releasedFlavorResults, log)
-			if err != nil {
-				return err
+			releasedScanFile, found := findMatchingScan(imageName, releasedFlavorResults, log)
+			if !found {
+				builder.WriteString(fmt.Sprintf("### %s: No released scan found for image\n", imageName))
+				builder.WriteString("This is likely a new image\n")
+				continue
 			}
 			log.Debug("Comparing files: ", slog.String("base", releasedScanFile), slog.String("new", scanFile))
 			markdownTable, err := compareScans(releasedScanFile, scanFile, &options.Compare)
@@ -281,13 +283,13 @@ func extractImageName(imageURL string) string {
 	return filepath.Base(imagePath)
 }
 
-func findMatchingScan(imageName string, releasedResults map[string]string, logger *slog.Logger) (string, error) {
+func findMatchingScan(imageName string, releasedResults map[string]string, logger *slog.Logger) (string, bool) {
 	for _, scanFile := range releasedResults {
 		if strings.Contains(scanFile, "/"+imageName+"_") {
-			return scanFile, nil
+			return scanFile, true
 		}
 	}
-	return "", fmt.Errorf("could not find matching scan for %s", imageName)
+	return "", false
 }
 
 func ScanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions, log *slog.Logger, verbose bool) (map[string]map[string]string, error) {

@@ -316,6 +316,61 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 	}
 }
 
+func TestScanAndCompare_MissingReleasedImage_PrintsNotice(t *testing.T) {
+	options := cmd.ScanAndCompareOptions{}
+	// No image name overrides: elasticsearch-exporter current image will not match released 'elasticsearch'
+
+	// Mock GitHub API with helper: provide a single released tag for the flavor
+	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/versions") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id":1, "metadata": {"container": {"tags": ["8.16.0-registry1"]}}}]`))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/orgs/") && strings.Contains(r.URL.Path, "/packages/container/") {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	// Mock SBOM fetch for the released artifact, pointing to an elasticsearch image
+	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
+
+	tmp := t.TempDir()
+	outFile := filepath.Join(tmp, "compare_missing.md")
+	options.Scan.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
+	options.Scan.Scan.OutputDirectory = filepath.Join(tmp, "out")
+	options.Scan.Scan.ExecCommand = fakeExecCommand
+	options.ScanAndCompareOutputFile = outFile
+
+	ctx := context.Background()
+	command := &cobra.Command{}
+	ctx = cmd.InitLoggerContext(true, ctx)
+	command.SetContext(ctx)
+	if err := options.Run(command, []string{}); err != nil {
+		t.Fatalf("scan compare (missing released image) failed: %v", err)
+	}
+
+	b, rerr := os.ReadFile(outFile)
+	if rerr != nil {
+		t.Fatalf("failed to read output file: %v", rerr)
+	}
+	out := string(b)
+
+	// Expect the notice about missing released scan for the current image
+	if !strings.Contains(out, "No released scan found for image") {
+		t.Fatalf("expected missing released image notice, got output: %s", out)
+	}
+	if !strings.Contains(out, "elasticsearch-exporter") {
+		t.Fatalf("expected output to mention image name 'elasticsearch-exporter', got: %s", out)
+	}
+	// And we should not have a comparison table for vulnerabilities
+	if strings.Contains(out, "New vulnerabilities:") {
+		t.Fatalf("did not expect a comparison table when released image is missing, got: %s", out)
+	}
+}
+
 // withMockGitHub starts a test HTTP server with the given handler and
 // overrides NewGithubClient to point to it. Cleanup is automatic via t.Cleanup.
 func withMockGitHub(t *testing.T, handler http.Handler) {
