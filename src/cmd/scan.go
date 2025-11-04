@@ -241,7 +241,9 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 			if !found {
 				builder.WriteString(fmt.Sprintf("### %s: No released scan found for image\n", imageName))
 				builder.WriteString("This is likely a new image\n")
-				continue
+				// aligning with how it worked in callable-scan, we print all the vulnerabilities as existing ones
+				// for images that are newly added
+				releasedScanFile = scanFile
 			}
 			log.Debug("Comparing files: ", slog.String("base", releasedScanFile), slog.String("new", scanFile))
 			markdownTable, err := compareScans(releasedScanFile, scanFile, &options.Compare)

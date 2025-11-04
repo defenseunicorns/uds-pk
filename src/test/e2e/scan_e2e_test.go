@@ -366,8 +366,8 @@ func TestScanAndCompare_MissingReleasedImage_PrintsNotice(t *testing.T) {
 		t.Fatalf("expected output to mention image name 'elasticsearch-exporter', got: %s", out)
 	}
 	// And we should not have a comparison table for vulnerabilities
-	if strings.Contains(out, "New vulnerabilities:") {
-		t.Fatalf("did not expect a comparison table when released image is missing, got: %s", out)
+	if !strings.Contains(out, "Existing vulnerabilities: 1") {
+		t.Fatalf("Expected the 1 vulnerability in the new image to be listed as existing vulnerability, got: %s", out)
 	}
 }
 
