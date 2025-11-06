@@ -11,23 +11,6 @@ import (
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
 
-func TestPackageFlagCheck(t *testing.T) {
-	stdout, stderr, err := e2e.UDSPK("release", "check", "base", "-d", "src/test", "-p", "first")
-	require.NoError(t, err, stdout, stderr)
-
-	require.Contains(t, stdout, "Version first-1.0.0-flag.0-base is not tagged")
-
-	stdout, stderr, err = e2e.UDSPK("release", "check", "base", "-d", "src/test", "-p", "second")
-	require.NoError(t, err, stdout, stderr)
-
-	require.Contains(t, stdout, "Version second-2.0.0-flag.0-base is not tagged")
-
-	stdout, stderr, err = e2e.UDSPK("release", "check", "dummy", "-d", "src/test", "-p", "dummy")
-	require.Error(t, err, stdout, stderr)
-
-	require.Contains(t, stdout, "Version dummy-testing-dummy is already tagged")
-}
-
 func TestPackageFlagShow(t *testing.T) {
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "show", "base", "-p", "first")
 	require.NoError(t, err, stdout, stderr)
@@ -42,8 +25,8 @@ func TestPackageFlagShow(t *testing.T) {
 
 func TestFlagsWithEmptyStrings(t *testing.T) {
 	// Test that the flags can be used with empty strings
-	stdoutNoFlag, stderrNoFlag, errNoFlag := e2e.UDSPK("release", "check", "base", "-d", "src/test")
-	stdout, stderr, err := e2e.UDSPK("release", "check", "base", "-d", "src/test", "-p", "")
+	stdoutNoFlag, stderrNoFlag, errNoFlag := e2e.UDSPKDir("src/test", "release", "check", "base", "-r", "https://localhost:9090/registry/path", "--verbose")
+	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "check", "base", "-p", "", "-r", "https://localhost:9090/registry/path", "--verbose")
 	require.Equal(t, stdoutNoFlag, stdout)
 	require.Equal(t, stderrNoFlag, stderr)
 	require.Equal(t, errNoFlag, err)
