@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/platforms/github"
@@ -22,7 +23,7 @@ var releaseDir string
 var packageName string
 var checkBoolOutput bool
 var usePlainHTTP bool
-var repositoryUrl string
+var baseRepo string
 var arch string
 var showVersionOnly bool
 var gitlabTokenVarName string
@@ -70,9 +71,11 @@ var checkCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 		logger := Logger(&ctx)
-		if repositoryUrl == "" {
-			return errors.New("repository url is required")
+
+		if strings.HasSuffix(baseRepo, "/") {
+			baseRepo = baseRepo[:len(baseRepo)-1]
 		}
+		logger.Debug("Checking if package exists", slog.String("baseRepo", baseRepo), slog.String("arch", arch))
 
 		rootCmd.SilenceUsage = true
 		var flavor string
@@ -92,6 +95,15 @@ var checkCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		var repositoryUrl string
+		if flavor == "unicorn" {
+			repositoryUrl = baseRepo + "/private/" + packageName
+		} else {
+			repositoryUrl = baseRepo + "/" + packageName
+		}
+
+		logger.Debug("Checking if package exists", slog.String("repository", repositoryUrl))
 
 		formattedVersion := utils.GetFormattedVersion(packageName, currentFlavor.Version, currentFlavor.Name)
 
@@ -278,7 +290,7 @@ var checkBundleCommand = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rootCmd.SilenceUsage = true
-
+		//mstodo: change repo url to base repo + extracted package name, and so on
 		bundleName := args[0]
 
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
@@ -399,7 +411,7 @@ func init() {
 	releaseCmd.PersistentFlags().StringVarP(&releaseDir, "dir", "d", ".", "Path to the directory containing the releaser.yaml file")
 
 	checkCmd.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
-	checkCmd.Flags().StringVarP(&repositoryUrl, "repository-url", "r", "", "Repository URL.")
+	checkCmd.Flags().StringVarP(&baseRepo, "base-repo", "r", "ghcr.io/uds-packages", "Repository URL.")
 	checkCmd.Flags().StringVarP(&arch, "arch", "a", "amd64", "Architecture to check (e.g. amd64, arm64). amd64 by default.")
 	checkCmd.Flags().BoolVar(&usePlainHTTP, "plain-http", false, "TEST ONLY Use plain HTTP instead of HTTPS for repository URL")
 
