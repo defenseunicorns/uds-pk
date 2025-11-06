@@ -51,7 +51,7 @@ func checkPackageExists(repositoryURL, tag, arch string, logger *slog.Logger) (b
 		return false, err
 	}
 	metadataUrl := fmt.Sprintf("%s://%s/v2/%s/manifests/%s", httpScheme, parsedUrl.Host, parsedUrl.Path[1:], tag)
-	logger.Debug("Checking if package exists", slog.String("metadataUrl", metadataUrl), slog.String("http scheme", httpScheme)) // mstodo drop scheme
+	logger.Debug("Checking if package exists", slog.String("metadataUrl", metadataUrl))
 	index, err := utils.FetchImageIndex(metadataUrl, logger)
 	if err != nil {
 		return false, err
