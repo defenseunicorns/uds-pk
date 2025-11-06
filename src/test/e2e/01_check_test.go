@@ -20,29 +20,33 @@ func TestCheckCommand(t *testing.T) {
 
 	baseRegistryRepo := srv.URL + "/registry-path"
 
+	// there's no 1.0.0-uds.0-base tag, so we determine it needs a release
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "check", "base", "-r", baseRegistryRepo, "--verbose", "--plain-http")
 	require.NoError(t, err, stdout, stderr)
-
 	require.Contains(t, stderr, "Version is not published version=\"1.0.0-uds.0-base\"")
 
+	// testing-dummy version is published for amd64, no release necessary
 	stdout, stderr, err = e2e.UDSPKDir("src/test", "release", "check", "dummy", "-r", baseRegistryRepo, "--verbose", "--plain-http")
 	require.Error(t, err, stdout, stderr)
-
 	require.Contains(t, stderr, "no release necessary")
 
+	// testing-dummy version is not published for arm64, but we have a tag
 	stdout, stderr, err = e2e.UDSPKDir("src/test", "release", "check", "dummy", "-r", baseRegistryRepo, "--verbose", "--plain-http", "--arch", "arm64")
 	require.NoError(t, err, stdout, stderr)
-
 	require.Contains(t, stderr, "Version is not published version=\"testing-dummy\"")
+
+	// so with --skip-publish-check we should determine it doesn't need a release
+	stdout, stderr, err = e2e.UDSPKDir("src/test", "release", "check", "dummy", "-r", baseRegistryRepo, "--verbose", "--plain-http", "--arch", "arm64", "--skip-publish-check")
+	require.Error(t, err, stdout, stderr)
+	require.Contains(t, stderr, "no release necessary")
 
 	stdout, stderr, err = e2e.UDSPKDir("src/test", "release", "check", "-r", baseRegistryRepo, "--verbose", "--plain-http")
 	require.NoError(t, err, stdout, stderr)
-
 	require.Contains(t, stderr, "Version is not published version=\"1.0.0-flavorless.0\"")
 
+	// checking version flavorless-testing - should not need a release
 	stdout, stderr, err = e2e.UDSPKDir("src/test", "release", "check", "-p", "dummy", "-r", baseRegistryRepo, "--plain-http")
 	require.Error(t, err, stdout, stderr)
-
 	require.Contains(t, stderr, "no release necessary")
 }
 

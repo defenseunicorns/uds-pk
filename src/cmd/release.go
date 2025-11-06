@@ -25,6 +25,7 @@ var checkBoolOutput bool
 var usePlainHTTP bool
 var baseRepo string
 var arch string
+var skipPublishCheck bool
 var showVersionOnly bool
 var gitlabTokenVarName string
 var githubTokenVarName string
@@ -114,29 +115,32 @@ var checkCmd = &cobra.Command{
 		effectiveResult := false
 		// if the tag doesn't exist, we're sure we have to re-publish:
 		if tagExists {
-			repoTag := currentFlavor.Version
-			if currentFlavor.Name != "" {
-				repoTag = fmt.Sprintf("%s-%s", repoTag, currentFlavor.Name)
-			}
-
-			var repositoryUrl string
-			if flavor == "unicorn" {
-				repositoryUrl = baseRepo + "/private/" + zarfPackageName
+			if skipPublishCheck {
+				effectiveResult = false
 			} else {
-				repositoryUrl = baseRepo + "/" + zarfPackageName
+				repoTag := currentFlavor.Version
+				if currentFlavor.Name != "" {
+					repoTag = fmt.Sprintf("%s-%s", repoTag, currentFlavor.Name)
+				}
+
+				var repositoryUrl string
+				if flavor == "unicorn" {
+					repositoryUrl = baseRepo + "/private/" + zarfPackageName
+				} else {
+					repositoryUrl = baseRepo + "/" + zarfPackageName
+				}
+
+				logger.Debug("Determined target repository", slog.String("repository", repositoryUrl))
+
+				// otherwise let's see if publishing was successful:
+				result, err := checkPackageExists(repositoryUrl, repoTag, arch, logger)
+				if err != nil {
+					logger.Warn("Failed to check if package exists, assuming it doesn't", slog.Any("err", err))
+					effectiveResult = true
+				} else {
+					effectiveResult = !result
+				}
 			}
-
-			logger.Debug("Determined target repository", slog.String("repository", repositoryUrl))
-
-			// otherwise let's see if publishing was successful:
-			result, err := checkPackageExists(repositoryUrl, repoTag, arch, logger)
-			if err != nil {
-				logger.Warn("Failed to check if package exists, assuming it doesn't", slog.Any("err", err))
-				effectiveResult = true
-			} else {
-				effectiveResult = !result
-			}
-
 		} else {
 			effectiveResult = true
 		}
@@ -422,6 +426,7 @@ func init() {
 	checkCmd.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
 	checkCmd.Flags().StringVarP(&baseRepo, "base-repo", "r", "ghcr.io/uds-packages", "Repository URL.")
 	checkCmd.Flags().StringVarP(&arch, "arch", "a", "amd64", "Architecture to check (e.g. amd64, arm64). amd64 by default.")
+	checkCmd.Flags().BoolVar(&skipPublishCheck, "skip-publish-check", false, "If enabled, the release check will be based solely on the tag existence.")
 	checkCmd.Flags().BoolVar(&usePlainHTTP, "plain-http", false, "TEST ONLY Use plain HTTP instead of HTTPS for repository URL")
 
 	showCmd.Flags().BoolVarP(&showVersionOnly, "version-only", "v", false, "Show only the version without flavor appended")
