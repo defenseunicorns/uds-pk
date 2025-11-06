@@ -77,6 +77,12 @@ var checkCmd = &cobra.Command{
 		}
 		logger.Debug("Checking if package exists", slog.String("baseRepo", baseRepo), slog.String("arch", arch))
 
+		var err error
+		zarfPackageName, err := utils.GetPackageName()
+		if err != nil {
+			return err
+		}
+
 		rootCmd.SilenceUsage = true
 		var flavor string
 
@@ -98,9 +104,9 @@ var checkCmd = &cobra.Command{
 
 		var repositoryUrl string
 		if flavor == "unicorn" {
-			repositoryUrl = baseRepo + "/private/" + packageName
+			repositoryUrl = baseRepo + "/private/" + zarfPackageName
 		} else {
-			repositoryUrl = baseRepo + "/" + packageName
+			repositoryUrl = baseRepo + "/" + zarfPackageName
 		}
 
 		logger.Debug("Checking if package exists", slog.String("repository", repositoryUrl))
