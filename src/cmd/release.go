@@ -82,6 +82,7 @@ var checkCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		logger.Debug("Package name", slog.String("zarfPackageName", zarfPackageName))
 
 		rootCmd.SilenceUsage = true
 		var flavor string
@@ -91,25 +92,19 @@ var checkCmd = &cobra.Command{
 		} else {
 			flavor = args[0]
 		}
+		logger.Debug("flavor", slog.String("flavor", flavor))
 
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
 		if err != nil {
 			return err
 		}
+		logger.Debug("read release config")
 
 		_, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
 		if err != nil {
 			return err
 		}
-
-		var repositoryUrl string
-		if flavor == "unicorn" {
-			repositoryUrl = baseRepo + "/private/" + zarfPackageName
-		} else {
-			repositoryUrl = baseRepo + "/" + zarfPackageName
-		}
-
-		logger.Debug("Checking if package exists", slog.String("repository", repositoryUrl))
+		logger.Debug("read current flavor", slog.String("version", currentFlavor.Version), slog.String("name", currentFlavor.Name))
 
 		formattedVersion := utils.GetFormattedVersion(packageName, currentFlavor.Version, currentFlavor.Name)
 
@@ -124,6 +119,15 @@ var checkCmd = &cobra.Command{
 			if currentFlavor.Name != "" {
 				repoTag = fmt.Sprintf("%s-%s", repoTag, currentFlavor.Name)
 			}
+
+			var repositoryUrl string
+			if flavor == "unicorn" {
+				repositoryUrl = baseRepo + "/private/" + zarfPackageName
+			} else {
+				repositoryUrl = baseRepo + "/" + zarfPackageName
+			}
+
+			logger.Debug("Determined target repository", slog.String("repository", repositoryUrl))
 
 			// otherwise let's see if publishing was successful:
 			result, err := checkPackageExists(repositoryUrl, repoTag, arch, logger)
@@ -296,7 +300,7 @@ var checkBundleCommand = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		rootCmd.SilenceUsage = true
-		//mstodo: change repo url to base repo + extracted package name, and so on
+
 		bundleName := args[0]
 
 		releaseConfig, err := utils.LoadReleaseConfig(releaseDir)
@@ -443,5 +447,6 @@ func init() {
 	bundleGithubCmd.Flags().StringVarP(&githubTokenVarName, "token-var-name", "t", "GITHUB_TOKEN", "Environment variable name for GitHub token")
 
 	checkBundleCommand.Flags().BoolVarP(&checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
+
 	showBundleCommand.Flags().BoolVarP(&showTag, "tag", "t", false, "Show the full tag including bundle name instead of just the version")
 }

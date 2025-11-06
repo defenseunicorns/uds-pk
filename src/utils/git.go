@@ -30,13 +30,13 @@ func DoesTagExist(tag string) (bool, error) {
 }
 
 func OpenRepo() (*git.Repository, error) {
-	return git.PlainOpen(".")
+	return git.PlainOpenWithOptions(".", &git.PlainOpenOptions{DetectDotGit: true})
 }
 
 func GetRepoInfo() (remoteURL string, defaultBranch string, err error) {
 	repo, err := OpenRepo()
 	if err != nil {
-		return "", "",  err
+		return "", "", err
 	}
 
 	remote, err := repo.Remote("origin")

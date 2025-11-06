@@ -25,8 +25,8 @@ func TestPackageFlagShow(t *testing.T) {
 
 func TestFlagsWithEmptyStrings(t *testing.T) {
 	// Test that the flags can be used with empty strings
-	stdoutNoFlag, stderrNoFlag, errNoFlag := e2e.UDSPK("release", "check", "base", "-d", "src/test", "-r", "https://localhost:9090/registry/path")
-	stdout, stderr, err := e2e.UDSPK("release", "check", "base", "-d", "src/test", "-p", "", "-r", "https://localhost:9090/registry/path")
+	stdoutNoFlag, stderrNoFlag, errNoFlag := e2e.UDSPKDir("src/test", "release", "check", "base", "-r", "https://localhost:9090/registry/path", "--verbose")
+	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "check", "base", "-p", "", "-r", "https://localhost:9090/registry/path", "--verbose")
 	require.Equal(t, stdoutNoFlag, stdout)
 	require.Equal(t, stderrNoFlag, stderr)
 	require.Equal(t, errNoFlag, err)
