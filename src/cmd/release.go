@@ -72,9 +72,8 @@ var checkCmd = &cobra.Command{
 		ctx := cmd.Context()
 		logger := Logger(&ctx)
 
-		if strings.HasSuffix(baseRepo, "/") {
-			baseRepo = baseRepo[:len(baseRepo)-1]
-		}
+		baseRepo = strings.TrimSuffix(baseRepo, "/")
+
 		logger.Debug("Checking if package exists", slog.String("baseRepo", baseRepo), slog.String("arch", arch))
 
 		var err error
