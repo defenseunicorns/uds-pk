@@ -4,8 +4,11 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
+	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/types"
 	goyaml "github.com/goccy/go-yaml"
@@ -27,6 +30,12 @@ func LoadReleaseConfig(dir string) (types.ReleaseConfig, error) {
 }
 
 func LoadYaml(path string, destVar any) error {
+	// mstodo: drop this
+	if strings.HasPrefix(path, "/") {
+		fmt.Println("WARNING: Loading YAML from a path that starts with a slash. This is not recommended.")
+		debug.PrintStack()
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err

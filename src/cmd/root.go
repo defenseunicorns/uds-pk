@@ -30,7 +30,9 @@ var deprecatedCheckCmd = &cobra.Command{
 	Hidden: true,
 	RunE: func(_ *cobra.Command, args []string) error {
 		fmt.Println("'uds-pk check' has been moved to 'uds-pk release check' use of check at the command root will be removed in v0.1.0")
-		return checkCmd.RunE(checkCmd, args)
+		cmd := checkCmd()
+		cmd.SetArgs(args)
+		return cmd.Execute()
 	},
 }
 
@@ -41,7 +43,9 @@ var deprecatedShowCmd = &cobra.Command{
 	Hidden: true,
 	RunE: func(_ *cobra.Command, args []string) error {
 		fmt.Println("'uds-pk show' has been move to 'uds-pk release show' use of check at the command root will be removed in v0.1.0")
-		return showCmd.RunE(showCmd, args)
+		cmd := showCmd()
+		cmd.SetArgs(args)
+		return cmd.Execute()
 	},
 }
 
@@ -52,7 +56,9 @@ var deprecatedUpdateYamlCmd = &cobra.Command{
 	Hidden: true,
 	RunE: func(_ *cobra.Command, args []string) error {
 		fmt.Println("'uds-pk update-yaml' has been move to 'uds-pk release update-yaml' use of check at the command root will be removed in v0.1.0")
-		return updateYamlCmd.RunE(updateYamlCmd, args)
+		cmd := updateYamlCmd()
+		cmd.SetArgs(args)
+		return cmd.Execute()
 	},
 }
 

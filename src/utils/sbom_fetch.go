@@ -146,7 +146,7 @@ func getByteArray(url string, githubToken string, contentType string) ([]byte, e
 	return body, err
 }
 
-func walkRemoteTarArchive(url string, githubToken string, logger *slog.Logger, entryHandler func(hdr *tar.Header, entry io.Reader) error) error {
+func walkRemoteTarArchive(url string, githubToken string, _ *slog.Logger, entryHandler func(hdr *tar.Header, entry io.Reader) error) error {
 	response, err := get(url, githubToken, "application/octet-stream")
 	if err != nil {
 		return err
