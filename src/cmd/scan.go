@@ -423,7 +423,7 @@ var FetchSboms = utils.FetchSboms
 
 func createGithubClient(ctx *context.Context) *github.Client {
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: utils.GetGithubToken()},
+		&oauth2.Token{AccessToken: utils.GetAuthToken()},
 	)
 	tc := oauth2.NewClient(*ctx, ts)
 	return github.NewClient(tc)

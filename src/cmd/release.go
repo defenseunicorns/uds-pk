@@ -447,11 +447,6 @@ func (options *ShowBundleOptions) run(cmd *cobra.Command, args []string) error {
 
 	bundleName := args[0]
 
-	// mstodo: drop this
-	ctx := cmd.Context()
-	log := Logger(&ctx)
-	// mstodo lower this log to Debug
-	log.Info("Loading bundle config", slog.String("bundleName", bundleName), slog.String("releaseDir", options.releaseDir))
 	releaseConfig, err := utils.LoadReleaseConfig(options.releaseDir)
 	if err != nil {
 		return err
