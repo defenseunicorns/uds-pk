@@ -122,6 +122,7 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 
 	tagExists, err := utils.DoesTagExist(formattedVersion)
 	if err != nil {
+		log.Warn("Failed to check if tag exists, assuming it doesn't", slog.Any("err", err))
 		return err
 	}
 	effectiveResult := false
@@ -154,6 +155,7 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 			}
 		}
 	} else {
+		log.Debug("Tag doesn't exist, we have to publish")
 		effectiveResult = true
 	}
 
