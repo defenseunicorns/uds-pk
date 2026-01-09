@@ -155,7 +155,7 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 			}
 		}
 	} else {
-		log.Debug("Tag doesn't exist, we have to publish")
+		log.Debug("Tag doesn't exist, we have to publish", slog.String("tag", formattedVersion))
 		effectiveResult = true
 	}
 
@@ -169,7 +169,7 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 		if options.checkBoolOutput {
 			fmt.Println("false")
 		} else {
-			log.Info("Version is already tagged", slog.String("version", formattedVersion))
+			log.Info("Version is already tagged", slog.String("tag", formattedVersion))
 			return errors.New("no release necessary")
 		}
 	}
