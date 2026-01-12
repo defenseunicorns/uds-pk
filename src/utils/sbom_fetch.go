@@ -18,7 +18,13 @@ import (
 )
 
 type IndexEntry struct {
-	Digest string `json:"digest"`
+	Digest   string   `json:"digest"`
+	Platform Platform `json:"platform"`
+}
+
+type Platform struct {
+	Architecture string `json:"architecture"`
+	OS           string `json:"os"`
 }
 
 type ImageIndex struct {
@@ -34,8 +40,13 @@ type ImageManifest struct {
 	Layers []Layer `json:"layers"`
 }
 
-func GetGithubToken() string {
-	return os.Getenv("GITHUB_TOKEN")
+func GetAuthToken() string {
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken != "" {
+		return base64.StdEncoding.EncodeToString([]byte(githubToken))
+	}
+	gitlabToken := os.Getenv("GITLAB_RELEASE_TOKEN")
+	return gitlabToken
 }
 
 // FetchSboms fetches the sboms from the given Zarf image reference
@@ -44,22 +55,17 @@ func GetGithubToken() string {
 // in this manifest, it searches for sboms.tar.
 // Contents of this file are extracted to the outputDir, and their names are returned
 func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slog.Logger) ([]string, error) {
-	githubToken := GetGithubToken()
 
 	base := "https://ghcr.io/v2/" + repoOwner + "/" + packageUrl
 
 	indexUrl := base + "/manifests/" + tag
-	indexBody, err := getByteArray(indexUrl, githubToken, "application/vnd.oci.image.index.v1+json")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get index json: %w from: %s", err, indexUrl)
+
+	idx, err2 := FetchImageIndex(indexUrl, logger)
+	if err2 != nil {
+		return nil, err2
 	}
 
-	logger.Debug("successfully fetched index json")
-	var idx ImageIndex
-	if err := json.Unmarshal(indexBody, &idx); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal index json: %w %s", err, string(indexBody))
-	}
-
+	authToken := GetAuthToken()
 	var indexDigest = ""
 	for _, manifest := range idx.Manifests {
 		// we expect only one index manifest
@@ -68,7 +74,7 @@ func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slo
 	}
 
 	manifestUrl := base + "/manifests/" + indexDigest
-	manifestBody, err := getByteArray(manifestUrl, githubToken, "application/vnd.oci.image.manifest.v1+json")
+	manifestBody, err := getByteArray(manifestUrl, authToken, "application/vnd.oci.image.manifest.v1+json")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get manifest json: %w from: %s", err, manifestUrl)
 	}
@@ -91,7 +97,7 @@ func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slo
 
 	var extractedFiles []string
 
-	if err := walkRemoteTarArchive(sbomsUrl, githubToken, logger, func(header *tar.Header, entry io.Reader) error {
+	if err := walkRemoteTarArchive(sbomsUrl, authToken, logger, func(header *tar.Header, entry io.Reader) error {
 		logger.Debug("extracting sbom", slog.String("name", header.Name))
 		if header.Typeflag == tar.TypeReg && strings.HasSuffix(header.Name, "json") {
 			outPath := filepath.Join(outputDir, header.Name)
@@ -119,8 +125,24 @@ func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slo
 	return extractedFiles, nil
 }
 
-func getByteArray(url string, githubToken string, contentType string) ([]byte, error) {
-	response, err := get(url, githubToken, contentType)
+func FetchImageIndex(indexUrl string, logger *slog.Logger) (ImageIndex, error) {
+	authToken := GetAuthToken()
+
+	indexBody, err := getByteArray(indexUrl, authToken, "application/vnd.oci.image.index.v1+json")
+	if err != nil {
+		return ImageIndex{}, fmt.Errorf("failed to get index json: '%w' from: %s", err, indexUrl)
+	}
+
+	logger.Debug("successfully fetched index json")
+	var idx ImageIndex
+	if err := json.Unmarshal(indexBody, &idx); err != nil {
+		return ImageIndex{}, fmt.Errorf("failed to unmarshal index json: %w %s", err, string(indexBody))
+	}
+	return idx, nil
+}
+
+func getByteArray(url string, authToken string, contentType string) ([]byte, error) {
+	response, err := get(url, authToken, contentType)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +151,7 @@ func getByteArray(url string, githubToken string, contentType string) ([]byte, e
 	return body, err
 }
 
-func walkRemoteTarArchive(url string, githubToken string, logger *slog.Logger, entryHandler func(hdr *tar.Header, entry io.Reader) error) error {
+func walkRemoteTarArchive(url string, githubToken string, log *slog.Logger, entryHandler func(hdr *tar.Header, entry io.Reader) error) error {
 	response, err := get(url, githubToken, "application/octet-stream")
 	if err != nil {
 		return err
@@ -151,14 +173,15 @@ func walkRemoteTarArchive(url string, githubToken string, logger *slog.Logger, e
 	return nil
 }
 
-func get(url string, githubToken string, contentType string) (*http.Response, error) {
+func get(url string, authToken string, contentType string) (*http.Response, error) {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 	request.Header.Set("Accept", contentType)
-	encodedToken := base64.StdEncoding.EncodeToString([]byte(githubToken))
-	request.Header.Set("Authorization", "Bearer "+encodedToken)
+	if authToken != "" {
+		request.Header.Set("Authorization", "Bearer "+authToken)
+	}
 
 	client := &http.Client{}
 	response, err := client.Do(request)

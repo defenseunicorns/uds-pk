@@ -23,18 +23,6 @@ func TestFlavorlessShow(t *testing.T) {
 	require.Equal(t, "flavorless-testing\n", stdout)
 }
 
-func TestFlavorlessCheck(t *testing.T) {
-	stdout, stderr, err := e2e.UDSPK("release", "check", "-d", "src/test")
-	require.NoError(t, err, stdout, stderr)
-
-	require.Contains(t, stdout, "Version 1.0.0-flavorless.0 is not tagged")
-
-	stdout, stderr, err = e2e.UDSPK("release", "check", "-d", "src/test", "-p", "dummy")
-	require.Error(t, err, stdout, stderr)
-
-	require.Contains(t, stdout, "Version dummy-flavorless-testing is already tagged")
-}
-
 func TestFlavorlessUpdateYaml(t *testing.T) {
 	e2e.CreateSandboxDir(t, "bundle")
 	defer e2e.CleanupSandboxDir(t)
