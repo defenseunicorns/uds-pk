@@ -245,7 +245,9 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 	scanReleasedOptions.Scan.ExecCommand = fakeExecCommand
 	outDir := filepath.Join(tmp, "out")
 
-	res, err := cmd.ScanReleased(outDir, &scanReleasedOptions, log, true)
+	ctx := context.Background()
+	ctx = cmd.InitLoggerContext(true, ctx)
+	res, err := cmd.ScanReleased(&ctx, outDir, &scanReleasedOptions, log, true)
 	if err != nil {
 		t.Fatalf("scan-released failed: %v", err)
 	}

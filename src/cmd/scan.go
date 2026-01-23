@@ -92,7 +92,7 @@ func (options *ScanReleasedOptions) run(cmd *cobra.Command, _ []string) error {
 			return err
 		}
 	}
-	_, err := ScanReleased(options.Scan.OutputDirectory, options, log, verbose)
+	_, err := ScanReleased(&ctx, options.Scan.OutputDirectory, options, log, verbose)
 	return err
 }
 
@@ -212,7 +212,7 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 	}
 
 	releasedScanOutDir := path.Join(outputDirectory, "released")
-	releasedScanResults, err := ScanReleased(releasedScanOutDir, &options.Scan, log, verbose)
+	releasedScanResults, err := ScanReleased(&ctx, releasedScanOutDir, &options.Scan, log, verbose)
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func ScanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions, l
 	return scanImagesResult, nil
 }
 
-func ScanReleased(outDirectory string, options *ScanReleasedOptions, log *slog.Logger, verbose bool) (map[string]map[string]string, error) {
+func ScanReleased(ctx *context.Context, outDirectory string, options *ScanReleasedOptions, log *slog.Logger, verbose bool) (map[string]map[string]string, error) {
 	log.Debug("Scan command invoked", slog.String("zarfLocation", options.Scan.ZarfYamlLocation))
 	pkg, err1 := parseZarfYaml(&options.Scan)
 	sbomScanResults := make(map[string]map[string]string)
@@ -347,17 +347,16 @@ func ScanReleased(outDirectory string, options *ScanReleasedOptions, log *slog.L
 	}
 	encodedPrivateUrl := url.PathEscape(privateRepoUrl)
 
-	ctx := context.Background()
-	client := NewGithubClient(&ctx)
+	client := NewGithubClient(ctx)
 
 	var packageUrls []string
-	if exists, err := checkPackageExistenceInRepo(client, &ctx, options.Fetch.RepoOwner, encodedPublicUrl, log); err != nil {
+	if exists, err := checkPackageExistenceInRepo(client, ctx, options.Fetch.RepoOwner, encodedPublicUrl, log); err != nil {
 		return sbomScanResults, fmt.Errorf("failed to check package existence for URL: %s, %w", encodedPublicUrl, err)
 	} else if exists {
 		log.Debug("Package exists in public repo, adding it to fetch", slog.String("packageUrl", publicRepoUrl))
 		packageUrls = append(packageUrls, publicRepoUrl)
 	}
-	if exists, err := checkPackageExistenceInRepo(client, &ctx, options.Fetch.RepoOwner, encodedPrivateUrl, log); err != nil {
+	if exists, err := checkPackageExistenceInRepo(client, ctx, options.Fetch.RepoOwner, encodedPrivateUrl, log); err != nil {
 		return sbomScanResults, fmt.Errorf("failed to check package existence for URL: %s, %w", encodedPrivateUrl, err)
 	} else if exists {
 		log.Debug("Package exists in private repo, adding it to fetch", slog.String("packageUrl", privateRepoUrl))
@@ -378,7 +377,7 @@ func ScanReleased(outDirectory string, options *ScanReleasedOptions, log *slog.L
 	flavors := determineFlavors(&pkg)
 	log.Debug("Flavors", slog.Any("flavors", flavors))
 
-	flavorToSboms, err := fetchSbomsForFlavors(&ctx, client, packageUrls, flavors, options.Fetch.RepoOwner, tempDir, log)
+	flavorToSboms, err := fetchSbomsForFlavors(ctx, client, packageUrls, flavors, options.Fetch.RepoOwner, tempDir, log)
 	if err != nil {
 		return sbomScanResults, err
 	}
