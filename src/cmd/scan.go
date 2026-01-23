@@ -425,9 +425,25 @@ func ScanReleased(outDirectory string, options *ScanReleasedOptions, log *slog.L
 var NewGithubClient = createGithubClient
 var FetchSboms = utils.FetchSboms
 
+func getAuthToken() string {
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	if githubToken != "" {
+		return githubToken
+	}
+	return os.Getenv("GITLAB_RELEASE_TOKEN")
+}
+
 func createGithubClient(ctx *context.Context) *github.Client {
+	log := Logger(ctx)
+	// GitHub REST API requires raw token, not base64-encoded
+	token := getAuthToken()
+	if token == "" {
+		log.Warn("No GitHub token found in environment (GITHUB_TOKEN or GITLAB_RELEASE_TOKEN)")
+	} else {
+		log.Debug("GitHub token found for REST API", slog.Int("length", len(token)))
+	}
 	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: utils.GetAuthToken()},
+		&oauth2.Token{AccessToken: token},
 	)
 	tc := oauth2.NewClient(*ctx, ts)
 	return github.NewClient(tc)
@@ -515,7 +531,7 @@ func fetchSboms(tempDir string, tag string, repoOwner string, packageUrl string,
 }
 
 func checkPackageExistenceInRepo(client *github.Client, ctx *context.Context, owner string, pkgUrl string, log *slog.Logger) (bool, error) {
-	log.Debug("Checking if package %s exists in ", pkgUrl, owner)
+	log.Debug("Checking if package exists", slog.String("url", pkgUrl), slog.String("owner", owner))
 	apiPath := fmt.Sprintf("/orgs/%s/packages/container/%s", owner, pkgUrl)
 	req, err := client.NewRequest("GET", apiPath, nil)
 	if err != nil {
