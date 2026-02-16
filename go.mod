@@ -5,7 +5,7 @@ go 1.24.6
 require (
 	github.com/CycloneDX/cyclonedx-go v0.9.2
 	github.com/defenseunicorns/uds-cli v0.27.13
-	github.com/go-git/go-git/v5 v5.16.2
+	github.com/go-git/go-git/v5 v5.16.5
 	github.com/goccy/go-yaml v1.18.0
 	github.com/google/go-github/v69 v69.2.0
 	github.com/google/go-github/v73 v73.0.0
@@ -84,10 +84,10 @@ require (
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	gitlab.com/gitlab-org/api/client-go v0.146.0
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
-	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.28.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
