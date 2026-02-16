@@ -373,6 +373,51 @@ func TestScanAndCompare_MissingReleasedImage_PrintsNotice(t *testing.T) {
 	}
 }
 
+func TestScanReleased_PrivatePackageMissing(t *testing.T) {
+	log := cmd.CreateLogger(true)
+
+	// Mock GitHub API: public package exists, private package returns 404
+	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/versions") {
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id":1, "metadata": {"container": {"tags": ["8.16.0-registry1"]}}}]`))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/packages/container/") {
+			if strings.Contains(r.URL.Path, "private") {
+				w.WriteHeader(http.StatusNotFound)
+				_, _ = w.Write([]byte(`{"message":"Package not found."}`))
+				return
+			}
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
+
+	tmp := t.TempDir()
+
+	scanReleasedOptions := cmd.ScanReleasedOptions{}
+	scanReleasedOptions.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
+	scanReleasedOptions.Scan.ExecCommand = fakeExecCommand
+	scanReleasedOptions.Fetch.RepoOwner = "uds-packages"
+	scanReleasedOptions.Fetch.PrivatePackagesPrefix = "private"
+	outDir := filepath.Join(tmp, "out")
+
+	ctx := context.Background()
+	ctx = cmd.InitLoggerContext(true, ctx)
+	res, err := cmd.ScanReleased(&ctx, outDir, &scanReleasedOptions, log, true)
+	if err != nil {
+		t.Fatalf("scan-released should succeed when private package is missing, got: %v", err)
+	}
+	files := res["registry1"]
+	if len(files) != 1 {
+		t.Fatalf("expected 1 released scan result, got %d", len(files))
+	}
+}
+
 // withMockGitHub starts a test HTTP server with the given handler and
 // overrides NewGithubClient to point to it. Cleanup is automatic via t.Cleanup.
 func withMockGitHub(t *testing.T, handler http.Handler) {

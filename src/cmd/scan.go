@@ -539,6 +539,10 @@ func checkPackageExistenceInRepo(client *github.Client, ctx *context.Context, ow
 
 	resp, err := client.Do(*ctx, req, nil)
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			log.Debug("Package not found", slog.String("url", pkgUrl))
+			return false, nil
+		}
 		return false, err
 	}
 	defer resp.Body.Close() //nolint:errcheck
