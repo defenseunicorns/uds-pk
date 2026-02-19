@@ -70,23 +70,19 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	var outputBuilder strings.Builder
 
 	if newScan.Metadata.Component.Name == baseScan.Metadata.Component.Name {
-		outputBuilder.WriteString(
-			fmt.Sprintf(
-				"### %s `%s` -> `%s`\n\n",
-				baseScan.Metadata.Component.Name,
-				baseScan.Metadata.Component.Version,
-				newScan.Metadata.Component.Version,
-			),
+		fmt.Fprintf(&outputBuilder,
+			"### %s `%s` -> `%s`\n\n",
+			baseScan.Metadata.Component.Name,
+			baseScan.Metadata.Component.Version,
+			newScan.Metadata.Component.Version,
 		)
 	} else {
-		outputBuilder.WriteString(
-			fmt.Sprintf(
-				"### `%s:%s` -> `%s:%s`\n\n",
-				baseScan.Metadata.Component.Name,
-				baseScan.Metadata.Component.Version,
-				newScan.Metadata.Component.Name,
-				newScan.Metadata.Component.Version,
-			),
+		fmt.Fprintf(&outputBuilder,
+			"### `%s:%s` -> `%s:%s`\n\n",
+			baseScan.Metadata.Component.Name,
+			baseScan.Metadata.Component.Version,
+			newScan.Metadata.Component.Name,
+			newScan.Metadata.Component.Version,
 		)
 	}
 
