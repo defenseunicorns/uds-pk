@@ -86,9 +86,9 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 		)
 	}
 
-	outputBuilder.WriteString(fmt.Sprintf("New vulnerabilities: %d\n", newCount))
-	outputBuilder.WriteString(fmt.Sprintf("Fixed vulnerabilities: %d\n", fixedCount))
-	outputBuilder.WriteString(fmt.Sprintf("Existing vulnerabilities: %d\n\n", existingCount))
+	fmt.Fprintf(&outputBuilder, "New vulnerabilities: %d\n", newCount)
+	fmt.Fprintf(&outputBuilder, "Fixed vulnerabilities: %d\n", fixedCount)
+	fmt.Fprintf(&outputBuilder, "Existing vulnerabilities: %d\n\n", existingCount)
 
 	newVulnTableString := &strings.Builder{}
 	fixedVulnTableString := &strings.Builder{}
