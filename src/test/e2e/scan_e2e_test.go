@@ -235,7 +235,7 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
+	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "registry:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
 
@@ -286,7 +286,7 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
+	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "registry:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
 	outFile := filepath.Join(tmp, "compare.md")
@@ -337,7 +337,7 @@ func TestScanAndCompare_MissingReleasedImage_PrintsNotice(t *testing.T) {
 	}))
 
 	// Mock SBOM fetch for the released artifact, pointing to an elasticsearch image
-	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
+	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "registry:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
 	outFile := filepath.Join(tmp, "compare_missing.md")
@@ -395,7 +395,7 @@ func TestScanReleased_PrivatePackageMissing(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "docker:example.com/opensource/bitnami/elasticsearch:8.16.0")
+	withMockFetchSbomsUserInput(t, "elasticsearch_8.16.0.json", "registry:example.com/opensource/bitnami/elasticsearch:8.16.0")
 
 	tmp := t.TempDir()
 

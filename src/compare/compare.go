@@ -70,29 +70,25 @@ func GenerateComparisonMarkdown(baseScan cyclonedx.BOM, newScan cyclonedx.BOM, v
 	var outputBuilder strings.Builder
 
 	if newScan.Metadata.Component.Name == baseScan.Metadata.Component.Name {
-		outputBuilder.WriteString(
-			fmt.Sprintf(
-				"### %s `%s` -> `%s`\n\n",
-				baseScan.Metadata.Component.Name,
-				baseScan.Metadata.Component.Version,
-				newScan.Metadata.Component.Version,
-			),
+		fmt.Fprintf(&outputBuilder,
+			"### %s `%s` -> `%s`\n\n",
+			baseScan.Metadata.Component.Name,
+			baseScan.Metadata.Component.Version,
+			newScan.Metadata.Component.Version,
 		)
 	} else {
-		outputBuilder.WriteString(
-			fmt.Sprintf(
-				"### `%s:%s` -> `%s:%s`\n\n",
-				baseScan.Metadata.Component.Name,
-				baseScan.Metadata.Component.Version,
-				newScan.Metadata.Component.Name,
-				newScan.Metadata.Component.Version,
-			),
+		fmt.Fprintf(&outputBuilder,
+			"### `%s:%s` -> `%s:%s`\n\n",
+			baseScan.Metadata.Component.Name,
+			baseScan.Metadata.Component.Version,
+			newScan.Metadata.Component.Name,
+			newScan.Metadata.Component.Version,
 		)
 	}
 
-	outputBuilder.WriteString(fmt.Sprintf("New vulnerabilities: %d\n", newCount))
-	outputBuilder.WriteString(fmt.Sprintf("Fixed vulnerabilities: %d\n", fixedCount))
-	outputBuilder.WriteString(fmt.Sprintf("Existing vulnerabilities: %d\n\n", existingCount))
+	fmt.Fprintf(&outputBuilder, "New vulnerabilities: %d\n", newCount)
+	fmt.Fprintf(&outputBuilder, "Fixed vulnerabilities: %d\n", fixedCount)
+	fmt.Fprintf(&outputBuilder, "Existing vulnerabilities: %d\n\n", existingCount)
 
 	newVulnTableString := &strings.Builder{}
 	fixedVulnTableString := &strings.Builder{}

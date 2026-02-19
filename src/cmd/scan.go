@@ -239,7 +239,7 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 			}
 			releasedScanFile, found := findMatchingScan(imageName, releasedFlavorResults, log)
 			if !found {
-				builder.WriteString(fmt.Sprintf("### %s: No released scan found for image\n", imageName))
+				fmt.Fprintf(&builder, "### %s: No released scan found for image\n", imageName)
 				builder.WriteString("This is likely a new image\n")
 				// aligning with how it worked in callable-scan, we print all the vulnerabilities as existing ones
 				// for images that are newly added
@@ -274,7 +274,8 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 }
 
 func extractImageName(imageURL string) string {
-	// Remove the "docker:" prefix if present
+	// Remove the scheme prefix if present
+	imageURL = strings.TrimPrefix(imageURL, "registry:")
 	imageURL = strings.TrimPrefix(imageURL, "docker:")
 	// Remove the tag (after the colon)
 	imagePath := imageURL
