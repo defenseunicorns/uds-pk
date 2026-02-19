@@ -274,7 +274,8 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 }
 
 func extractImageName(imageURL string) string {
-	// Remove the "docker:" prefix if present
+	// Remove the scheme prefix if present
+	imageURL = strings.TrimPrefix(imageURL, "registry:")
 	imageURL = strings.TrimPrefix(imageURL, "docker:")
 	// Remove the tag (after the colon)
 	imagePath := imageURL

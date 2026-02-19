@@ -24,10 +24,10 @@ Scanning logic is heavily inspired by https://github.com/defenseunicorns-navy/so
 func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (map[string]string, error) {
 	results := map[string]string{}
 	for _, image := range images {
-		// adding docker to make `grype` use docker to pull the image
-		// this is to use docker auth capabilities
-		if !strings.HasPrefix(image, "docker:") {
-			image = "docker:" + image
+		// adding registry: to make `grype` pull the image from the registry
+		// this avoids issues with containerd snapshotting in Docker
+		if !strings.HasPrefix(image, "registry:") {
+			image = "registry:" + image
 		}
 		logger.Debug("Will scan image", slog.String("image", image))
 		outJson, err := scanImage(image, outputDir, logger, isVerbose, processRunner)
