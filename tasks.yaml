@@ -45,7 +45,7 @@ tasks:
   - name: e2e
     description: run all e2e tests
     actions:
-      - cmd: go test ./... -failfast -v -timeout 5m
+      - cmd: go test -race ./... -failfast -v -timeout 5m
         dir: src/test/e2e
 
   - name: unit
@@ -53,4 +53,4 @@ tasks:
     actions:
       - cmd: |
           # shellcheck disable=SC2046
-          go test $(go list ./... | grep -v test) -failfast -v -timeout 5m
+          go test -race $(go list ./... | grep -v test) -failfast -v -timeout 5m
