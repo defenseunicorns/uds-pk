@@ -42,8 +42,8 @@ components:
         valuesFiles:
           - values/upstream-values.yaml
     images:
-      - curlimages/curl:8.16.0
-      - mattermost/mattermost-enterprise-edition:10.12.0
+      - curlimages/curl:8.18.0
+      - mattermost/mattermost-enterprise-edition:11.5.1
 
   - name: mattermost
     required: true
