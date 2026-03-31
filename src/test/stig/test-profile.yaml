@@ -1,0 +1,55 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+app_name: e2e-test-app
+fqdn: e2e.example.com
+description: >-
+  E2E test application for STIG checklist generation.
+
+characteristics:
+  uses_soap: false
+  uses_saml: false
+  uses_xml: false
+  uses_database: false
+  uses_passwords: false
+  uses_pki_cac: false
+  processes_classified_data: false
+  processes_cui: false
+  has_user_input: false
+  has_admin_interface: false
+  has_file_upload: false
+  is_stateless: true
+  has_mobile_code: false
+  is_high_availability: false
+  is_publicly_accessible: false
+  has_web_services: false
+  has_shared_accounts: false
+  has_non_local_maintenance: false
+  does_key_exchange: false
+  is_transaction_based: false
+  is_config_mgmt_app: false
+  authenticates_devices: false
+  has_crypto_module_access: false
+  in_dod_dmz: false
+  is_critical: false
+  hosts_non_org_users: false
+  developed_in_house: true
+  language: go
+
+platform:
+  auth_provider: "Keycloak SSO (OIDC)"
+  auth_proxy: "authservice"
+  service_mesh: "Istio ambient"
+  tls_provider: "Istio mTLS"
+  container_runtime: "Kubernetes"
+  container_user: "nonroot"
+  base_image: "golang:1.22-alpine"
+  network_policies: true
+  cicd_sast: "Semgrep"
+  cicd_secrets_scan: "Gitleaks"
+  cicd_signing: "Cosign"
+  dependency_monitoring: "Renovate"
+  scm: "GitHub"
+  defect_tracking: "GitHub Issues"
+  centralized_logging: true
+  resource_limits: "CPU: 200m, Memory: 256Mi"

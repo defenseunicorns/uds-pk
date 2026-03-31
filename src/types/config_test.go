@@ -223,7 +223,7 @@ func TestVerifyReleaseConfig(t *testing.T) {
 				Bundles: []Bundle{
 					{
 						Name:    "test-bundle",
-						Path: 	"test/bundle",
+						Path:    "test/bundle",
 						Version: "1.0.0-bundle.0",
 					},
 				},
@@ -235,7 +235,7 @@ func TestVerifyReleaseConfig(t *testing.T) {
 			config: ReleaseConfig{
 				Bundles: []Bundle{
 					{
-						Path: 	"test/bundle",
+						Path:    "test/bundle",
 						Version: "1.0.0-bundle.0",
 					},
 				},
@@ -247,8 +247,8 @@ func TestVerifyReleaseConfig(t *testing.T) {
 			config: ReleaseConfig{
 				Bundles: []Bundle{
 					{
-						Name:    "test-bundle",
-						Path: 	"test/bundle",
+						Name: "test-bundle",
+						Path: "test/bundle",
 					},
 				},
 			},

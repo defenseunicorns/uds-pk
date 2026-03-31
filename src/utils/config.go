@@ -50,11 +50,11 @@ func parseFlavor(flavor string, flavors []types.Flavor) (types.Flavor, error) {
 
 // JoinNonEmpty works like strings.Join but drops any empty elements.
 func JoinNonEmpty(sep string, elems ...string) string {
-    var nonEmptyStrings []string
-    for _, s := range elems {
-        if s != "" {
-            nonEmptyStrings = append(nonEmptyStrings, s)
-        }
-    }
-    return strings.Join(nonEmptyStrings, sep)
+	var nonEmptyStrings []string
+	for _, s := range elems {
+		if s != "" {
+			nonEmptyStrings = append(nonEmptyStrings, s)
+		}
+	}
+	return strings.Join(nonEmptyStrings, sep)
 }
