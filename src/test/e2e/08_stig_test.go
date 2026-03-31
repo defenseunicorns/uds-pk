@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/defenseunicorns/uds-pk/src/stig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +40,7 @@ func TestStigGenerateChecklist(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify top-level checklist fields
-	assert.Equal(t, "e2e-test-app-asd-v6r4", checklist["title"])
+	assert.Equal(t, stig.ChecklistTitle("e2e-test-app"), checklist["title"])
 	assert.Equal(t, "1.0", checklist["cklb_version"])
 	assert.Equal(t, false, checklist["active"])
 	assert.Equal(t, float64(1), checklist["mode"])
@@ -183,14 +184,14 @@ func TestStigGenerateChecklistRuleFields(t *testing.T) {
 }
 
 func TestStigGenerateChecklistDefaultOutput(t *testing.T) {
-	// When --output is not specified, default is <app_name>-asd-v6r4.cklb
+	// When --output is not specified, default is <app_name>-asd-<revision>.cklb
 	stdout, stderr, err := e2e.UDSPK("stig", "generate-checklist",
 		"--profile", "src/test/stig/test-profile.yaml",
 		"--xccdf", "src/test/stig/test-xccdf.xml",
 	)
 	require.NoError(t, err, stdout, stderr)
 
-	defaultOutput := "e2e-test-app-asd-v6r4.cklb"
+	defaultOutput := stig.DefaultChecklistFilename("e2e-test-app")
 	defer e2e.CleanFiles(defaultOutput)
 
 	assert.Contains(t, stdout, "Generated "+defaultOutput)

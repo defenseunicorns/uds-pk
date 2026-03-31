@@ -226,7 +226,7 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 
 func BuildChecklist(profile *Profile, stig *STIG) *Checklist {
 	return &Checklist{
-		Title:       profile.AppName + "-asd-v6r4",
+		Title:       ChecklistTitle(profile.AppName),
 		ID:          uuid.New().String(),
 		CKLBVersion: "1.0",
 		Active:      false,

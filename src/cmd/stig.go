@@ -29,7 +29,7 @@ func generateChecklistCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&options.ProfilePath, "profile", "stig-profile.yaml", "Path to stig-profile.yaml")
 	cmd.Flags().StringVar(&options.XCCDFPath, "xccdf", "", "Path to XCCDF XML file")
-	cmd.Flags().StringVar(&options.OutputPath, "output", "", "Output .cklb file path (default: <app_name>-asd-v6r4.cklb)")
+	cmd.Flags().StringVar(&options.OutputPath, "output", "", "Output .cklb file path (default: <app_name>-asd-"+stig.STIGRevision+".cklb)")
 	_ = cmd.MarkFlagRequired("xccdf")
 	return cmd
 }
@@ -46,7 +46,7 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 
 	outputPath := o.OutputPath
 	if outputPath == "" {
-		outputPath = profile.AppName + "-asd-v6r4.cklb"
+		outputPath = stig.DefaultChecklistFilename(profile.AppName)
 	}
 
 	log.Info("Parsing XCCDF", slog.String("path", o.XCCDFPath))

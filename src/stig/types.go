@@ -3,6 +3,16 @@
 
 package stig
 
+const STIGRevision = "v6r4"
+
+func ChecklistTitle(appName string) string {
+	return appName + "-asd-" + STIGRevision
+}
+
+func DefaultChecklistFilename(appName string) string {
+	return ChecklistTitle(appName) + ".cklb"
+}
+
 // Profile represents the stig-profile.yaml configuration.
 type Profile struct {
 	AppName     string              `yaml:"app_name"`

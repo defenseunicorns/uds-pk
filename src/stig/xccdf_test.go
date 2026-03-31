@@ -231,7 +231,7 @@ func TestBuildChecklist(t *testing.T) {
 
 	checklist := BuildChecklist(testProfile, s)
 
-	require.Equal(t, "test-app-asd-v6r4", checklist.Title)
+	require.Equal(t, ChecklistTitle("test-app"), checklist.Title)
 	require.NotEmpty(t, checklist.ID)
 	require.Equal(t, "1.0", checklist.CKLBVersion)
 	require.False(t, checklist.Active)
