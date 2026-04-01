@@ -199,3 +199,132 @@ Existing vulnerabilities: <count>
 
 ---
 ```
+
+## STIG Checklist Generation
+
+The `stig generate-checklist` command creates a `.cklb` checklist from an XCCDF file and a profile YAML. Profiles are family-aware so the same command can support different STIG types without duplicating the full parsing pipeline.
+
+### Usage
+
+```bash
+uds-pk stig generate-checklist --profile stig-profile.yaml --xccdf /path/to/stig.xml
+```
+
+If `--output` is omitted, the default filename is:
+
+```text
+<app_name>-<family>-v6r4.cklb
+```
+
+Examples:
+
+```text
+my-app-asd-v6r4.cklb
+generic-rhel9-k8s-server-rhel9-v6r4.cklb
+```
+
+### Profile Families
+
+Profiles support a `family` field:
+
+- `asd`: Application Security and Development STIG profiles
+- `rhel9`: RHEL 9 host-focused STIG profiles
+
+If `family` is omitted, `asd` is used by default for backwards compatibility.
+
+### ASD Profile Example
+
+```yaml
+family: asd
+app_name: example-app
+fqdn: app.example.mil
+description: >-
+  Example application deployed behind platform identity and networking controls.
+
+characteristics:
+  uses_soap: false
+  uses_saml: false
+  uses_xml: false
+  uses_database: false
+  uses_passwords: false
+  has_user_input: false
+  is_stateless: true
+  language: go
+
+platform:
+  auth_provider: Keycloak
+  auth_proxy: authservice
+  service_mesh: Istio
+  container_runtime: Kubernetes
+  network_policies: true
+  cicd_sast: Semgrep
+```
+
+### RHEL9 Profile Example
+
+```yaml
+family: rhel9
+app_name: generic-rhel9-k8s-server
+fqdn: k8s-node01.airgap.local
+description: >-
+  Red Hat Enterprise Linux 9 server hosting a standalone Kubernetes deployment
+  in a small air-gapped network.
+
+characteristics:
+  is_container_host: true
+  is_kubernetes_node: true
+  is_standalone_server: true
+  has_gui: false
+  boots_to_multi_user_target: true
+  uses_fips_mode: true
+  uses_selinux: true
+  uses_auditd: true
+  uses_journald: true
+  uses_firewall: true
+  uses_ssh: true
+  uses_sudo: true
+  uses_aide: true
+  uses_removable_media: false
+  usb_storage_disabled: true
+  is_air_gapped: true
+  separate_tmp: true
+  separate_var: true
+  separate_var_log: true
+  separate_var_log_audit: true
+  separate_var_tmp: true
+
+platform:
+  os_name: "Red Hat Enterprise Linux 9"
+  os_version: "RHEL 9"
+  host_role: "Standalone Kubernetes server"
+  selinux_mode: "enforcing"
+  audit_service: "auditd"
+  firewall: "firewalld"
+  file_integrity: "AIDE"
+  kubernetes_distribution: "k0s"
+  mount_strategy: "dedicated partitions for /tmp, /var, /var/log, /var/log/audit, and /var/tmp"
+```
+
+### Overrides
+
+Profiles can include an `overrides` map keyed by STIG rule version. Each override can set:
+
+- `status`
+- `finding_details`
+- `comments`
+
+Example:
+
+```yaml
+overrides:
+  APSC-DV-000010:
+    status: not_a_finding
+    finding_details: Session handling is delegated to the platform identity layer.
+
+  RHEL-09-231010:
+    status: not_applicable
+    finding_details: Control is not applicable in this air-gapped enclave design.
+    comments: Documented architectural exception with compensating controls.
+```
+
+For RHEL profiles, use `RHEL-09-XXXXXX` keys from the RHEL 9 XCCDF rather than `APSC-DV-*` keys from the ASD profile pattern.

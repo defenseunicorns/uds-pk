@@ -24,12 +24,12 @@ func generateChecklistCmd() *cobra.Command {
 	options := &GenerateChecklistOptions{}
 	cmd := &cobra.Command{
 		Use:   "generate-checklist",
-		Short: "Generate a STIG checklist (.cklb) from an XCCDF file and a profile",
+		Short: "Generate a STIG checklist (.cklb) from an XCCDF file and a family-aware profile",
 		RunE:  options.run,
 	}
-	cmd.Flags().StringVar(&options.ProfilePath, "profile", "stig-profile.yaml", "Path to stig-profile.yaml")
+	cmd.Flags().StringVar(&options.ProfilePath, "profile", "stig-profile.yaml", "Path to the STIG profile YAML (defaults to family=asd if omitted)")
 	cmd.Flags().StringVar(&options.XCCDFPath, "xccdf", "", "Path to XCCDF XML file")
-	cmd.Flags().StringVar(&options.OutputPath, "output", "", "Output .cklb file path (default: <app_name>-asd-"+stig.STIGRevision+".cklb)")
+	cmd.Flags().StringVar(&options.OutputPath, "output", "", "Output .cklb file path (default: <app_name>-<family>-"+stig.STIGRevision+".cklb)")
 	_ = cmd.MarkFlagRequired("xccdf")
 	return cmd
 }
@@ -46,7 +46,11 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 
 	outputPath := o.OutputPath
 	if outputPath == "" {
-		outputPath = stig.DefaultChecklistFilename(profile.AppName)
+		handler, err := stig.ResolveFamilyHandler(profile)
+		if err != nil {
+			return err
+		}
+		outputPath = stig.DefaultChecklistFilename(profile, handler.Metadata(profile, nil))
 	}
 
 	log.Info("Parsing XCCDF", slog.String("path", o.XCCDFPath))

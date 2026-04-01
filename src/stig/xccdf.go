@@ -17,6 +17,7 @@ import (
 type xccdfBenchmark struct {
 	XMLName   xml.Name     `xml:"Benchmark"`
 	ID        string       `xml:"id,attr"`
+	Title     string       `xml:"title"`
 	PlainText []xccdfPlain `xml:"plain-text"`
 	Groups    []xccdfGroup `xml:"Group"`
 }
@@ -75,6 +76,12 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 	if err := xml.Unmarshal(data, &bench); err != nil {
 		return nil, fmt.Errorf("parsing XCCDF: %w", err)
 	}
+
+	handler, err := handlerForFamily(profile.EffectiveFamily())
+	if err != nil {
+		return nil, err
+	}
+	meta := handler.Metadata(profile, &bench)
 
 	releaseInfo := ""
 	for _, pt := range bench.PlainText {
@@ -142,7 +149,7 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 		}
 
 		// Evaluate the rule
-		status, findingDetails, comments := Evaluate(profile, g.ID, r.Version, r.Title, r.Check.Content, discussion)
+		status, findingDetails, comments := handler.Evaluate(profile, g.ID, r.Version, r.Title, r.Check.Content, discussion)
 
 		// Apply per-rule overrides from profile
 		if ov, ok := profile.Overrides[r.Version]; ok {
@@ -213,9 +220,9 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 	}
 
 	return &STIG{
-		STIGName:            "Application Security and Development Security Technical Implementation Guide",
-		DisplayName:         "Application Security and Development",
-		STIGID:              "Application_Security_Development_STIG",
+		STIGName:            meta.STIGName,
+		DisplayName:         meta.DisplayName,
+		STIGID:              meta.STIGID,
 		ReleaseInfo:         releaseInfo,
 		UUID:                stigUUID,
 		ReferenceIdentifier: refID,
@@ -225,8 +232,13 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 }
 
 func BuildChecklist(profile *Profile, stig *STIG) *Checklist {
+	handler, err := handlerForFamily(profile.EffectiveFamily())
+	if err != nil {
+		panic(err)
+	}
+	meta := handler.Metadata(profile, nil)
 	return &Checklist{
-		Title:       ChecklistTitle(profile.AppName),
+		Title:       ChecklistTitle(profile, meta),
 		ID:          uuid.New().String(),
 		CKLBVersion: "1.0",
 		Active:      false,
@@ -239,9 +251,9 @@ func BuildChecklist(profile *Profile, stig *STIG) *Checklist {
 			MACAddress:     "",
 			FQDN:           profile.FQDN,
 			Comments:       profile.Description,
-			Role:           "Application Server",
+			Role:           meta.TargetRole,
 			IsWebDatabase:  false,
-			TechnologyArea: "Application Review",
+			TechnologyArea: meta.TechnologyArea,
 			WebDBSite:      "",
 			WebDBInstance:  "",
 		},

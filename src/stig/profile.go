@@ -22,5 +22,8 @@ func LoadProfile(path string) (*Profile, error) {
 	if p.AppName == "" {
 		return nil, fmt.Errorf("app_name is required in %s", path)
 	}
+	if _, err := handlerForFamily(p.EffectiveFamily()); err != nil {
+		return nil, fmt.Errorf("invalid family in %s: %w", path, err)
+	}
 	return &p, nil
 }

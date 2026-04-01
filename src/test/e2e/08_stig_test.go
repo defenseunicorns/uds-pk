@@ -40,7 +40,9 @@ func TestStigGenerateChecklist(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify top-level checklist fields
-	assert.Equal(t, stig.ChecklistTitle("e2e-test-app"), checklist["title"])
+	handler, err := stig.ResolveFamilyHandler(&stig.Profile{AppName: "e2e-test-app"})
+	require.NoError(t, err)
+	assert.Equal(t, stig.ChecklistTitle(&stig.Profile{AppName: "e2e-test-app"}, handler.Metadata(&stig.Profile{AppName: "e2e-test-app"}, nil)), checklist["title"])
 	assert.Equal(t, "1.0", checklist["cklb_version"])
 	assert.Equal(t, false, checklist["active"])
 	assert.Equal(t, float64(1), checklist["mode"])
@@ -191,7 +193,10 @@ func TestStigGenerateChecklistDefaultOutput(t *testing.T) {
 	)
 	require.NoError(t, err, stdout, stderr)
 
-	defaultOutput := stig.DefaultChecklistFilename("e2e-test-app")
+	profile := &stig.Profile{AppName: "e2e-test-app"}
+	handler, err := stig.ResolveFamilyHandler(profile)
+	require.NoError(t, err)
+	defaultOutput := stig.DefaultChecklistFilename(profile, handler.Metadata(profile, nil))
 	defer e2e.CleanFiles(defaultOutput)
 
 	assert.Contains(t, stdout, "Generated "+defaultOutput)

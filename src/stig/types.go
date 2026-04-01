@@ -5,16 +5,18 @@ package stig
 
 const STIGRevision = "v6r4"
 
-func ChecklistTitle(appName string) string {
-	return appName + "-asd-" + STIGRevision
-}
+type Family string
 
-func DefaultChecklistFilename(appName string) string {
-	return ChecklistTitle(appName) + ".cklb"
-}
+const (
+	FamilyASD   Family = "asd"
+	FamilyRHEL9 Family = "rhel9"
+)
 
-// Profile represents the stig-profile.yaml configuration.
+// Profile represents the stig-profile.yaml configuration. The schema is family-aware:
+// ASD/application profiles and RHEL9/host profiles share the same top-level document
+// while using different subsets of characteristics and platform fields.
 type Profile struct {
+	Family      Family              `yaml:"family,omitempty"`
 	AppName     string              `yaml:"app_name"`
 	FQDN        string              `yaml:"fqdn"`
 	Description string              `yaml:"description"`
@@ -24,6 +26,7 @@ type Profile struct {
 }
 
 type Characteristics struct {
+	// ASD/application-oriented fields
 	UsesSOAP              bool   `yaml:"uses_soap"`
 	UsesSAML              bool   `yaml:"uses_saml"`
 	UsesXML               bool   `yaml:"uses_xml"`
@@ -52,9 +55,43 @@ type Characteristics struct {
 	HostsNonOrgUsers      bool   `yaml:"hosts_non_org_users"`
 	DevelopedInHouse      bool   `yaml:"developed_in_house"`
 	Language              string `yaml:"language"`
+
+	// RHEL9/host-oriented fields
+	IsVirtualMachine     bool `yaml:"is_virtual_machine"`
+	IsContainerHost      bool `yaml:"is_container_host"`
+	IsKubernetesNode     bool `yaml:"is_kubernetes_node"`
+	IsStandaloneServer   bool `yaml:"is_standalone_server"`
+	HasGUI               bool `yaml:"has_gui"`
+	BootsToMultiUser     bool `yaml:"boots_to_multi_user_target"`
+	InteractiveConsole   bool `yaml:"interactive_console_present"`
+	HasLocalUsers        bool `yaml:"has_local_interactive_users"`
+	IsDomainJoined       bool `yaml:"is_domain_joined"`
+	UsesFIPSMode         bool `yaml:"uses_fips_mode"`
+	UsesSELinux          bool `yaml:"uses_selinux"`
+	UsesAuditd           bool `yaml:"uses_auditd"`
+	UsesJournald         bool `yaml:"uses_journald"`
+	UsesTimeSync         bool `yaml:"uses_time_sync"`
+	UsesCryptoPolicy     bool `yaml:"uses_crypto_policy"`
+	UsesFirewall         bool `yaml:"uses_firewall"`
+	UsesSSH              bool `yaml:"uses_ssh"`
+	UsesSudo             bool `yaml:"uses_sudo"`
+	UsesAIDE             bool `yaml:"uses_aide"`
+	UsesEncryptedStorage bool `yaml:"uses_encrypted_storage"`
+	UsesIPv6             bool `yaml:"uses_ipv6"`
+	PermitsWireless      bool `yaml:"permits_wireless"`
+	UsesRemovableMedia   bool `yaml:"uses_removable_media"`
+	USBStorageDisabled   bool `yaml:"usb_storage_disabled"`
+	IsAirGapped          bool `yaml:"is_air_gapped"`
+	SeparateTmp          bool `yaml:"separate_tmp"`
+	SeparateVar          bool `yaml:"separate_var"`
+	SeparateVarLog       bool `yaml:"separate_var_log"`
+	SeparateVarLogAudit  bool `yaml:"separate_var_log_audit"`
+	SeparateVarTmp       bool `yaml:"separate_var_tmp"`
+	SeparateHome         bool `yaml:"separate_home"`
 }
 
 type PlatformConfig struct {
+	// ASD/application-oriented fields
 	AuthProvider       string `yaml:"auth_provider"`
 	AuthProxy          string `yaml:"auth_proxy"`
 	ServiceMesh        string `yaml:"service_mesh"`
@@ -71,6 +108,45 @@ type PlatformConfig struct {
 	DefectTracking     string `yaml:"defect_tracking"`
 	CentralizedLogging bool   `yaml:"centralized_logging"`
 	ResourceLimits     string `yaml:"resource_limits"`
+
+	// RHEL9/host-oriented fields
+	OSName                 string `yaml:"os_name"`
+	OSVersion              string `yaml:"os_version"`
+	HostRole               string `yaml:"host_role"`
+	InstallationType       string `yaml:"installation_type"`
+	Virtualization         string `yaml:"virtualization"`
+	NetworkEnvironment     string `yaml:"network_environment"`
+	ManagementPlane        string `yaml:"management_plane"`
+	Authentication         string `yaml:"authentication"`
+	PrivilegedAccess       string `yaml:"privileged_access"`
+	SELinuxMode            string `yaml:"selinux_mode"`
+	FIPSMode               bool   `yaml:"fips_mode"`
+	AuditService           string `yaml:"audit_service"`
+	JournaldEnabled        bool   `yaml:"journald_enabled"`
+	RNGDEnabled            bool   `yaml:"rngd_enabled"`
+	TimeSync               string `yaml:"time_sync"`
+	Firewall               string `yaml:"firewall"`
+	PackageSource          string `yaml:"package_source"`
+	FileIntegrity          string `yaml:"file_integrity"`
+	AntivirusOrEDR         string `yaml:"antivirus_or_edr"`
+	SSHAccess              string `yaml:"ssh_access"`
+	BootloaderProtected    bool   `yaml:"bootloader_protected"`
+	CryptoPolicy           string `yaml:"crypto_policy"`
+	DiskEncryption         string `yaml:"disk_encryption"`
+	MountStrategy          string `yaml:"mount_strategy"`
+	TmpMountOptions        string `yaml:"tmp_mount_options"`
+	VarTmpMountOptions     string `yaml:"var_tmp_mount_options"`
+	AuditLogMountOptions   string `yaml:"audit_log_mount_options"`
+	LocalAccountPolicy     string `yaml:"local_account_policy"`
+	KubernetesDistribution string `yaml:"kubernetes_distribution"`
+	UpdateModel            string `yaml:"update_model"`
+}
+
+func (p *Profile) EffectiveFamily() Family {
+	if p == nil || p.Family == "" {
+		return FamilyASD
+	}
+	return p.Family
 }
 
 // Override allows per-rule status/finding overrides in the profile.
@@ -164,4 +240,14 @@ type GroupTreeEntry struct {
 type CheckContentRef struct {
 	Href string `json:"href"`
 	Name string `json:"name"`
+}
+
+type FamilyMetadata struct {
+	Revision       string
+	ChecklistSlug  string
+	TargetRole     string
+	TechnologyArea string
+	STIGName       string
+	DisplayName    string
+	STIGID         string
 }

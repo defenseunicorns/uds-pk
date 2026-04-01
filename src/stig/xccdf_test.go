@@ -231,7 +231,11 @@ func TestBuildChecklist(t *testing.T) {
 
 	checklist := BuildChecklist(testProfile, s)
 
-	require.Equal(t, ChecklistTitle("test-app"), checklist.Title)
+	handler, err := ResolveFamilyHandler(testProfile)
+	require.NoError(t, err)
+	meta := handler.Metadata(testProfile, nil)
+
+	require.Equal(t, ChecklistTitle(testProfile, meta), checklist.Title)
 	require.NotEmpty(t, checklist.ID)
 	require.Equal(t, "1.0", checklist.CKLBVersion)
 	require.False(t, checklist.Active)
@@ -253,6 +257,58 @@ func TestBuildChecklist(t *testing.T) {
 	require.Len(t, checklist.STIGs, 1)
 	require.Equal(t, "Test STIG", checklist.STIGs[0].STIGName)
 	require.Len(t, checklist.STIGs[0].Rules, 1)
+}
+
+func TestParseXCCDF_RHEL9FamilyUsesBenchmarkMetadata(t *testing.T) {
+	dir := t.TempDir()
+	xccdfPath := filepath.Join(dir, "rhel9-xccdf.xml")
+	xml := `<?xml version="1.0" encoding="utf-8"?>
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="RHEL_9_STIG" xml:lang="en">
+  <title>Red Hat Enterprise Linux 9 STIG</title>
+  <plain-text id="release-info">Release: 7 Benchmark Date: 01 Apr 2026</plain-text>
+  <Group id="V-1">
+    <title>SRG-OS-000001</title>
+    <description>&lt;GroupDescription&gt;&lt;/GroupDescription&gt;</description>
+    <Rule id="SV-1_rule" severity="medium" weight="10.0">
+      <version>RHEL-09-000001</version>
+      <title>The graphical user interface must not be installed.</title>
+      <description>&lt;VulnDiscussion&gt;GUI increases attack surface.&lt;/VulnDiscussion&gt;</description>
+      <fixtext>Remove GUI packages.</fixtext>
+      <check>
+        <check-content>Verify no GUI packages are installed.</check-content>
+      </check>
+    </Rule>
+  </Group>
+</Benchmark>`
+	err := os.WriteFile(xccdfPath, []byte(xml), 0644)
+	require.NoError(t, err)
+
+	profile := &Profile{
+		Family:      FamilyRHEL9,
+		AppName:     "rhel9-node01",
+		FQDN:        "node01.example.com",
+		Description: "Test host.",
+		Chars: Characteristics{
+			HasGUI: false,
+		},
+		Platform: PlatformConfig{
+			HostRole: "Standalone Kubernetes server",
+		},
+	}
+
+	s, err := ParseXCCDF(xccdfPath, profile)
+	require.NoError(t, err)
+	require.Equal(t, "Red Hat Enterprise Linux 9 STIG", s.STIGName)
+	require.Equal(t, "RHEL_9_STIG", s.STIGID)
+	require.Equal(t, "not_applicable", s.Rules[0].Status)
+
+	checklist := BuildChecklist(profile, s)
+	handler, err := ResolveFamilyHandler(profile)
+	require.NoError(t, err)
+	meta := handler.Metadata(profile, nil)
+	require.Equal(t, ChecklistTitle(profile, meta), checklist.Title)
+	require.Equal(t, "Standalone Kubernetes server", checklist.TargetData.Role)
+	require.Equal(t, "Operating System Review", checklist.TargetData.TechnologyArea)
 }
 
 func TestExtractXMLTag(t *testing.T) {

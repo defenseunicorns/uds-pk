@@ -71,6 +71,32 @@ overrides:
 	require.Equal(t, "Custom comment.", ov.Comments)
 }
 
+func TestLoadProfile_RHEL9Family(t *testing.T) {
+	dir := t.TempDir()
+	profilePath := filepath.Join(dir, "rhel9-profile.yaml")
+	content := `
+family: rhel9
+app_name: test-rhel9-host
+fqdn: node01.example.com
+description: A test RHEL 9 host.
+characteristics:
+  has_gui: false
+  uses_selinux: true
+platform:
+  os_name: Red Hat Enterprise Linux 9
+  host_role: Standalone Kubernetes server
+`
+	err := os.WriteFile(profilePath, []byte(content), 0644)
+	require.NoError(t, err)
+
+	profile, err := LoadProfile(profilePath)
+	require.NoError(t, err)
+	require.Equal(t, FamilyRHEL9, profile.EffectiveFamily())
+	require.False(t, profile.Chars.HasGUI)
+	require.True(t, profile.Chars.UsesSELinux)
+	require.Equal(t, "Red Hat Enterprise Linux 9", profile.Platform.OSName)
+}
+
 func TestLoadProfile_FileNotFound(t *testing.T) {
 	_, err := LoadProfile("/nonexistent/profile.yaml")
 	require.Error(t, err)
