@@ -42,6 +42,8 @@ func TestBundleCheckCommand(t *testing.T) {
 
 	require.Contains(t, stdout, "Version bundle1-1.0.0-bundle.0 is not tagged")
 
+	e2e.EnsureGitTag(t, "dummy-bundle-testing-dummy")
+
 	stdout, stderr, err = e2e.UDSPK("release", "bundle", "check", "dummy", "-d", "src/test")
 	require.Error(t, err, stdout, stderr)
 
@@ -53,6 +55,8 @@ func TestBundleCheckCommandBool(t *testing.T) {
 	require.NoError(t, err, stdout, stderr)
 
 	require.Equal(t, "true\n", stdout)
+
+	e2e.EnsureGitTag(t, "dummy-bundle-testing-dummy")
 
 	stdout, stderr, err = e2e.UDSPK("release", "bundle", "check", "dummy", "-d", "src/test", "-b")
 	require.NoError(t, err, stdout, stderr)

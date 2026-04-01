@@ -40,9 +40,9 @@ func TestStigGenerateChecklist(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify top-level checklist fields
-	handler, err := stig.ResolveFamilyHandler(&stig.Profile{AppName: "e2e-test-app"})
+	definition, err := stig.LookupSTIGDefinition(stig.ASDSTIGProfileKey)
 	require.NoError(t, err)
-	assert.Equal(t, stig.ChecklistTitle(&stig.Profile{AppName: "e2e-test-app"}, handler.Metadata(&stig.Profile{AppName: "e2e-test-app"}, nil)), checklist["title"])
+	assert.Equal(t, stig.ChecklistTitle("e2e-test-app", definition), checklist["title"])
 	assert.Equal(t, "1.0", checklist["cklb_version"])
 	assert.Equal(t, false, checklist["active"])
 	assert.Equal(t, float64(1), checklist["mode"])
@@ -53,7 +53,7 @@ func TestStigGenerateChecklist(t *testing.T) {
 	targetData, ok := checklist["target_data"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, "e2e-test-app", targetData["host_name"])
-	assert.Equal(t, "e2e.example.com", targetData["fqdn"])
+	assert.Equal(t, "", targetData["fqdn"])
 	assert.Equal(t, "Computing", targetData["target_type"])
 	assert.Equal(t, "Application Server", targetData["role"])
 	assert.Equal(t, "Application Review", targetData["technology_area"])
@@ -193,10 +193,9 @@ func TestStigGenerateChecklistDefaultOutput(t *testing.T) {
 	)
 	require.NoError(t, err, stdout, stderr)
 
-	profile := &stig.Profile{AppName: "e2e-test-app"}
-	handler, err := stig.ResolveFamilyHandler(profile)
+	definition, err := stig.LookupSTIGDefinition(stig.ASDSTIGProfileKey)
 	require.NoError(t, err)
-	defaultOutput := stig.DefaultChecklistFilename(profile, handler.Metadata(profile, nil))
+	defaultOutput := stig.DefaultChecklistFilename("e2e-test-app", definition)
 	defer e2e.CleanFiles(defaultOutput)
 
 	assert.Contains(t, stdout, "Generated "+defaultOutput)
@@ -206,8 +205,20 @@ func TestStigGenerateChecklistDefaultOutput(t *testing.T) {
 }
 
 func TestStigGenerateChecklistMissingXCCDF(t *testing.T) {
-	_, _, err := e2e.UDSPK("stig", "generate-checklist",
-		"--profile", "src/test/stig/test-profile.yaml",
+	profilePath := filepath.Join(t.TempDir(), "profile-without-supported-stig.yaml")
+	err := os.WriteFile(profilePath, []byte(`
+kind: UDS STIG Profile
+metadata:
+  name: no-stig-app
+  version: 0.1.0
+stigs:
+  - id: unsupported_v0r0
+    description: Unsupported
+	`), 0644)
+	require.NoError(t, err)
+
+	_, _, err = e2e.UDSPK("stig", "generate-checklist",
+		"--profile", profilePath,
 	)
 	require.Error(t, err)
 }

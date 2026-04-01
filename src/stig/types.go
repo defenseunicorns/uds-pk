@@ -5,28 +5,45 @@ package stig
 
 const STIGRevision = "v6r4"
 
-type Family string
+func ChecklistTitle(appName string, definition STIGDefinition) string {
+	return appName + "-" + definition.ChecklistSlug + "-" + definition.Revision
+}
 
-const (
-	FamilyASD   Family = "asd"
-	FamilyRHEL9 Family = "rhel9"
-)
+func DefaultChecklistFilename(appName string, definition STIGDefinition) string {
+	return ChecklistTitle(appName, definition) + ".cklb"
+}
 
-// Profile represents the stig-profile.yaml configuration. The schema is family-aware:
-// ASD/application profiles and RHEL9/host profiles share the same top-level document
-// while using different subsets of characteristics and platform fields.
+// Profile represents the stig-profile.yaml configuration.
 type Profile struct {
-	Family      Family              `yaml:"family,omitempty"`
-	AppName     string              `yaml:"app_name"`
-	FQDN        string              `yaml:"fqdn"`
-	Description string              `yaml:"description"`
-	Chars       Characteristics     `yaml:"characteristics"`
-	Platform    PlatformConfig      `yaml:"platform"`
-	Overrides   map[string]Override `yaml:"overrides,omitempty"`
+	Kind     string          `yaml:"kind"`
+	Metadata ProfileMetadata `yaml:"metadata"`
+	STIGs    []STIGProfile   `yaml:"stigs"`
+
+	AppName      string              `yaml:"-"`
+	FQDN         string              `yaml:"-"`
+	Description  string              `yaml:"-"`
+	Chars        Characteristics     `yaml:"-"`
+	Platform     PlatformConfig      `yaml:"-"`
+	Overrides    map[string]Override `yaml:"-"`
+	SelectedSTIG *STIGProfile        `yaml:"-"`
+}
+
+type ProfileMetadata struct {
+	Name        string `yaml:"name"`
+	FQDN        string `yaml:"fqdn"`
+	Description string `yaml:"description"`
+	Version     string `yaml:"version"`
+}
+
+type STIGProfile struct {
+	ID              string              `yaml:"id"`
+	Description     string              `yaml:"description"`
+	Characteristics Characteristics     `yaml:"characteristics"`
+	Platform        PlatformConfig      `yaml:"platform"`
+	Overrides       map[string]Override `yaml:"overrides,omitempty"`
 }
 
 type Characteristics struct {
-	// ASD/application-oriented fields
 	UsesSOAP              bool   `yaml:"uses_soap"`
 	UsesSAML              bool   `yaml:"uses_saml"`
 	UsesXML               bool   `yaml:"uses_xml"`
@@ -56,7 +73,6 @@ type Characteristics struct {
 	DevelopedInHouse      bool   `yaml:"developed_in_house"`
 	Language              string `yaml:"language"`
 
-	// RHEL9/host-oriented fields
 	IsVirtualMachine     bool `yaml:"is_virtual_machine"`
 	IsContainerHost      bool `yaml:"is_container_host"`
 	IsKubernetesNode     bool `yaml:"is_kubernetes_node"`
@@ -91,7 +107,6 @@ type Characteristics struct {
 }
 
 type PlatformConfig struct {
-	// ASD/application-oriented fields
 	AuthProvider       string `yaml:"auth_provider"`
 	AuthProxy          string `yaml:"auth_proxy"`
 	ServiceMesh        string `yaml:"service_mesh"`
@@ -109,7 +124,6 @@ type PlatformConfig struct {
 	CentralizedLogging bool   `yaml:"centralized_logging"`
 	ResourceLimits     string `yaml:"resource_limits"`
 
-	// RHEL9/host-oriented fields
 	OSName                 string `yaml:"os_name"`
 	OSVersion              string `yaml:"os_version"`
 	HostRole               string `yaml:"host_role"`
@@ -140,13 +154,6 @@ type PlatformConfig struct {
 	LocalAccountPolicy     string `yaml:"local_account_policy"`
 	KubernetesDistribution string `yaml:"kubernetes_distribution"`
 	UpdateModel            string `yaml:"update_model"`
-}
-
-func (p *Profile) EffectiveFamily() Family {
-	if p == nil || p.Family == "" {
-		return FamilyASD
-	}
-	return p.Family
 }
 
 // Override allows per-rule status/finding overrides in the profile.
@@ -242,7 +249,8 @@ type CheckContentRef struct {
 	Name string `json:"name"`
 }
 
-type FamilyMetadata struct {
+type STIGDefinition struct {
+	ID             string
 	Revision       string
 	ChecklistSlug  string
 	TargetRole     string
@@ -250,4 +258,6 @@ type FamilyMetadata struct {
 	STIGName       string
 	DisplayName    string
 	STIGID         string
+	ZipURL         string
+	XCCDFName      string
 }

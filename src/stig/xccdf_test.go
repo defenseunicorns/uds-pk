@@ -15,6 +15,9 @@ var testProfile = &Profile{
 	AppName:     "test-app",
 	FQDN:        "test.example.com",
 	Description: "Test application.",
+	SelectedSTIG: &STIGProfile{
+		ID: ASDSTIGProfileKey,
+	},
 	Chars: Characteristics{
 		IsStateless:  true,
 		HasUserInput: false,
@@ -178,11 +181,12 @@ func TestParseXCCDF_AppliesOverrides(t *testing.T) {
 	xccdfPath := writeXCCDFFixture(t, dir)
 
 	profileWithOverrides := &Profile{
-		AppName:     "override-app",
-		FQDN:        "override.example.com",
-		Description: "App with overrides.",
-		Chars:       testProfile.Chars,
-		Platform:    testProfile.Platform,
+		AppName:      "override-app",
+		FQDN:         "override.example.com",
+		Description:  "App with overrides.",
+		SelectedSTIG: &STIGProfile{ID: ASDSTIGProfileKey},
+		Chars:        testProfile.Chars,
+		Platform:     testProfile.Platform,
 		Overrides: map[string]Override{
 			"APSC-DV-000160": {
 				Status:         "not_applicable",
@@ -231,11 +235,9 @@ func TestBuildChecklist(t *testing.T) {
 
 	checklist := BuildChecklist(testProfile, s)
 
-	handler, err := ResolveFamilyHandler(testProfile)
+	definition, err := LookupSTIGDefinition(ASDSTIGProfileKey)
 	require.NoError(t, err)
-	meta := handler.Metadata(testProfile, nil)
-
-	require.Equal(t, ChecklistTitle(testProfile, meta), checklist.Title)
+	require.Equal(t, ChecklistTitle("test-app", definition), checklist.Title)
 	require.NotEmpty(t, checklist.ID)
 	require.Equal(t, "1.0", checklist.CKLBVersion)
 	require.False(t, checklist.Active)
@@ -259,7 +261,7 @@ func TestBuildChecklist(t *testing.T) {
 	require.Len(t, checklist.STIGs[0].Rules, 1)
 }
 
-func TestParseXCCDF_RHEL9FamilyUsesBenchmarkMetadata(t *testing.T) {
+func TestParseXCCDF_RHEL9UsesBenchmarkMetadata(t *testing.T) {
 	dir := t.TempDir()
 	xccdfPath := filepath.Join(dir, "rhel9-xccdf.xml")
 	xml := `<?xml version="1.0" encoding="utf-8"?>
@@ -284,10 +286,12 @@ func TestParseXCCDF_RHEL9FamilyUsesBenchmarkMetadata(t *testing.T) {
 	require.NoError(t, err)
 
 	profile := &Profile{
-		Family:      FamilyRHEL9,
 		AppName:     "rhel9-node01",
 		FQDN:        "node01.example.com",
 		Description: "Test host.",
+		SelectedSTIG: &STIGProfile{
+			ID: RHEL9STIGProfileKey,
+		},
 		Chars: Characteristics{
 			HasGUI: false,
 		},
@@ -303,10 +307,9 @@ func TestParseXCCDF_RHEL9FamilyUsesBenchmarkMetadata(t *testing.T) {
 	require.Equal(t, "not_applicable", s.Rules[0].Status)
 
 	checklist := BuildChecklist(profile, s)
-	handler, err := ResolveFamilyHandler(profile)
+	definition, err := LookupSTIGDefinition(RHEL9STIGProfileKey)
 	require.NoError(t, err)
-	meta := handler.Metadata(profile, nil)
-	require.Equal(t, ChecklistTitle(profile, meta), checklist.Title)
+	require.Equal(t, ChecklistTitle("rhel9-node01", definition), checklist.Title)
 	require.Equal(t, "Standalone Kubernetes server", checklist.TargetData.Role)
 	require.Equal(t, "Operating System Review", checklist.TargetData.TechnologyArea)
 }

@@ -24,13 +24,12 @@ func generateChecklistCmd() *cobra.Command {
 	options := &GenerateChecklistOptions{}
 	cmd := &cobra.Command{
 		Use:   "generate-checklist",
-		Short: "Generate a STIG checklist (.cklb) from an XCCDF file and a family-aware profile",
+		Short: "Generate a STIG checklist (.cklb) from a STIG profile and XCCDF content",
 		RunE:  options.run,
 	}
-	cmd.Flags().StringVar(&options.ProfilePath, "profile", "stig-profile.yaml", "Path to the STIG profile YAML (defaults to family=asd if omitted)")
-	cmd.Flags().StringVar(&options.XCCDFPath, "xccdf", "", "Path to XCCDF XML file")
-	cmd.Flags().StringVar(&options.OutputPath, "output", "", "Output .cklb file path (default: <app_name>-<family>-"+stig.STIGRevision+".cklb)")
-	_ = cmd.MarkFlagRequired("xccdf")
+	cmd.Flags().StringVar(&options.ProfilePath, "profile", "stig-profile.yaml", "Path to stig-profile.yaml")
+	cmd.Flags().StringVar(&options.XCCDFPath, "xccdf", "", "Path to XCCDF XML file (optional when the profile identifies a supported DISA STIG)")
+	cmd.Flags().StringVar(&options.OutputPath, "output", "", "Output .cklb file path (default: <app_name>-<stig>-<revision>.cklb)")
 	return cmd
 }
 
@@ -46,15 +45,24 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 
 	outputPath := o.OutputPath
 	if outputPath == "" {
-		handler, err := stig.ResolveFamilyHandler(profile)
-		if err != nil {
-			return err
+		if profile.SelectedSTIG == nil {
+			return fmt.Errorf("failed to determine output path: no supported STIG found in profile")
 		}
-		outputPath = stig.DefaultChecklistFilename(profile, handler.Metadata(profile, nil))
+		definition, err := stig.LookupSTIGDefinition(profile.SelectedSTIG.ID)
+		if err != nil {
+			return fmt.Errorf("failed to determine output path: %w", err)
+		}
+		outputPath = stig.DefaultChecklistFilename(profile.AppName, definition)
 	}
 
-	log.Info("Parsing XCCDF", slog.String("path", o.XCCDFPath))
-	s, err := stig.ParseXCCDF(o.XCCDFPath, profile)
+	xccdfPath, cleanup, err := stig.ResolveXCCDFPath(ctx, profile, o.XCCDFPath)
+	if err != nil {
+		return fmt.Errorf("failed to resolve XCCDF: %w", err)
+	}
+	defer cleanup()
+
+	log.Info("Parsing XCCDF", slog.String("path", xccdfPath))
+	s, err := stig.ParseXCCDF(xccdfPath, profile)
 	if err != nil {
 		return fmt.Errorf("failed to parse XCCDF: %w", err)
 	}

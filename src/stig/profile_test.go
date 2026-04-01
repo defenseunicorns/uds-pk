@@ -14,29 +14,36 @@ import (
 func TestLoadProfile_Success(t *testing.T) {
 	dir := t.TempDir()
 	profilePath := filepath.Join(dir, "stig-profile.yaml")
-	content := `
-app_name: test-app
-fqdn: test.example.com
-description: A test application.
-characteristics:
-  uses_soap: false
-  uses_saml: true
-  uses_database: true
-  is_stateless: false
-  has_user_input: true
-  language: go
-platform:
-  auth_provider: Keycloak
-  auth_proxy: authservice
-  service_mesh: Istio
-  container_runtime: Kubernetes
-  network_policies: true
-  cicd_sast: Semgrep
-overrides:
-  APSC-DV-000010:
-    status: not_a_finding
-    finding_details: Custom details.
-    comments: Custom comment.
+content := `
+kind: UDS STIG Profile
+metadata:
+  name: test-app
+  description: A test application.
+  version: 0.1.0
+stigs:
+  - id: asd_v6r4
+    description: ASD STIG
+    characteristics:
+      uses_soap: false
+      uses_saml: true
+      uses_database: true
+      is_stateless: false
+      has_user_input: true
+      language: go
+    platform:
+      auth_provider: Keycloak
+      auth_proxy: authservice
+      service_mesh: Istio
+      container_runtime: Kubernetes
+      network_policies: true
+      cicd_sast: Semgrep
+    overrides:
+      APSC-DV-000010:
+        status: not_a_finding
+        finding_details: Custom details.
+        comments: Custom comment.
+  - id: rhel9_v2r7
+    description: RHEL 9 STIG
 `
 	err := os.WriteFile(profilePath, []byte(content), 0644)
 	require.NoError(t, err)
@@ -44,9 +51,12 @@ overrides:
 	profile, err := LoadProfile(profilePath)
 	require.NoError(t, err)
 
+	require.Equal(t, ProfileKind, profile.Kind)
 	require.Equal(t, "test-app", profile.AppName)
-	require.Equal(t, "test.example.com", profile.FQDN)
+	require.Empty(t, profile.FQDN)
 	require.Equal(t, "A test application.", profile.Description)
+	require.NotNil(t, profile.SelectedSTIG)
+	require.Equal(t, ASDSTIGProfileKey, profile.SelectedSTIG.ID)
 
 	// Characteristics
 	require.False(t, profile.Chars.UsesSOAP)
@@ -71,30 +81,38 @@ overrides:
 	require.Equal(t, "Custom comment.", ov.Comments)
 }
 
-func TestLoadProfile_RHEL9Family(t *testing.T) {
+func TestLoadProfile_SelectsFirstSupportedSTIG(t *testing.T) {
 	dir := t.TempDir()
-	profilePath := filepath.Join(dir, "rhel9-profile.yaml")
+	profilePath := filepath.Join(dir, "rhel-first-profile.yaml")
 	content := `
-family: rhel9
-app_name: test-rhel9-host
-fqdn: node01.example.com
-description: A test RHEL 9 host.
-characteristics:
-  has_gui: false
-  uses_selinux: true
-platform:
-  os_name: Red Hat Enterprise Linux 9
-  host_role: Standalone Kubernetes server
+kind: UDS STIG Profile
+metadata:
+  name: test-rhel9-host
+  description: A test RHEL 9 host.
+  version: 0.1.0
+stigs:
+  - id: rhel9_v2r7
+    description: RHEL 9 STIG
+    characteristics:
+      has_gui: false
+      uses_selinux: true
+    platform:
+      os_name: Red Hat Enterprise Linux 9
+      host_role: Standalone Kubernetes server
+  - id: asd_v6r4
+    description: ASD STIG
 `
 	err := os.WriteFile(profilePath, []byte(content), 0644)
 	require.NoError(t, err)
 
 	profile, err := LoadProfile(profilePath)
 	require.NoError(t, err)
-	require.Equal(t, FamilyRHEL9, profile.EffectiveFamily())
+	require.NotNil(t, profile.SelectedSTIG)
+	require.Equal(t, RHEL9STIGProfileKey, profile.SelectedSTIG.ID)
 	require.False(t, profile.Chars.HasGUI)
 	require.True(t, profile.Chars.UsesSELinux)
 	require.Equal(t, "Red Hat Enterprise Linux 9", profile.Platform.OSName)
+	require.Equal(t, "Standalone Kubernetes server", profile.Platform.HostRole)
 }
 
 func TestLoadProfile_FileNotFound(t *testing.T) {
@@ -116,14 +134,19 @@ func TestLoadProfile_InvalidYAML(t *testing.T) {
 func TestLoadProfile_MissingAppName(t *testing.T) {
 	dir := t.TempDir()
 	profilePath := filepath.Join(dir, "no-name.yaml")
-	content := `
-fqdn: test.example.com
-description: No app name.
+content := `
+kind: UDS STIG Profile
+metadata:
+  description: No app name.
+  version: 0.1.0
+stigs:
+  - id: rhel9_v2r7
+    description: RHEL 9 STIG
 `
 	err := os.WriteFile(profilePath, []byte(content), 0644)
 	require.NoError(t, err)
 
 	_, err = LoadProfile(profilePath)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "app_name is required")
+	require.Contains(t, err.Error(), "metadata.name is required")
 }

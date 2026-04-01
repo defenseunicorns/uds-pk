@@ -77,11 +77,10 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 		return nil, fmt.Errorf("parsing XCCDF: %w", err)
 	}
 
-	handler, err := handlerForFamily(profile.EffectiveFamily())
+	definition, err := definitionForProfile(profile)
 	if err != nil {
 		return nil, err
 	}
-	meta := handler.Metadata(profile, &bench)
 
 	releaseInfo := ""
 	for _, pt := range bench.PlainText {
@@ -149,7 +148,7 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 		}
 
 		// Evaluate the rule
-		status, findingDetails, comments := handler.Evaluate(profile, g.ID, r.Version, r.Title, r.Check.Content, discussion)
+		status, findingDetails, comments := evaluateRule(definition, profile, g.ID, r.Version, r.Title, r.Check.Content, discussion)
 
 		// Apply per-rule overrides from profile
 		if ov, ok := profile.Overrides[r.Version]; ok {
@@ -219,10 +218,12 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 		rules = append(rules, rule)
 	}
 
+	stigName, displayName, stigID := stigMetadata(definition, &bench)
+
 	return &STIG{
-		STIGName:            meta.STIGName,
-		DisplayName:         meta.DisplayName,
-		STIGID:              meta.STIGID,
+		STIGName:            stigName,
+		DisplayName:         displayName,
+		STIGID:              stigID,
 		ReleaseInfo:         releaseInfo,
 		UUID:                stigUUID,
 		ReferenceIdentifier: refID,
@@ -232,13 +233,13 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 }
 
 func BuildChecklist(profile *Profile, stig *STIG) *Checklist {
-	handler, err := handlerForFamily(profile.EffectiveFamily())
+	definition, err := definitionForProfile(profile)
 	if err != nil {
 		panic(err)
 	}
-	meta := handler.Metadata(profile, nil)
+
 	return &Checklist{
-		Title:       ChecklistTitle(profile, meta),
+		Title:       ChecklistTitle(profile.AppName, definition),
 		ID:          uuid.New().String(),
 		CKLBVersion: "1.0",
 		Active:      false,
@@ -251,13 +252,47 @@ func BuildChecklist(profile *Profile, stig *STIG) *Checklist {
 			MACAddress:     "",
 			FQDN:           profile.FQDN,
 			Comments:       profile.Description,
-			Role:           meta.TargetRole,
+			Role:           targetRole(definition, profile),
 			IsWebDatabase:  false,
-			TechnologyArea: meta.TechnologyArea,
+			TechnologyArea: definition.TechnologyArea,
 			WebDBSite:      "",
 			WebDBInstance:  "",
 		},
 		STIGs: []STIG{*stig},
+	}
+}
+
+func definitionForProfile(profile *Profile) (STIGDefinition, error) {
+	if profile == nil || profile.SelectedSTIG == nil {
+		return STIGDefinition{}, fmt.Errorf("no supported STIG found in profile")
+	}
+	return LookupSTIGDefinition(profile.SelectedSTIG.ID)
+}
+
+func evaluateRule(definition STIGDefinition, profile *Profile, groupID, ruleVersion, ruleTitle, checkContent, discussion string) (string, string, string) {
+	switch definition.ID {
+	case RHEL9STIGProfileKey:
+		return EvaluateRHEL9(profile, groupID, ruleVersion, ruleTitle, checkContent, discussion)
+	default:
+		return Evaluate(profile, groupID, ruleVersion, ruleTitle, checkContent, discussion)
+	}
+}
+
+func stigMetadata(definition STIGDefinition, bench *xccdfBenchmark) (string, string, string) {
+	switch definition.ID {
+	case RHEL9STIGProfileKey:
+		return coalesce(bench.Title, definition.STIGName), coalesce(bench.Title, definition.DisplayName), coalesce(bench.ID, definition.STIGID)
+	default:
+		return definition.STIGName, definition.DisplayName, definition.STIGID
+	}
+}
+
+func targetRole(definition STIGDefinition, profile *Profile) string {
+	switch definition.ID {
+	case RHEL9STIGProfileKey:
+		return coalesce(profile.Platform.HostRole, definition.TargetRole)
+	default:
+		return definition.TargetRole
 	}
 }
 

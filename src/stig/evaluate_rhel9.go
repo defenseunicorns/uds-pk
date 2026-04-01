@@ -75,5 +75,5 @@ func EvaluateRHEL9(p *Profile, _ string, ruleVersion, ruleTitle, checkContent, _
 		return naf(p, fmt.Sprintf("The %s host uses a dedicated /var/tmp mount with controlled options.", host))
 	}
 
-	return nr(p, fmt.Sprintf("Rule %s requires host-specific review or an explicit override for the %s profile.", ruleVersion, p.EffectiveFamily()))
+	return nr(p, fmt.Sprintf("Rule %s requires host-specific review or an explicit override for the %s profile.", ruleVersion, RHEL9STIGProfileKey))
 }
