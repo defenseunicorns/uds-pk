@@ -4,7 +4,7 @@ go 1.24.6
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.9.2
-	github.com/defenseunicorns/uds-cli v0.27.13
+	github.com/defenseunicorns/uds-cli v0.30.1
 	github.com/go-git/go-git/v5 v5.16.5
 	github.com/goccy/go-yaml v1.18.0
 	github.com/google/go-github/v69 v69.2.0
@@ -13,7 +13,7 @@ require (
 	github.com/olekukonko/tablewriter v1.0.9
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
-	github.com/zarf-dev/zarf v0.61.2
+	github.com/zarf-dev/zarf v0.74.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.2
 	golang.org/x/oauth2 v0.30.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
