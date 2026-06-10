@@ -3,7 +3,7 @@ module github.com/defenseunicorns/uds-pk
 go 1.25.8
 
 require (
-	github.com/CycloneDX/cyclonedx-go v0.10.0
+	github.com/CycloneDX/cyclonedx-go v0.11.0
 	github.com/defenseunicorns/uds-cli v0.30.1
 	github.com/go-git/go-git/v5 v5.17.2
 	github.com/goccy/go-yaml v1.19.2
