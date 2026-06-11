@@ -9,12 +9,14 @@ require (
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v69 v69.2.0
 	github.com/google/go-github/v73 v73.0.0
+	github.com/google/go-github/v88 v88.0.0
 	github.com/mikefarah/yq/v4 v4.53.3
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/zarf-dev/zarf v0.77.0
 	gitlab.com/gitlab-org/api/client-go v1.46.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.36.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/oauth2 v0.36.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
