@@ -24,6 +24,8 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 		return err
 	}
 
+	// Create a new GitHub client
+	// Set the authentication token
 	githubClient, err := github.NewClient(github.WithAuthToken(os.Getenv(tokenVarName)))
 	if err != nil {
 		return err
@@ -68,6 +70,8 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 		return err
 	}
 
+	// Create a new GitHub client
+	// Set the authentication token
 	githubClient, err := github.NewClient(github.WithAuthToken(os.Getenv(tokenVarName)))
 	if err != nil {
 		return err
