@@ -13,6 +13,8 @@ universal_binaries:
 builds:
   - env:
       - CGO_ENABLED=0
+    ldflags:
+      - -X github.com/defenseunicorns/uds-pk/src/cmd.CLIVersion={{.Version}}
     goos:
       - linux
       - darwin
