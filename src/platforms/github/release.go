@@ -13,7 +13,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	github "github.com/google/go-github/v69/github"
+	github "github.com/google/go-github/v88/github"
 )
 
 type Platform struct{}
@@ -24,11 +24,10 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 		return err
 	}
 
-	// Create a new GitHub client
-	githubClient := github.NewClient(nil)
-
-	// Set the authentication token
-	githubClient = githubClient.WithAuthToken(os.Getenv(tokenVarName))
+	githubClient, err := github.NewClient(github.WithAuthToken(os.Getenv(tokenVarName)))
+	if err != nil {
+		return err
+	}
 
 	owner, repoName, err := getGithubOwnerAndRepo(remoteURL)
 	if err != nil {
@@ -69,11 +68,10 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 		return err
 	}
 
-	// Create a new GitHub client
-	githubClient := github.NewClient(nil)
-
-	// Set the authentication token
-	githubClient = githubClient.WithAuthToken(os.Getenv(tokenVarName))
+	githubClient, err := github.NewClient(github.WithAuthToken(os.Getenv(tokenVarName)))
+	if err != nil {
+		return err
+	}
 
 	owner, repoName, err := getGithubOwnerAndRepo(remoteURL)
 	if err != nil {

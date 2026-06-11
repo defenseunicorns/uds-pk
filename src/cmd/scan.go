@@ -18,11 +18,10 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/compare"
 	"github.com/defenseunicorns/uds-pk/src/scan"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	"github.com/google/go-github/v73/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/spf13/cobra"
 	"github.com/zarf-dev/zarf/src/api/v1alpha1"
 	"go.yaml.in/yaml/v4"
-	"golang.org/x/oauth2"
 )
 
 // CommandRunner interface for better testability
@@ -442,11 +441,8 @@ func createGithubClient(ctx *context.Context) *github.Client {
 	} else {
 		log.Debug("GitHub token found for REST API", slog.Int("length", len(token)))
 	}
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: token},
-	)
-	tc := oauth2.NewClient(*ctx, ts)
-	return github.NewClient(tc)
+	c, _ := github.NewClient(github.WithAuthToken(token))
+	return c
 }
 
 func fetchSbomsForFlavors(ctx *context.Context, client *github.Client,
@@ -533,12 +529,12 @@ func fetchSboms(tempDir string, tag string, repoOwner string, packageUrl string,
 func checkPackageExistenceInRepo(client *github.Client, ctx *context.Context, owner string, pkgUrl string, log *slog.Logger) (bool, error) {
 	log.Debug("Checking if package exists", slog.String("url", pkgUrl), slog.String("owner", owner))
 	apiPath := fmt.Sprintf("/orgs/%s/packages/container/%s", owner, pkgUrl)
-	req, err := client.NewRequest("GET", apiPath, nil)
+	req, err := client.NewRequest(*ctx, "GET", apiPath, nil)
 	if err != nil {
 		return false, err
 	}
 
-	resp, err := client.Do(*ctx, req, nil)
+	resp, err := client.Do(req, nil)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			log.Debug("Package not found", slog.String("url", pkgUrl))
