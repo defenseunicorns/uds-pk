@@ -12,9 +12,9 @@ require (
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
-	github.com/zarf-dev/zarf v0.77.0
-	gitlab.com/gitlab-org/api/client-go/v2 v2.36.1
-	go.yaml.in/yaml/v4 v4.0.0-rc.4
+	github.com/zarf-dev/zarf v0.78.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.36.2
+	go.yaml.in/yaml/v4 v4.0.0-rc.5
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
 
