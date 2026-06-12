@@ -13,7 +13,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,7 +20,7 @@ import (
 
 	"github.com/defenseunicorns/uds-pk/src/cmd"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	"github.com/google/go-github/v73/github"
+	"github.com/google/go-github/v88/github"
 	"github.com/spf13/cobra"
 )
 
@@ -427,9 +426,10 @@ func withMockGitHub(t *testing.T, handler http.Handler) {
 
 	origNewGH := cmd.NewGithubClient
 	cmd.NewGithubClient = func(_ *context.Context) *github.Client {
-		c := github.NewClient(srv.Client())
-		u, _ := url.Parse(srv.URL + "/")
-		c.BaseURL = u
+		c, _ := github.NewClient(
+			github.WithHTTPClient(srv.Client()),
+			github.WithEnterpriseURLs(srv.URL+"/", srv.URL+"/"),
+		)
 		return c
 	}
 	t.Cleanup(func() { cmd.NewGithubClient = origNewGH })
