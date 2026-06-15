@@ -417,6 +417,85 @@ func TestScanReleased_PrivatePackageMissing(t *testing.T) {
 	}
 }
 
+func TestScanReleased_NoRelease_ReturnsEmptyResults(t *testing.T) {
+	// Regression test: when a package has never been released, GHCR returns 404
+	// for the package existence check, leaving packageUrls empty. Previously,
+	// fetchSbomsForFlavors still called FetchSboms with an empty tag, producing
+	// an invalid GHCR URL and a 404 crash. After the fix, the flavor is skipped
+	// and ScanReleased returns empty results without error.
+	log := cmd.CreateLogger(true)
+
+	// GHCR: package does not exist yet (new package, no prior release)
+	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	// FetchSboms must never be called — the guard should prevent it
+	withMockFetchSboms(t, func(repoOwner, packageUrl, tag string, outputDir string, logger *slog.Logger) ([]string, error) {
+		t.Errorf("FetchSboms called unexpectedly: tag=%q packageUrl=%q", tag, packageUrl)
+		return nil, nil
+	})
+
+	tmp := t.TempDir()
+	scanReleasedOptions := cmd.ScanReleasedOptions{}
+	scanReleasedOptions.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
+	scanReleasedOptions.Scan.ExecCommand = fakeExecCommand
+	outDir := filepath.Join(tmp, "out")
+
+	ctx := context.Background()
+	ctx = cmd.InitLoggerContext(true, ctx)
+	res, err := cmd.ScanReleased(&ctx, outDir, &scanReleasedOptions, log, true)
+	if err != nil {
+		t.Fatalf("scan-released should succeed when no prior release exists, got: %v", err)
+	}
+	if len(res) != 0 {
+		t.Fatalf("expected empty results for package with no prior release, got: %v", res)
+	}
+}
+
+func TestScanAndCompare_NoRelease_CompletesWithoutError(t *testing.T) {
+	// Regression test: scan-and-compare should complete without error for a
+	// brand-new package that has never been released to GHCR. Previously,
+	// fetchSbomsForFlavors called FetchSboms with an empty tag, constructing
+	// an invalid URL that returned 404 and caused the command to crash.
+	options := cmd.ScanAndCompareOptions{}
+
+	// GHCR: package does not exist yet (new package, no prior release)
+	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	// FetchSboms must never be called — the guard should prevent it
+	withMockFetchSboms(t, func(repoOwner, packageUrl, tag string, outputDir string, logger *slog.Logger) ([]string, error) {
+		t.Errorf("FetchSboms called unexpectedly: tag=%q packageUrl=%q", tag, packageUrl)
+		return nil, nil
+	})
+
+	tmp := t.TempDir()
+	outFile := filepath.Join(tmp, "compare.md")
+	options.Scan.Scan.ZarfYamlLocation = writeZarfYaml(t, tmp)
+	options.Scan.Scan.OutputDirectory = filepath.Join(tmp, "out")
+	options.Scan.Scan.ExecCommand = fakeExecCommand
+	options.ScanAndCompareOutputFile = outFile
+
+	ctx := context.Background()
+	command := &cobra.Command{}
+	ctx = cmd.InitLoggerContext(true, ctx)
+	command.SetContext(ctx)
+	if err := options.Run(command, []string{}); err != nil {
+		t.Fatalf("scan-and-compare failed for new package with no prior release: %v", err)
+	}
+
+	// No flavors had released scans to compare, so the output file should be empty
+	b, rerr := os.ReadFile(outFile)
+	if rerr != nil {
+		t.Fatalf("failed to read output file: %v", rerr)
+	}
+	if len(b) != 0 {
+		t.Errorf("expected empty output for new package with no prior release, got: %s", string(b))
+	}
+}
+
 // withMockGitHub starts a test HTTP server with the given handler and
 // overrides NewGithubClient to point to it. Cleanup is automatic via t.Cleanup.
 func withMockGitHub(t *testing.T, handler http.Handler) {

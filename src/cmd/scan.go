@@ -475,6 +475,9 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client,
 		if err != nil {
 			return flavorToSboms, err
 		}
+		if tag == "" {
+			continue
+		}
 		sboms, err := fetchSboms(tempDir, tag, repoOwner, packageUrl, log)
 		if err != nil {
 			return flavorToSboms, err
