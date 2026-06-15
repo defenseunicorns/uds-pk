@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedTableHeaders = []string{
+var expectedTableHeaders = []string {
 	"ID", "Severity", "URL",
 }
 
@@ -24,6 +24,7 @@ func TestCompareScansCommand(t *testing.T) {
 	expectedNew := "New vulnerabilities: 5"
 	expectedFixed := "Fixed vulnerabilities: 14"
 	expectedExisting := "Existing vulnerabilities: 4"
+
 
 	assert.Contains(t, stdout, expectedHeader)
 	assert.Contains(t, stdout, expectedNew)
@@ -44,6 +45,7 @@ func TestCompareScansCommandRegistryPrefix(t *testing.T) {
 	expectedNew := "New vulnerabilities: 5"
 	expectedFixed := "Fixed vulnerabilities: 14"
 	expectedExisting := "Existing vulnerabilities: 4"
+
 
 	assert.Contains(t, stdout, expectedHeader)
 	assert.Contains(t, stdout, expectedNew)

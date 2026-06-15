@@ -99,6 +99,8 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 	return nil
 }
 
+
+
 func createReleaseOptions(zarfPackageName string, flavor types.Flavor, branchRef string, packageNameFlag string) *gitlab.CreateReleaseOptions {
 	return &gitlab.CreateReleaseOptions{
 		Name:        gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),

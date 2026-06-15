@@ -154,15 +154,15 @@ packages:
 			bundleDir := filepath.Join(tmpDir, "bundle")
 			err := os.MkdirAll(bundleDir, 0755)
 			require.NoError(t, err)
-
+			
 			bundlePath := filepath.Join(bundleDir, "uds-bundle.yaml")
-
+			
 			// Write initial YAML if it's not testing for non-existent file
 			if tt.initialYaml != "non-existent" {
 				err = os.WriteFile(bundlePath, []byte(tt.initialYaml), 0644)
 				require.NoError(t, err)
 			}
-
+			
 			// Change to temp dir for test
 			err = os.Chdir(tmpDir)
 			require.NoError(t, err)
@@ -180,14 +180,14 @@ packages:
 				var bundle uds.UDSBundle
 				err = utils.LoadYaml("bundle/uds-bundle.yaml", &bundle)
 				require.NoError(t, err)
-
+				
 				// Check bundle version was updated
 				expectedVersion := tt.flavor.Version
 				if tt.flavor.Name != "" {
 					expectedVersion = tt.flavor.Version + "-" + tt.flavor.Name
 				}
 				require.Equal(t, expectedVersion, bundle.Metadata.Version)
-
+				
 				// Check if package ref was updated
 				for _, pkg := range bundle.Packages {
 					if pkg.Name == tt.packageName {

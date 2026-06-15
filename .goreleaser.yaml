@@ -26,7 +26,7 @@ builds:
 # Save the built artifacts as binaries (instead of wrapping them in a tarball)
 archives:
   - format: binary
-    name_template: "uds-pk_{{ .Tag }}_{{- title .Os }}_{{ .Arch }}"
+    name_template: "{{ .ProjectName }}_{{ .Tag }}_{{- title .Os }}_{{ .Arch }}"
 
 # generate a sha256 checksum of all release artifacts
 checksum:
@@ -37,7 +37,7 @@ checksum:
 sboms:
   - artifacts: binary
     documents:
-      - "sbom_uds-pk_{{ .Tag }}_{{- title .Os }}_{{ .Arch }}.sbom"
+      - "sbom_{{ .ProjectName }}_{{ .Tag }}_{{- title .Os }}_{{ .Arch }}.sbom"
 
 snapshot:
   name_template: "{{ incpatch .Version }}-snapshot"
@@ -49,8 +49,8 @@ changelog:
 # Generate a GitHub release and publish the release for the tag
 release:
   github:
-    owner: defenseunicorns-dashdays
-    name: 2026-03-stig-attest
+    owner: defenseunicorns
+    name: uds-pk
   prerelease: auto
   mode: append
   draft: false

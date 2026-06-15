@@ -190,20 +190,3 @@ func (e2e *UDSPKE2ETest) GetGitRevision() (string, error) {
 
 	return strings.TrimSpace(out), nil
 }
-
-// EnsureGitTag creates the tag if it does not already exist and removes it during cleanup.
-func (e2e *UDSPKE2ETest) EnsureGitTag(t *testing.T, tag string) {
-	out, _, err := exec.Cmd("git", "tag", "-l", tag)
-	require.NoError(t, err)
-	if strings.TrimSpace(out) == tag {
-		return
-	}
-
-	_, _, err = exec.Cmd("git", "tag", tag)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_, _, err := exec.Cmd("git", "tag", "-d", tag)
-		require.NoError(t, err)
-	})
-}
