@@ -244,7 +244,7 @@ func TestScanReleased_EndToEnd(t *testing.T) {
 	scanReleasedOptions.Scan.ExecCommand = fakeExecCommand
 	outDir := filepath.Join(tmp, "out")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = cmd.InitLoggerContext(true, ctx)
 	res, err := cmd.ScanReleased(&ctx, outDir, &scanReleasedOptions, log, true)
 	if err != nil {
@@ -294,7 +294,7 @@ func TestScanAndCompare_EndToEnd(t *testing.T) {
 	options.Scan.Scan.ExecCommand = fakeExecCommand
 	options.ScanAndCompareOutputFile = outFile
 
-	ctx := context.Background()
+	ctx := t.Context()
 	command := &cobra.Command{}
 	ctx = cmd.InitLoggerContext(true, ctx)
 	command.SetContext(ctx)
@@ -345,7 +345,7 @@ func TestScanAndCompare_MissingReleasedImage_PrintsNotice(t *testing.T) {
 	options.Scan.Scan.ExecCommand = fakeExecCommand
 	options.ScanAndCompareOutputFile = outFile
 
-	ctx := context.Background()
+	ctx := t.Context()
 	command := &cobra.Command{}
 	ctx = cmd.InitLoggerContext(true, ctx)
 	command.SetContext(ctx)
@@ -405,7 +405,7 @@ func TestScanReleased_PrivatePackageMissing(t *testing.T) {
 	scanReleasedOptions.Fetch.PrivatePackagesPrefix = "private"
 	outDir := filepath.Join(tmp, "out")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = cmd.InitLoggerContext(true, ctx)
 	res, err := cmd.ScanReleased(&ctx, outDir, &scanReleasedOptions, log, true)
 	if err != nil {
@@ -442,7 +442,7 @@ func TestScanReleased_NoRelease_ReturnsEmptyResults(t *testing.T) {
 	scanReleasedOptions.Scan.ExecCommand = fakeExecCommand
 	outDir := filepath.Join(tmp, "out")
 
-	ctx := context.Background()
+	ctx := t.Context()
 	ctx = cmd.InitLoggerContext(true, ctx)
 	res, err := cmd.ScanReleased(&ctx, outDir, &scanReleasedOptions, log, true)
 	if err != nil {
@@ -478,7 +478,7 @@ func TestScanAndCompare_NoRelease_CompletesWithoutError(t *testing.T) {
 	options.Scan.Scan.ExecCommand = fakeExecCommand
 	options.ScanAndCompareOutputFile = outFile
 
-	ctx := context.Background()
+	ctx := t.Context()
 	command := &cobra.Command{}
 	ctx = cmd.InitLoggerContext(true, ctx)
 	command.SetContext(ctx)
