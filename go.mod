@@ -1,10 +1,10 @@
 module github.com/defenseunicorns/uds-pk
 
-go 1.26.0
+go 1.26.4
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.11.0
-	github.com/defenseunicorns/uds-cli v0.32.0
+	github.com/defenseunicorns/uds-cli v0.33.0
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v88 v88.0.0
@@ -12,8 +12,8 @@ require (
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
-	github.com/zarf-dev/zarf v0.78.0
-	gitlab.com/gitlab-org/api/client-go/v2 v2.36.2
+	github.com/zarf-dev/zarf v0.79.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.39.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.5
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
@@ -39,9 +39,9 @@ require (
 	github.com/phsym/console-slog v0.3.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/zclconf/go-cty v1.18.1 // indirect
-	golang.org/x/mod v0.36.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
+	golang.org/x/mod v0.37.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 )
 
 require (
