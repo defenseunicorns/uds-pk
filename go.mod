@@ -13,8 +13,8 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/zarf-dev/zarf v0.79.0
-	gitlab.com/gitlab-org/api/client-go/v2 v2.39.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.5
+	gitlab.com/gitlab-org/api/client-go/v2 v2.40.0
+	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
 
