@@ -1,5 +1,9 @@
 * @defenseunicorns/uds-foundry
 
+# In this entry, @defenseunicorns/narwhals owns any file 
+# in a stig directory anywhere in the repository.
+stig/ @defenseunicorns/narwhals
+
 # Additional privileged files
 /CODEOWNERS @jeff-mccoy @daveworth
 /LICENS* @jeff-mccoy @austenbryan
