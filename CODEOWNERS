@@ -3,6 +3,8 @@
 # In this entry, @defenseunicorns/narwhals owns any file 
 # in a stig directory anywhere in the repository.
 stig/ @defenseunicorns/narwhals
+src/test/e2e/*stig* @defenseunicorns/narwhals
+src/cmd/stig.go @defenseunicorns/narwhals
 
 # Additional privileged files
 /CODEOWNERS @jeff-mccoy @daveworth
