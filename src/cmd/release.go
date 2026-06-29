@@ -56,6 +56,7 @@ func checkPackageExists(repositoryURL, tag, arch string, usePlainHTTP bool, logg
 type CheckOptions struct {
 	usePlainHTTP     bool
 	baseRepo         string
+	team             string
 	arch             string
 	releaseDir       string
 	packageName      string
@@ -73,6 +74,7 @@ func checkCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVarP(&options.checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
 	cmd.Flags().StringVarP(&options.baseRepo, "base-repo", "r", "ghcr.io/uds-packages", "Repository URL.")
+	cmd.Flags().StringVarP(&options.team, "team", "t", "", "Team path segment inserted between 'private' and the package name (e.g. 'uds'). Required when the registry path uses a team subdirectory.")
 	cmd.Flags().StringVarP(&options.arch, "arch", "a", "amd64", "Architecture to check (e.g. amd64, arm64). amd64 by default.")
 	cmd.Flags().BoolVar(&options.skipPublishCheck, "skip-publish-check", false, "If enabled, the release check will be based solely on the tag existence.")
 	cmd.Flags().BoolVar(&options.usePlainHTTP, "plain-http", false, "TEST ONLY Use plain HTTP instead of HTTPS for repository URL")
@@ -138,9 +140,17 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 
 			var repositoryUrl string
 			if flavor == "unicorn" {
-				repositoryUrl = baseRepo + "/private/" + zarfPackageName
+				if options.team != "" {
+					repositoryUrl = baseRepo + "/private/" + options.team + "/" + zarfPackageName
+				} else {
+					repositoryUrl = baseRepo + "/private/" + zarfPackageName
+				}
 			} else {
-				repositoryUrl = baseRepo + "/" + zarfPackageName
+				if options.team != "" {
+					repositoryUrl = baseRepo + "/" + options.team + "/" + zarfPackageName
+				} else {
+					repositoryUrl = baseRepo + "/" + zarfPackageName
+				}
 			}
 
 			log.Debug("Determined target repository", slog.String("repository", repositoryUrl))
