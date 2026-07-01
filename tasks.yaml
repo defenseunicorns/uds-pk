@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 includes:
-  - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.24.14/tasks/lint.yaml
+  - lint: https://raw.githubusercontent.com/defenseunicorns/uds-common/v1.25.0/tasks/lint.yaml
 
 tasks:
   # build tasks
@@ -54,3 +54,10 @@ tasks:
       - cmd: |
           # shellcheck disable=SC2046
           go test -race $(go list ./... | grep -v test) -failfast -v -timeout 5m
+
+  - name: lint-shell
+    description: Lint shell scripts (no Zarf packages in this repo)
+    actions:
+      - task: lint:shell
+        with:
+          zarf_globs: " "
