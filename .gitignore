@@ -38,3 +38,6 @@ uds-pk
 src/test/sandbox/
 
 .tmp/
+
+# macOS
+.DS_Store
