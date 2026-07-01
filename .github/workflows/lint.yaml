@@ -41,7 +41,7 @@ jobs:
 
       - name: Lint Scripts
         run: |
-          uds run lint:shell --no-progress
+          uds run lint-shell --no-progress
 
       - name: Lint Tasks
         run: |
