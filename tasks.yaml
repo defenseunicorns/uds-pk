@@ -35,16 +35,40 @@ tasks:
     actions:
       - cmd: GOOS=darwin GOARCH=arm64 go build -ldflags="${BUILD_ARGS}" -o build/uds-pk-mac-apple main.go
 
+  - name: build-cli-host
+    description: build the CLI for the current host OS/architecture
+    actions:
+      - cmd: |
+          case "$(uname -s)-$(uname -m)" in
+            Linux-x86_64)
+              CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="${BUILD_ARGS}" -o build/uds-pk main.go
+              ;;
+            Linux-aarch64|Linux-arm64)
+              CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="${BUILD_ARGS}" -o build/uds-pk-arm main.go
+              ;;
+            Darwin-x86_64)
+              GOOS=darwin GOARCH=amd64 go build -ldflags="${BUILD_ARGS}" -o build/uds-pk-mac-intel main.go
+              ;;
+            Darwin-arm64)
+              GOOS=darwin GOARCH=arm64 go build -ldflags="${BUILD_ARGS}" -o build/uds-pk-mac-apple main.go
+              ;;
+            *)
+              echo "unsupported host platform: $(uname -s)-$(uname -m)" >&2
+              exit 1
+              ;;
+          esac
+
   - name: test
     description: run all unit and e2e tests
     actions:
-      - task: build-cli-linux-amd
+      - task: build-cli-host
       - task: unit
       - task: e2e
 
   - name: e2e
     description: run all e2e tests
     actions:
+      - task: build-cli-host
       - cmd: go test -race ./... -failfast -v -timeout 5m
         dir: src/test/e2e
 
