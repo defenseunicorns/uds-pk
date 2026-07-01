@@ -199,3 +199,167 @@ Existing vulnerabilities: <count>
 
 ---
 ```
+
+## STIG Checklist Generation
+
+The `stig generate-checklist` command creates a `.cklb` checklist from a STIG profile YAML. For supported STIGs, the XCCDF source file is automatically downloaded from DISA — no local copy required.
+
+### Usage
+
+```bash
+# Auto-download XCCDF for a supported STIG
+uds-pk stig generate-checklist --profile stig-profile.yaml
+
+# Provide your own XCCDF file
+uds-pk stig generate-checklist --profile stig-profile.yaml --xccdf /path/to/stig.xml
+```
+
+If `--output` is omitted, the default filename is:
+
+```text
+<app_name>-<stig>-<revision>.cklb
+```
+
+Examples:
+
+```text
+my-app-asd-v6r4.cklb
+generic-rhel9-k8s-server-rhel9-v2r7.cklb
+```
+
+### Supported STIGs
+
+| ID | STIG | Auto-download |
+|----|------|---------------|
+| `asd_v6r4` | Application Security and Development, V6R4 | Yes |
+| `rhel9_v2r7` | Red Hat Enterprise Linux 9, V2R7 | Yes |
+
+### Profile Schema
+
+Profiles use `kind: UDS STIG Profile` and list one or more STIGs under the `stigs` key. The first recognized STIG ID in the list is used when generating the checklist.
+
+### ASD Profile Example
+
+```yaml
+kind: UDS STIG Profile
+metadata:
+  name: example-app
+  fqdn: app.example.mil
+  description: >-
+    Example application deployed behind platform identity and networking controls.
+  version: 1.0.0
+
+stigs:
+  - id: asd_v6r4
+    description: Application Security and Development STIG, Version 6, Revision 4
+    characteristics:
+      uses_soap: false
+      uses_saml: false
+      uses_xml: false
+      uses_database: false
+      uses_passwords: false
+      has_user_input: false
+      is_stateless: true
+      language: go
+    platform:
+      auth_provider: Keycloak
+      auth_proxy: authservice
+      service_mesh: Istio
+      container_runtime: Kubernetes
+      network_policies: true
+      cicd_sast: Semgrep
+```
+
+### RHEL9 Profile Example
+
+```yaml
+kind: UDS STIG Profile
+metadata:
+  name: generic-rhel9-k8s-server
+  fqdn: k8s-node01.airgap.local
+  description: >-
+    Red Hat Enterprise Linux 9 server hosting a standalone Kubernetes deployment
+    in a small air-gapped network.
+  version: 1.0.0
+
+stigs:
+  - id: rhel9_v2r7
+    description: Red Hat Enterprise Linux 9 STIG, Version 2, Release 7
+    characteristics:
+      is_container_host: true
+      is_kubernetes_node: true
+      is_standalone_server: true
+      has_gui: false
+      boots_to_multi_user_target: true
+      uses_fips_mode: true
+      uses_selinux: true
+      uses_auditd: true
+      uses_journald: true
+      uses_firewall: true
+      uses_ssh: true
+      uses_sudo: true
+      uses_aide: true
+      uses_removable_media: false
+      usb_storage_disabled: true
+      is_air_gapped: true
+      separate_tmp: true
+      separate_var: true
+      separate_var_log: true
+      separate_var_log_audit: true
+      separate_var_tmp: true
+    platform:
+      os_name: "Red Hat Enterprise Linux 9"
+      os_version: "RHEL 9"
+      host_role: "Standalone Kubernetes server"
+      selinux_mode: "enforcing"
+      audit_service: "auditd"
+      firewall: "firewalld"
+      file_integrity: "AIDE"
+      kubernetes_distribution: "k0s"
+      mount_strategy: "dedicated partitions for /tmp, /var, /var/log, /var/log/audit, and /var/tmp"
+```
+
+### Multi-STIG Profiles
+
+A single profile can list multiple STIGs. The first one with a recognized ID is selected automatically:
+
+```yaml
+kind: UDS STIG Profile
+metadata:
+  name: my-app
+  version: 1.0.0
+
+stigs:
+  - id: asd_v6r4
+    characteristics: { ... }
+    platform: { ... }
+  - id: rhel9_v2r7
+    characteristics: { ... }
+    platform: { ... }
+```
+
+### Overrides
+
+Each STIG entry can include an `overrides` map keyed by rule version ID. Each override can set:
+
+- `status`
+- `finding_details`
+- `comments`
+
+Example:
+
+```yaml
+stigs:
+  - id: asd_v6r4
+    overrides:
+      APSC-DV-000010:
+        status: not_a_finding
+        finding_details: Session handling is delegated to the platform identity layer.
+
+  - id: rhel9_v2r7
+    overrides:
+      RHEL-09-231010:
+        status: not_applicable
+        finding_details: Control is not applicable in this air-gapped enclave design.
+        comments: Documented architectural exception with compensating controls.
+```
