@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright 2026 Defense Unicorns
+ SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+-->
+
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1"
+           xmlns:dc="http://purl.org/dc/elements/1.1/"
+           id="Application_Security_Development_STIG" xml:lang="en">
+  <status date="2025-01-01">accepted</status>
+  <title>Application Security and Development Security Technical Implementation Guide</title>
+  <version>6</version>
+  <plain-text id="release-info">Release: 1 Benchmark Date: 01 Jan 2025</plain-text>
+
+  <!-- Rule 1: TLS/encryption — should evaluate to not_a_finding with service mesh -->
+  <Group id="V-222400">
+    <title>SRG-APP-000014</title>
+    <description>&lt;GroupDescription&gt;&lt;/GroupDescription&gt;</description>
+    <Rule id="SV-222400r1_rule" severity="high" weight="10.0">
+      <version>APSC-DV-000160</version>
+      <title>The application must implement DoD-approved encryption to protect the confidentiality of remote access sessions.</title>
+      <description>&lt;VulnDiscussion&gt;Without confidentiality protection mechanisms, unauthorized individuals may gain access to sensitive information via a remote access session.&lt;/VulnDiscussion&gt;&lt;FalsePositives&gt;&lt;/FalsePositives&gt;&lt;FalseNegatives&gt;&lt;/FalseNegatives&gt;&lt;Documentable&gt;false&lt;/Documentable&gt;&lt;SeverityOverrideGuidance&gt;&lt;/SeverityOverrideGuidance&gt;&lt;PotentialImpacts&gt;&lt;/PotentialImpacts&gt;&lt;ThirdPartyTools&gt;&lt;/ThirdPartyTools&gt;&lt;IAControls&gt;&lt;/IAControls&gt;&lt;Responsibility&gt;&lt;/Responsibility&gt;&lt;Mitigations&gt;&lt;/Mitigations&gt;&lt;MitigationControl&gt;&lt;/MitigationControl&gt;</description>
+      <reference>
+        <dc:identifier>4093</dc:identifier>
+      </reference>
+      <ident system="http://cyber.mil/cci">CCI-000068</ident>
+      <ident system="http://cyber.mil/legacy">V-69289</ident>
+      <ident system="http://cyber.mil/legacy">SV-83911</ident>
+      <fixtext>Configure the application to use DoD-approved encryption.</fixtext>
+      <check>
+        <check-content-ref href="Application_Security_and_Development_STIG.xml" name="M" />
+        <check-content>Verify the application implements DoD-approved encryption.</check-content>
+      </check>
+    </Rule>
+  </Group>
+
+  <!-- Rule 2: SOAP — should evaluate to not_applicable when uses_soap=false -->
+  <Group id="V-222600">
+    <title>SRG-APP-000231</title>
+    <description>&lt;GroupDescription&gt;&lt;/GroupDescription&gt;</description>
+    <Rule id="SV-222600r1_rule" severity="medium" weight="10.0">
+      <version>APSC-DV-002010</version>
+      <title>The application must use WS-Security when transmitting SOAP messages.</title>
+      <description>&lt;VulnDiscussion&gt;SOAP messages should be secured.&lt;/VulnDiscussion&gt;&lt;FalsePositives&gt;&lt;/FalsePositives&gt;&lt;FalseNegatives&gt;&lt;/FalseNegatives&gt;&lt;Documentable&gt;false&lt;/Documentable&gt;&lt;SeverityOverrideGuidance&gt;&lt;/SeverityOverrideGuidance&gt;&lt;PotentialImpacts&gt;&lt;/PotentialImpacts&gt;&lt;ThirdPartyTools&gt;&lt;/ThirdPartyTools&gt;&lt;IAControls&gt;&lt;/IAControls&gt;&lt;Responsibility&gt;&lt;/Responsibility&gt;&lt;Mitigations&gt;&lt;/Mitigations&gt;&lt;MitigationControl&gt;&lt;/MitigationControl&gt;</description>
+      <reference>
+        <dc:identifier>4093</dc:identifier>
+      </reference>
+      <ident system="http://cyber.mil/cci">CCI-000382</ident>
+      <fixtext>Configure SOAP WS-Security.</fixtext>
+      <check>
+        <check-content-ref href="Application_Security_and_Development_STIG.xml" name="M" />
+        <check-content>Verify SOAP WS-Security is configured.</check-content>
+      </check>
+    </Rule>
+  </Group>
+
+  <!-- Rule 3: Password — should evaluate to not_applicable when uses_passwords=false -->
+  <Group id="V-222601">
+    <title>SRG-APP-000164</title>
+    <description>&lt;GroupDescription&gt;&lt;/GroupDescription&gt;</description>
+    <Rule id="SV-222601r1_rule" severity="medium" weight="10.0">
+      <version>APSC-DV-001680</version>
+      <title>The application must enforce a minimum 15-character password length.</title>
+      <description>&lt;VulnDiscussion&gt;Password length requirements.&lt;/VulnDiscussion&gt;&lt;FalsePositives&gt;&lt;/FalsePositives&gt;&lt;FalseNegatives&gt;&lt;/FalseNegatives&gt;&lt;Documentable&gt;false&lt;/Documentable&gt;&lt;SeverityOverrideGuidance&gt;&lt;/SeverityOverrideGuidance&gt;&lt;PotentialImpacts&gt;&lt;/PotentialImpacts&gt;&lt;ThirdPartyTools&gt;&lt;/ThirdPartyTools&gt;&lt;IAControls&gt;&lt;/IAControls&gt;&lt;Responsibility&gt;&lt;/Responsibility&gt;&lt;Mitigations&gt;&lt;/Mitigations&gt;&lt;MitigationControl&gt;&lt;/MitigationControl&gt;</description>
+      <reference>
+        <dc:identifier>4093</dc:identifier>
+      </reference>
+      <ident system="http://cyber.mil/cci">CCI-000205</ident>
+      <fixtext>Configure password length requirements.</fixtext>
+      <check>
+        <check-content-ref href="Application_Security_and_Development_STIG.xml" name="M" />
+        <check-content>Verify minimum password length.</check-content>
+      </check>
+    </Rule>
+  </Group>
+
+  <!-- Rule 4: Audit retention — should evaluate to not_reviewed -->
+  <Group id="V-222602">
+    <title>SRG-APP-000515</title>
+    <description>&lt;GroupDescription&gt;&lt;/GroupDescription&gt;</description>
+    <Rule id="SV-222602r1_rule" severity="medium" weight="10.0">
+      <version>APSC-DV-002900</version>
+      <title>The application must allocate audit record storage capacity in accordance with organization-defined audit record storage requirements.</title>
+      <description>&lt;VulnDiscussion&gt;Audit retention is important.&lt;/VulnDiscussion&gt;&lt;FalsePositives&gt;&lt;/FalsePositives&gt;&lt;FalseNegatives&gt;&lt;/FalseNegatives&gt;&lt;Documentable&gt;true&lt;/Documentable&gt;&lt;SeverityOverrideGuidance&gt;&lt;/SeverityOverrideGuidance&gt;&lt;PotentialImpacts&gt;&lt;/PotentialImpacts&gt;&lt;ThirdPartyTools&gt;&lt;/ThirdPartyTools&gt;&lt;IAControls&gt;&lt;/IAControls&gt;&lt;Responsibility&gt;&lt;/Responsibility&gt;&lt;Mitigations&gt;&lt;/Mitigations&gt;&lt;MitigationControl&gt;&lt;/MitigationControl&gt;</description>
+      <reference>
+        <dc:identifier>4093</dc:identifier>
+      </reference>
+      <ident system="http://cyber.mil/cci">CCI-001849</ident>
+      <fixtext>Configure audit record storage capacity.</fixtext>
+      <check>
+        <check-content-ref href="Application_Security_and_Development_STIG.xml" name="M" />
+        <check-content>Verify audit record storage is allocated.</check-content>
+      </check>
+    </Rule>
+  </Group>
+
+  <!-- Rule 5: Session limiting — should evaluate to not_a_finding with auth provider -->
+  <Group id="V-222387">
+    <title>SRG-APP-000001</title>
+    <description>&lt;GroupDescription&gt;&lt;/GroupDescription&gt;</description>
+    <Rule id="SV-222387r960735_rule" severity="medium" weight="10.0">
+      <version>APSC-DV-000010</version>
+      <title>The application must provide a capability to limit the number of logon sessions per user.</title>
+      <description>&lt;VulnDiscussion&gt;Application management includes the ability to control the number of sessions.&lt;/VulnDiscussion&gt;&lt;FalsePositives&gt;&lt;/FalsePositives&gt;&lt;FalseNegatives&gt;&lt;/FalseNegatives&gt;&lt;Documentable&gt;false&lt;/Documentable&gt;&lt;SeverityOverrideGuidance&gt;&lt;/SeverityOverrideGuidance&gt;&lt;PotentialImpacts&gt;&lt;/PotentialImpacts&gt;&lt;ThirdPartyTools&gt;&lt;/ThirdPartyTools&gt;&lt;IAControls&gt;&lt;/IAControls&gt;&lt;Responsibility&gt;&lt;/Responsibility&gt;&lt;Mitigations&gt;&lt;/Mitigations&gt;&lt;MitigationControl&gt;&lt;/MitigationControl&gt;</description>
+      <reference>
+        <dc:identifier>4093</dc:identifier>
+      </reference>
+      <ident system="http://cyber.mil/cci">CCI-000054</ident>
+      <ident system="http://cyber.mil/legacy">V-69239</ident>
+      <ident system="http://cyber.mil/legacy">SV-83861</ident>
+      <fixtext>Design and configure the application to limit the number of concurrent sessions.</fixtext>
+      <check>
+        <check-content-ref href="Application_Security_and_Development_STIG.xml" name="M" />
+        <check-content>For production environments; Review the system documentation.</check-content>
+      </check>
+    </Rule>
+  </Group>
+</Benchmark>
