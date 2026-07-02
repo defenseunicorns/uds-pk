@@ -53,8 +53,16 @@ echo "downloading ${asset} ..."
 curl -fsSL "${base}/${asset}" -o "${tmp}/${BIN}"
 curl -fsSL "${base}/checksums.txt" -o "${tmp}/checksums.txt"
 
+# sha256sum (coreutils) is universal on Linux, including minimal containers;
+# shasum (perl) is the macOS default. Prefer whichever is present.
+if command -v sha256sum >/dev/null 2>&1; then
+  verify_sum() { sha256sum -c -; }
+else
+  verify_sum() { shasum -a 256 -c -; }
+fi
+
 # Verify only this asset's checksum line, rewritten to the local filename.
-(cd "$tmp" && grep " ${asset}\$" checksums.txt | sed "s/${asset}/${BIN}/" | shasum -a 256 -c -)
+(cd "$tmp" && grep " ${asset}\$" checksums.txt | sed "s/${asset}/${BIN}/" | verify_sum)
 
 chmod +x "${tmp}/${BIN}"
 if ! install -m 0755 "${tmp}/${BIN}" "${INSTALL_DIR}/${BIN}" 2>/dev/null; then
