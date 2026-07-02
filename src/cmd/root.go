@@ -19,8 +19,8 @@ var rootCmd = &cobra.Command{
 	Use:   "uds-pk",
 	Short: "UDS Package Kit is a tool for managing UDS packages",
 	Long: `UDS Package Kit is a tool that facilitates the development, maintenance and release
-		of UDS packages. It provides commands for automating releases verifying packages and
-		generating configuration.`,
+		of UDS packages. It provides commands for automating releases and scanning packages
+		for vulnerabilities.`,
 }
 
 // deprecatedCheckCmd is the deprecated location for the check command
