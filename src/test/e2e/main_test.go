@@ -51,10 +51,10 @@ func doAllTheThings(m *testing.M) (int, error) {
 		return 1, fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
-	// Validate that the UDS binary exists. If it doesn't that means the dev hasn't built it
+	// Validate that the uds-pk binary exists. If it doesn't that means the dev hasn't built it
 	_, err = os.Stat(e2e.UDSPKBinPath)
 	if err != nil {
-		return 1, fmt.Errorf("zarf binary %s not found", e2e.UDSPKBinPath)
+		return 1, fmt.Errorf("uds-pk binary %s not found", e2e.UDSPKBinPath)
 	}
 
 	// Run the tests, with the cluster cleanup being deferred to the end of the function call
