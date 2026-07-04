@@ -35,7 +35,7 @@ func TestStigGenerateChecklist(t *testing.T) {
 	data, err := os.ReadFile(outputPath)
 	require.NoError(t, err)
 
-	var checklist map[string]interface{}
+	var checklist map[string]any
 	err = json.Unmarshal(data, &checklist)
 	require.NoError(t, err)
 
@@ -50,7 +50,7 @@ func TestStigGenerateChecklist(t *testing.T) {
 	assert.NotEmpty(t, checklist["id"])
 
 	// Verify target_data
-	targetData, ok := checklist["target_data"].(map[string]interface{})
+	targetData, ok := checklist["target_data"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "e2e-test-app", targetData["host_name"])
 	assert.Equal(t, "", targetData["fqdn"])
@@ -59,11 +59,11 @@ func TestStigGenerateChecklist(t *testing.T) {
 	assert.Equal(t, "Application Review", targetData["technology_area"])
 
 	// Verify stigs array
-	stigs, ok := checklist["stigs"].([]interface{})
+	stigs, ok := checklist["stigs"].([]any)
 	require.True(t, ok)
 	require.Len(t, stigs, 1)
 
-	stig, ok := stigs[0].(map[string]interface{})
+	stig, ok := stigs[0].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "Application Security and Development Security Technical Implementation Guide", stig["stig_name"])
 	assert.Equal(t, "Application_Security_Development_STIG", stig["stig_id"])
@@ -71,7 +71,7 @@ func TestStigGenerateChecklist(t *testing.T) {
 	assert.Equal(t, float64(5), stig["size"])
 
 	// Verify rules
-	rules, ok := stig["rules"].([]interface{})
+	rules, ok := stig["rules"].([]any)
 	require.True(t, ok)
 	require.Len(t, rules, 5)
 }
@@ -90,18 +90,18 @@ func TestStigGenerateChecklistRuleStatuses(t *testing.T) {
 	data, err := os.ReadFile(outputPath)
 	require.NoError(t, err)
 
-	var checklist map[string]interface{}
+	var checklist map[string]any
 	err = json.Unmarshal(data, &checklist)
 	require.NoError(t, err)
 
-	stigs := checklist["stigs"].([]interface{})
-	stig := stigs[0].(map[string]interface{})
-	rules := stig["rules"].([]interface{})
+	stigs := checklist["stigs"].([]any)
+	stig := stigs[0].(map[string]any)
+	rules := stig["rules"].([]any)
 
 	// Build a map of rule_version -> status for easy assertion
 	statusByVersion := map[string]string{}
 	for _, r := range rules {
-		rule := r.(map[string]interface{})
+		rule := r.(map[string]any)
 		statusByVersion[rule["rule_version"].(string)] = rule["status"].(string)
 	}
 
@@ -131,16 +131,16 @@ func TestStigGenerateChecklistRuleFields(t *testing.T) {
 	data, err := os.ReadFile(outputPath)
 	require.NoError(t, err)
 
-	var checklist map[string]interface{}
+	var checklist map[string]any
 	err = json.Unmarshal(data, &checklist)
 	require.NoError(t, err)
 
-	stigs := checklist["stigs"].([]interface{})
-	stig := stigs[0].(map[string]interface{})
-	rules := stig["rules"].([]interface{})
+	stigs := checklist["stigs"].([]any)
+	stig := stigs[0].(map[string]any)
+	rules := stig["rules"].([]any)
 
 	// Check detailed fields on the first rule (APSC-DV-000160)
-	rule := rules[0].(map[string]interface{})
+	rule := rules[0].(map[string]any)
 	assert.Equal(t, "V-222400", rule["group_id_src"])
 	assert.Equal(t, "V-222400", rule["group_id"])
 	assert.Equal(t, "high", rule["severity"])
@@ -158,25 +158,25 @@ func TestStigGenerateChecklistRuleFields(t *testing.T) {
 	assert.NotEmpty(t, rule["finding_details"])
 
 	// Verify check_content_ref
-	ref, ok := rule["check_content_ref"].(map[string]interface{})
+	ref, ok := rule["check_content_ref"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "Application_Security_and_Development_STIG.xml", ref["href"])
 	assert.Equal(t, "M", ref["name"])
 
 	// Verify group_tree
-	groupTree, ok := rule["group_tree"].([]interface{})
+	groupTree, ok := rule["group_tree"].([]any)
 	require.True(t, ok)
 	require.Len(t, groupTree, 1)
-	entry := groupTree[0].(map[string]interface{})
+	entry := groupTree[0].(map[string]any)
 	assert.Equal(t, "V-222400", entry["id"])
 	assert.Equal(t, "SRG-APP-000014", entry["title"])
 
 	// Verify idents
-	ccis, ok := rule["ccis"].([]interface{})
+	ccis, ok := rule["ccis"].([]any)
 	require.True(t, ok)
 	assert.Contains(t, ccis, "CCI-000068")
 
-	legacyIDs, ok := rule["legacy_ids"].([]interface{})
+	legacyIDs, ok := rule["legacy_ids"].([]any)
 	require.True(t, ok)
 	assert.Contains(t, legacyIDs, "V-69289")
 	assert.Contains(t, legacyIDs, "SV-83911")
@@ -264,11 +264,11 @@ func TestStigGenerateChecklistWithRealSTIG(t *testing.T) {
 	data, err := os.ReadFile(outputPath)
 	require.NoError(t, err)
 
-	var checklist map[string]interface{}
+	var checklist map[string]any
 	err = json.Unmarshal(data, &checklist)
 	require.NoError(t, err)
 
-	stigs := checklist["stigs"].([]interface{})
-	stig := stigs[0].(map[string]interface{})
+	stigs := checklist["stigs"].([]any)
+	stig := stigs[0].(map[string]any)
 	assert.Equal(t, float64(286), stig["size"])
 }

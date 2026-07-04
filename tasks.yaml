@@ -85,3 +85,9 @@ tasks:
       - task: lint:shell
         with:
           zarf_globs: " "
+
+  - name: lint-golang # maybe we later move into uds-common?
+    description: Golang specific linters
+    actions:
+      - cmd: |
+          go fix --diff ./... # this is the "modern" go-modernize tool chain

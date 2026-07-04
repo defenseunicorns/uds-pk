@@ -146,7 +146,7 @@ func (e2e *UDSPKE2ETest) CreateUDSBundleYamlMultiPackage(t *testing.T, dir strin
 	require.NoError(t, err)
 }
 
-func (e2e *UDSPKE2ETest) LoadYaml(path string, destVar interface{}) error {
+func (e2e *UDSPKE2ETest) LoadYaml(path string, destVar any) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
