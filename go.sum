@@ -311,6 +311,8 @@ gitlab.com/gitlab-org/api/client-go/v2 v2.40.0 h1:or70sFYvICc+Gg4hyBuYn85+YZRKgo
 gitlab.com/gitlab-org/api/client-go/v2 v2.40.0/go.mod h1:SKUbKSS59KPt6WeGNJoYF8HDaf/rFMUSITlftj/HkLg=
 gitlab.com/gitlab-org/api/client-go/v2 v2.43.0 h1:CxvWrDmW6/NAmnFeC4if5SGSP/0X54RIYox4sMo7pH0=
 gitlab.com/gitlab-org/api/client-go/v2 v2.43.0/go.mod h1:pTbeBowtVA+0/ZExWEZYUGOrpu5qlRN5ZyOUf27BnVY=
+gitlab.com/gitlab-org/api/client-go/v2 v2.44.0 h1:Vtv2WKC8p9BAygu5VCZlZUwDhTQ7UMlS3PErXyjUmeY=
+gitlab.com/gitlab-org/api/client-go/v2 v2.44.0/go.mod h1:pTbeBowtVA+0/ZExWEZYUGOrpu5qlRN5ZyOUf27BnVY=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=

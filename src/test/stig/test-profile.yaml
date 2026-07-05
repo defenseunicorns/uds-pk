@@ -46,7 +46,7 @@ stigs:
       tls_provider: "Istio mTLS"
       container_runtime: "Kubernetes"
       container_user: "nonroot"
-      base_image: "golang:1.22-alpine"
+      base_image: "golang:1.26-alpine"
       network_policies: true
       cicd_sast: "Semgrep"
       cicd_secrets_scan: "Gitleaks"
