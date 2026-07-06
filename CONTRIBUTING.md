@@ -57,6 +57,8 @@ Unit tests reside alongside the source code in a `*_test.go` file. These tests s
 
 E2E tests reside in the `src/test/e2e` directory. These tests leverage the `releaser.yaml` file in `src/test` and have util functions to work out of `src/test/sandbox`.
 
+> **Note:** E2E tests must be run from a regular git checkout, not a [git worktree](https://git-scm.com/docs/git-worktree). The tests rely on `go-git` for tag lookups, and `go-git` does not follow the `commondir` pointer that worktrees use to locate shared refs. Running from a worktree causes all tag existence checks to return `false`, producing spurious test failures.
+
 #### Assertions
 
 We prefer to use Testify's [require](https://github.com/stretchr/testify/tree/master/require) package for assertions in tests. This package provides a rich set of assertion functions that make tests more readable and easier to debug. See other tests in this repo for examples.
