@@ -6,7 +6,7 @@ set -euo pipefail
 
 REPO="defenseunicorns/uds-pk"
 BIN="uds-pk"
-INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/.local/bin}"
 VERSION="${VERSION:-latest}"
 
 # GoReleaser publishes assets as uds-pk_<tag>_<Os>_<Arch> with title-cased OS
@@ -65,9 +65,7 @@ fi
 (cd "$tmp" && grep " ${asset}\$" checksums.txt | sed "s/${asset}/${BIN}/" | verify_sum)
 
 chmod +x "${tmp}/${BIN}"
-if ! install -m 0755 "${tmp}/${BIN}" "${INSTALL_DIR}/${BIN}" 2>/dev/null; then
-  echo "elevated permissions required to write to ${INSTALL_DIR}"
-  sudo install -m 0755 "${tmp}/${BIN}" "${INSTALL_DIR}/${BIN}"
-fi
+mkdir -p "${INSTALL_DIR}"
+install -m 0755 "${tmp}/${BIN}" "${INSTALL_DIR}/${BIN}"
 
 echo "installed ${BIN} ${VERSION} -> ${INSTALL_DIR}/${BIN}"
