@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 
@@ -140,17 +141,9 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 
 			var repositoryUrl string
 			if flavor == "unicorn" {
-				if options.team != "" {
-					repositoryUrl = baseRepo + "/private/" + options.team + "/" + zarfPackageName
-				} else {
-					repositoryUrl = baseRepo + "/private/" + zarfPackageName
-				}
+				repositoryUrl = path.Join(baseRepo, "private", options.team, zarfPackageName)
 			} else {
-				if options.team != "" {
-					repositoryUrl = baseRepo + "/" + options.team + "/" + zarfPackageName
-				} else {
-					repositoryUrl = baseRepo + "/" + zarfPackageName
-				}
+				repositoryUrl = path.Join(baseRepo, options.team, zarfPackageName)
 			}
 
 			log.Debug("Determined target repository", slog.String("repository", repositoryUrl))
