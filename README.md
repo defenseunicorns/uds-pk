@@ -12,7 +12,22 @@ UDS Package Kit is a tool designed to assist in developing, maintaining, and pub
 
 ## Installation
 
-Download the latest UDS Package Kit binaries from the [GitHub Releases](https://github.com/defenseunicorns/uds-pk/releases) page.
+Install the latest release with:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/defenseunicorns/uds-pk/main/install.sh | bash
+```
+
+The script detects your OS and architecture, verifies the binary against the published checksums, and installs to `$HOME/.local/bin`. Override the target with `INSTALL_DIR` or pin a release with `VERSION`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/defenseunicorns/uds-pk/main/install.sh | VERSION=v0.1.6 INSTALL_DIR="/usr/local/bin" bash
+```
+
+> [!NOTE]
+> `$HOME/.local/bin` is not on `PATH` by default on macOS. If `uds-pk` isn't found after installing, add it with `export PATH="$HOME/.local/bin:$PATH"` in your shell profile.
+
+Alternatively, download a binary directly from the [GitHub Releases](https://github.com/defenseunicorns/uds-pk/releases) page.
 
 ## Usage
 
