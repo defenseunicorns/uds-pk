@@ -53,6 +53,17 @@ func checkPackageExists(repositoryURL, tag, arch string, usePlainHTTP bool, logg
 	return false, nil
 }
 
+// buildRepositoryURL joins the base repo, optional team segment, and package name into the
+// target registry path. Unicorn-flavored packages live under a "private" segment. url.JoinPath
+// is used rather than path.Join so a scheme in baseRepo keeps its "//" intact.
+func buildRepositoryURL(baseRepo, team, flavor, zarfPackageName string) (string, error) {
+	baseRepo = strings.TrimSuffix(baseRepo, "/")
+	if flavor == "unicorn" {
+		return url.JoinPath(baseRepo, "private", team, zarfPackageName)
+	}
+	return url.JoinPath(baseRepo, team, zarfPackageName)
+}
+
 type CheckOptions struct {
 	usePlainHTTP     bool
 	baseRepo         string
@@ -87,9 +98,7 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 	log := Logger(&ctx)
 
-	baseRepo := strings.TrimSuffix(options.baseRepo, "/")
-
-	log.Debug("Checking if package exists", slog.String("baseRepo", baseRepo), slog.String("arch", options.arch))
+	log.Debug("Checking if package exists", slog.String("baseRepo", options.baseRepo), slog.String("arch", options.arch))
 
 	var err error
 	zarfPackageName, err := utils.GetPackageName()
@@ -138,12 +147,7 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 				repoTag = fmt.Sprintf("%s-%s", repoTag, currentFlavor.Name)
 			}
 
-			var repositoryUrl string
-			if flavor == "unicorn" {
-				repositoryUrl, err = url.JoinPath(baseRepo, "private", options.team, zarfPackageName)
-			} else {
-				repositoryUrl, err = url.JoinPath(baseRepo, options.team, zarfPackageName)
-			}
+			repositoryUrl, err := buildRepositoryURL(options.baseRepo, options.team, flavor, zarfPackageName)
 			if err != nil {
 				return err
 			}
