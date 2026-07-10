@@ -1,4 +1,4 @@
-// Copyright 2024 Defense Unicorns
+// Copyright 2024-2026 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 package cmd
@@ -53,9 +53,21 @@ func checkPackageExists(repositoryURL, tag, arch string, usePlainHTTP bool, logg
 	return false, nil
 }
 
+// buildRepositoryURL joins the base repo, optional team segment, and package name into the
+// target registry path. Unicorn-flavored packages live under a "private" segment. url.JoinPath
+// is used rather than path.Join so a scheme in baseRepo keeps its "//" intact.
+func buildRepositoryURL(baseRepo, team, flavor, zarfPackageName string) (string, error) {
+	baseRepo = strings.TrimSuffix(baseRepo, "/")
+	if flavor == "unicorn" {
+		return url.JoinPath(baseRepo, "private", team, zarfPackageName)
+	}
+	return url.JoinPath(baseRepo, team, zarfPackageName)
+}
+
 type CheckOptions struct {
 	usePlainHTTP     bool
 	baseRepo         string
+	team             string
 	arch             string
 	releaseDir       string
 	packageName      string
@@ -73,6 +85,7 @@ func checkCmd() *cobra.Command {
 	}
 	cmd.Flags().BoolVarP(&options.checkBoolOutput, "boolean", "b", false, "Switch the output string to a true/false based on if a release is necessary. True if a release is necessary, false if not.")
 	cmd.Flags().StringVarP(&options.baseRepo, "base-repo", "r", "ghcr.io/uds-packages", "Repository URL.")
+	cmd.Flags().StringVarP(&options.team, "team", "t", "", "Team path segment inserted between 'private' and the package name (e.g. 'uds'). Required when the registry path uses a team subdirectory.")
 	cmd.Flags().StringVarP(&options.arch, "arch", "a", "amd64", "Architecture to check (e.g. amd64, arm64). amd64 by default.")
 	cmd.Flags().BoolVar(&options.skipPublishCheck, "skip-publish-check", false, "If enabled, the release check will be based solely on the tag existence.")
 	cmd.Flags().BoolVar(&options.usePlainHTTP, "plain-http", false, "TEST ONLY Use plain HTTP instead of HTTPS for repository URL")
@@ -85,9 +98,7 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 	ctx := cmd.Context()
 	log := Logger(&ctx)
 
-	baseRepo := strings.TrimSuffix(options.baseRepo, "/")
-
-	log.Debug("Checking if package exists", slog.String("baseRepo", baseRepo), slog.String("arch", options.arch))
+	log.Debug("Checking if package exists", slog.String("baseRepo", options.baseRepo), slog.String("arch", options.arch))
 
 	var err error
 	zarfPackageName, err := utils.GetPackageName()
@@ -136,11 +147,9 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 				repoTag = fmt.Sprintf("%s-%s", repoTag, currentFlavor.Name)
 			}
 
-			var repositoryUrl string
-			if flavor == "unicorn" {
-				repositoryUrl = baseRepo + "/private/" + zarfPackageName
-			} else {
-				repositoryUrl = baseRepo + "/" + zarfPackageName
+			repositoryUrl, err := buildRepositoryURL(options.baseRepo, options.team, flavor, zarfPackageName)
+			if err != nil {
+				return err
 			}
 
 			log.Debug("Determined target repository", slog.String("repository", repositoryUrl))
