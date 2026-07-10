@@ -1,4 +1,4 @@
-// Copyright 2024 Defense Unicorns
+// Copyright 2024-2026 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 package test
@@ -63,6 +63,25 @@ func TestCheckCommandBool(t *testing.T) {
 	require.NoError(t, err, stdout, stderr)
 
 	require.Equal(t, "false\n", stdout)
+}
+
+func TestCheckCommandTeam(t *testing.T) {
+	srv := mockRepositoryServer()
+	t.Cleanup(func() { srv.Close() })
+
+	baseRegistryRepo := srv.URL + "/registry-path"
+
+	// with --team, the team segment is inserted before the package name and the scheme is left intact
+	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "check", "dummy", "-r", baseRegistryRepo, "--team", "myteam", "--verbose", "--plain-http")
+	require.NoError(t, err, stdout, stderr)
+	require.Contains(t, stderr, `Determined target repository repository="`+baseRegistryRepo+`/myteam/test"`)
+
+	// without --team, the package name follows the base repo directly and no team segment appears
+	stdout, stderr, err = e2e.UDSPKDir("src/test", "release", "check", "dummy", "-r", baseRegistryRepo, "--verbose", "--plain-http")
+	require.Error(t, err, stdout, stderr)
+	require.Contains(t, stderr, "no release necessary")
+	require.Contains(t, stderr, `Determined target repository repository="`+baseRegistryRepo+`/test"`)
+	require.NotContains(t, stderr, "/registry-path/myteam/")
 }
 
 func mockRepositoryServer() *httptest.Server {
