@@ -1,4 +1,4 @@
-// Copyright 2024 Defense Unicorns
+// Copyright 2024-2026 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 package cmd
@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"path"
 	"regexp"
 	"strings"
 
@@ -141,9 +140,12 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 
 			var repositoryUrl string
 			if flavor == "unicorn" {
-				repositoryUrl = baseRepo + "/" + path.Join("private", options.team, zarfPackageName)
+				repositoryUrl, err = url.JoinPath(baseRepo, "private", options.team, zarfPackageName)
 			} else {
-				repositoryUrl = baseRepo + "/" + path.Join(options.team, zarfPackageName)
+				repositoryUrl, err = url.JoinPath(baseRepo, options.team, zarfPackageName)
+			}
+			if err != nil {
+				return err
 			}
 
 			log.Debug("Determined target repository", slog.String("repository", repositoryUrl))
