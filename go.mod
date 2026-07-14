@@ -4,7 +4,7 @@ go 1.26.5
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.11.0
-	github.com/defenseunicorns/uds-cli v0.34.0
+	github.com/defenseunicorns/uds-cli v0.34.1
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v88 v88.0.0
@@ -42,7 +42,7 @@ require (
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/zclconf/go-cty v1.18.1 // indirect
 	golang.org/x/mod v0.37.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
+	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/tools v0.46.0 // indirect
 )
 
