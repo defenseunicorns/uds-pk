@@ -88,8 +88,7 @@ func mockRepositoryServer() *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// handle https://<hostname>/v2/<repo path>/manifests/$TAG
 		fmt.Println("[http mock] handling" + r.URL.Path)
-		if strings.HasPrefix(r.URL.Path, "/v2/registry-path/test/manifests/") {
-			tag := strings.TrimPrefix(r.URL.Path, "/v2/registry-path/test/manifests/")
+		if tag, ok := strings.CutPrefix(r.URL.Path, "/v2/registry-path/test/manifests/"); ok {
 			if tag == "testing-dummy" || tag == "flavorless-testing" {
 				w.Header().Set("Content-Type", "application/json")
 				_, _ = w.Write([]byte(`{

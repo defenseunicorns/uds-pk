@@ -493,10 +493,10 @@ func findNewestTagForFlavor(versions []PackageWithVersion, flavor string, log *s
 		packageUrl := packageWithVersion.encodedPackageUrl
 		versions := packageWithVersion.versions
 		for _, version := range versions {
-			var metadataMap map[string]interface{}
+			var metadataMap map[string]any
 			if err := json.Unmarshal(version.Metadata, &metadataMap); err == nil {
-				if container, ok := metadataMap["container"].(map[string]interface{}); ok {
-					if tags, ok := container["tags"].([]interface{}); ok {
+				if container, ok := metadataMap["container"].(map[string]any); ok {
+					if tags, ok := container["tags"].([]any); ok {
 						// select the newest tag:
 						for _, tRaw := range tags {
 							if tag, ok := tRaw.(string); ok {

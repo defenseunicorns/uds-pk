@@ -5,6 +5,7 @@ package stig
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -930,10 +931,5 @@ func containsAny(s string, substrs ...string) bool {
 }
 
 func inSet(val string, set ...string) bool {
-	for _, s := range set {
-		if val == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(set, val)
 }

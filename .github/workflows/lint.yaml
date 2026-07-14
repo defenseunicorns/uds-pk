@@ -43,6 +43,10 @@ jobs:
         run: |
           uds run lint-shell --no-progress
 
+      - name: Lint Golang
+        run: |
+          uds run lint-golang --no-progress
+
       - name: Lint Tasks
         run: |
           uds run lint:tasks --no-progress

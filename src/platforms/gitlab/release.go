@@ -99,23 +99,21 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 	return nil
 }
 
-
-
 func createReleaseOptions(zarfPackageName string, flavor types.Flavor, branchRef string, packageNameFlag string) *gitlab.CreateReleaseOptions {
 	return &gitlab.CreateReleaseOptions{
-		Name:        gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
-		TagName:     gitlab.Ptr(utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)),
-		Description: gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
-		Ref:         gitlab.Ptr(branchRef),
+		Name:        new(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
+		TagName:     new(utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)),
+		Description: new(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
+		Ref:         new(branchRef),
 	}
 }
 
 func createBundleReleaseOptions(bundle types.Bundle, branchRef string) *gitlab.CreateReleaseOptions {
 	return &gitlab.CreateReleaseOptions{
-		Name:        gitlab.Ptr(fmt.Sprintf("%s %s", bundle.Name, bundle.Version)),
-		TagName:     gitlab.Ptr(utils.GetFormattedVersion(bundle.Name, bundle.Version, "")),
-		Description: gitlab.Ptr(fmt.Sprintf("%s %s", bundle.Name, bundle.Version)),
-		Ref:         gitlab.Ptr(branchRef),
+		Name:        new(fmt.Sprintf("%s %s", bundle.Name, bundle.Version)),
+		TagName:     new(utils.GetFormattedVersion(bundle.Name, bundle.Version, "")),
+		Description: new(fmt.Sprintf("%s %s", bundle.Name, bundle.Version)),
+		Ref:         new(branchRef),
 	}
 }
 

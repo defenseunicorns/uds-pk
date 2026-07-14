@@ -47,10 +47,10 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 
 	// Create the release
 	release := &github.RepositoryRelease{
-		TagName:              github.Ptr(tagName),
-		Name:                 github.Ptr(releaseName),
-		Body:                 github.Ptr(releaseName), //TODO @corang release notes
-		GenerateReleaseNotes: github.Ptr(true),
+		TagName:              new(tagName),
+		Name:                 new(releaseName),
+		Body:                 new(releaseName), //TODO @corang release notes
+		GenerateReleaseNotes: new(true),
 	}
 
 	fmt.Printf("Creating release %s\n", releaseName)
@@ -88,10 +88,10 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 
 	// Create the release
 	release := &github.RepositoryRelease{
-		TagName:              github.Ptr(tagName),
-		Name:                 github.Ptr(releaseName),
-		Body:                 github.Ptr(releaseName), //TODO @corang release notes
-		GenerateReleaseNotes: github.Ptr(true),
+		TagName:              new(tagName),
+		Name:                 new(releaseName),
+		Body:                 new(releaseName), //TODO @corang release notes
+		GenerateReleaseNotes: new(true),
 	}
 
 	fmt.Printf("Creating release %s\n", releaseName)
@@ -107,15 +107,15 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 
 func createGitHubTag(tagName string, releaseName string, hash string) *github.Tag {
 	tag := &github.Tag{
-		Tag:     github.Ptr(tagName),
-		Message: github.Ptr(releaseName),
+		Tag:     new(tagName),
+		Message: new(releaseName),
 		Object: &github.GitObject{
-			SHA:  github.Ptr(hash),
-			Type: github.Ptr("commit"),
+			SHA:  new(hash),
+			Type: new("commit"),
 		},
 		Tagger: &github.CommitAuthor{
-			Name:  github.Ptr(os.Getenv("GITHUB_ACTOR")),
-			Email: github.Ptr(os.Getenv("GITHUB_ACTOR") + "@users.noreply.github.com"),
+			Name:  new(os.Getenv("GITHUB_ACTOR")),
+			Email: new(os.Getenv("GITHUB_ACTOR") + "@users.noreply.github.com"),
 			Date:  &github.Timestamp{Time: time.Now()},
 		},
 	}
