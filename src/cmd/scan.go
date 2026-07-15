@@ -18,7 +18,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/compare"
 	"github.com/defenseunicorns/uds-pk/src/scan"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/spf13/cobra"
 	"github.com/zarf-dev/zarf/src/api/v1alpha1"
 	"go.yaml.in/yaml/v4"

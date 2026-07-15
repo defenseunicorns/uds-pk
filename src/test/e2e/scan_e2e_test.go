@@ -20,7 +20,7 @@ import (
 
 	"github.com/defenseunicorns/uds-pk/src/cmd"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v89/github"
 	"github.com/spf13/cobra"
 )
 
