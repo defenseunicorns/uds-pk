@@ -1,4 +1,4 @@
-// Copyright 2024 Defense Unicorns
+// Copyright 2024-2026 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 package github
@@ -13,7 +13,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	github "github.com/google/go-github/v88/github"
+	github "github.com/google/go-github/v89/github"
 )
 
 type Platform struct{}
@@ -46,8 +46,8 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 	releaseName := fmt.Sprintf("%s %s", zarfPackageName, tagName)
 
 	// Create the release
-	release := &github.RepositoryRelease{
-		TagName:              github.Ptr(tagName),
+	release := github.CreateReleaseRequest{
+		TagName:              tagName,
 		Name:                 github.Ptr(releaseName),
 		Body:                 github.Ptr(releaseName), //TODO @corang release notes
 		GenerateReleaseNotes: github.Ptr(true),
@@ -87,8 +87,8 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 	releaseName := fmt.Sprintf("%s %s", bundle.Name, tagName)
 
 	// Create the release
-	release := &github.RepositoryRelease{
-		TagName:              github.Ptr(tagName),
+	release := github.CreateReleaseRequest{
+		TagName:              tagName,
 		Name:                 github.Ptr(releaseName),
 		Body:                 github.Ptr(releaseName), //TODO @corang release notes
 		GenerateReleaseNotes: github.Ptr(true),
