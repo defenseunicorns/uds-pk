@@ -8,6 +8,12 @@ Accepted
 
 ## Context
 
+> NOTE: This work cannot be merged until the Zarf team finishes their planned work to make the components[].charts[].version field optional when components[].charts[].localPath is specified.
+>
+> Otherwise, the version of the chart would be updated, but the version specified in zarf.yaml would still be the old one.
+>
+> uds-pk could also update the version specified in zarf.yaml but that seems unnecessary given the Zarf team is already planning on changing that functionality to make the version field optional when a local custom chart is being used.
+
 Custom Helm charts do not currently have a first-class version-management workflow in `uds-pk`. As a result, a project can release a new UDS package while its chart continues to report an old version. For example, an app can appear as version `0.39.0` in `zarf package list` while `helm list` reports chart version `0.1.0`. Helm does not require chart and application versions to match, but the difference can be confusing for operators trying to determine what is running.
 
 `uds-pk release update-yaml` already uses the selected flavor in `releaser.yaml` to update `zarf.yaml` and `uds-bundle.yaml`. It can be enhanced to update `Chart.yaml` as well. Projects that include custom charts currently must manage those versions separately, and that release step can be missed or implemented differently by each project.
