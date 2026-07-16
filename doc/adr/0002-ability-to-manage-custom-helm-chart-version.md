@@ -22,12 +22,12 @@ The solution should include a way to manage more than one custom chart. Some use
 
 ## Decision
 
-Add an optional top-level `charts` list to `releaser.yaml`. Each entry identifies one chart by its directory, which contains `Chart.yaml`, and declares exactly one version source:
+Add an optional `charts` list to `releaser.yaml` at the top level and within each `packages` entry. Top-level charts belong to the root package and use top-level flavors. Charts under a package belong to that package and use its flavors. Each entry identifies one chart by its directory, which contains `Chart.yaml`, and declares exactly one version source:
 
 - `version` sets an explicit chart version.
 - `versionFromFlavor: true` sets the chart version to the `version` of the flavor selected for the current `release update-yaml` invocation.
 
-`version` and `versionFromFlavor` are mutually exclusive. `versionFromFlavor` defaults to `false` when omitted. A chart can additionally set `updateAppVersion: true` to update its `appVersion` to the selected flavor's `version`. When enabled, the command adds `appVersion` if it is absent from `Chart.yaml`. `updateAppVersion` defaults to `false`, so a chart's existing `appVersion` remains unchanged unless the chart explicitly opts in. Chart directories are resolved relative to the release directory supplied through `--dir`, matching how `releaser.yaml` is located. This makes chart locations independent of the selected package's `path` and allows a repository to manage charts shared by, or external to, a package directory.
+`version` and `versionFromFlavor` are mutually exclusive. `versionFromFlavor` defaults to `false` when omitted. A chart can additionally set `updateAppVersion: true` to update its `appVersion` to the selected flavor's `version`. When enabled, the command adds `appVersion` if it is absent from `Chart.yaml`. `updateAppVersion` defaults to `false`, so a chart's existing `appVersion` remains unchanged unless the chart explicitly opts in. All chart paths are resolved relative to the release directory supplied through `--dir`, regardless of whether a chart is declared at the top level or under a package. This keeps path resolution consistent with `packages[].path` and makes chart location independent of chart ownership.
 
 Example configuration:
 
@@ -44,9 +44,22 @@ charts:
     updateAppVersion: true
   - path: charts/installer
     version: "2.4.0"
+
+packages:
+  - name: first
+    path: first/
+    flavors:
+      - name: base
+        version: "1.0.0-flag.0"
+    charts:
+      - path: first/chart
+        versionFromFlavor: true
+        updateAppVersion: true
+      - path: first/charts/installer
+        version: "2.4.0"
 ```
 
-For `uds-pk release update-yaml upstream`, this configuration updates `chart/Chart.yaml` to `version: 0.39.0` and `appVersion: 0.39.0`; it updates `charts/installer/Chart.yaml` to `version: 2.4.0` without changing its `appVersion`. For `unicorn`, the first chart receives `version: 0.39.0-uds.1` and `appVersion: 0.39.0-uds.1`, while the independently versioned chart remains `version: 2.4.0`. The flavor's `name` is not appended: the selected flavor's `version` is the authoritative application version and must itself be a valid Helm chart version when used as a chart version.
+For `uds-pk release update-yaml upstream`, this configuration updates the top-level `chart/Chart.yaml` to `version: 0.39.0` and `appVersion: 0.39.0`; it updates `charts/installer/Chart.yaml` to `version: 2.4.0` without changing its `appVersion`. For `uds-pk release update-yaml base --package first`, only the charts declared under `first` are updated. `first/chart/Chart.yaml` receives `version: 1.0.0-flag.0` and `appVersion: 1.0.0-flag.0`, while `first/charts/installer/Chart.yaml` receives `version: 2.4.0`. The flavor's `name` is not appended: the selected flavor's `version` is the authoritative application version and must itself be a valid Helm chart version when used as a chart version.
 
 ### Development chart versions
 
@@ -56,18 +69,18 @@ Developers should consider using `dev` as the `version` in `Chart.yaml` during l
 
 ### Configuration model and validation
 
-Introduce a `Chart` configuration type with `Path`, `Version`, `VersionFromFlavor`, and `UpdateAppVersion` fields, and add `Charts []Chart` to the release configuration type. `UpdateAppVersion` defaults to `false`.
+Introduce a `Chart` configuration type with `Path`, `Version`, `VersionFromFlavor`, and `UpdateAppVersion` fields. Add `Charts []Chart` to both the release configuration type and the package configuration type. `UpdateAppVersion` defaults to `false`.
 
 During release configuration validation, each chart must meet all of the following requirements:
 
 - `path` is non-empty.
 - Exactly one of a non-empty `version` and `versionFromFlavor: true` is configured.
-- Chart paths are unique after normalization so the same `Chart.yaml` is not written twice.
+- Chart paths are unique after normalization across top-level and package chart entries so the same `Chart.yaml` is not written twice.
 - An explicit `version`, and a flavor version used by `versionFromFlavor`, conforms to Helm's chart-version requirements before any file is changed.
 
 Validation of an application-derived chart version occurs after the command resolves its selected flavor, because the applicable flavor can be at the top level or under the package selected with `--package`. Explicit versions can be validated when loading `releaser.yaml`.
 
-The initial design intentionally supports `charts` only at the top level. A chart is repository release metadata rather than package configuration, and top-level placement avoids duplicate declarations when packages share a chart. If package-scoped chart ownership becomes necessary, it can be added later without changing the entry schema.
+Charts are scoped to the release unit selected by the command. Without `--package`, the command updates only top-level charts using the selected top-level flavor. With `--package PACKAGE`, it updates only charts declared under that package using the selected package flavor. A chart must have one owner; shared charts should not be declared under multiple release units because there is no unambiguous flavor version to use for `versionFromFlavor` or `updateAppVersion`.
 
 ### Update flow
 
@@ -77,7 +90,7 @@ After resolving the selected flavor, the command passes the release configuratio
 
 1. Update the selected package's `zarf.yaml` with the selected flavor version.
 2. Update `bundle/uds-bundle.yaml` and the matching bundled-package reference using the existing behavior.
-3. For each configured chart, resolve `<release directory>/<chart path>/Chart.yaml`, load the Helm chart metadata, resolve its configured version source, set the chart `version`, and, when `updateAppVersion` is `true`, set `appVersion` to the selected flavor version (adding the field when absent); then write the file while preserving its file mode.
+3. For each chart owned by the selected release unit, resolve `<release directory>/<chart path>/Chart.yaml`, load the Helm chart metadata, resolve its configured version source, set the chart `version`, and, when `updateAppVersion` is `true`, set `appVersion` to the selected flavor version (adding the field when absent); then write the file while preserving its file mode.
 4. Print one success message per updated chart that includes the resolved chart file and version.
 
 The implementation should use a small chart metadata structure containing only the YAML fields needed for this change, rather than introduce a Helm SDK dependency. It must update only the chart `version` and, for charts with `updateAppVersion: true`, `appVersion` fields, preserving unrelated chart metadata exactly as authored.
@@ -95,7 +108,9 @@ Add unit tests covering:
 - A configuration with no `charts` remains valid and invokes no chart updates.
 - Valid explicit and flavor-derived chart entries parse and validate.
 - Invalid entries are rejected for missing paths, missing version source, both version sources, duplicate paths, and invalid explicit versions.
-- A flavor-derived chart receives the selected top-level flavor version and the selected package flavor version when `--package` is used.
+- A top-level flavor-derived chart receives the selected top-level flavor version.
+- A package chart receives the selected package flavor version when `--package` is used, and charts owned by other packages or the root package remain unchanged.
+- Top-level and package chart paths are both resolved from the release directory.
 - An explicit chart version does not vary by flavor.
 - Multiple chart entries update their respective `Chart.yaml` files.
 - A chart with `updateAppVersion: true` receives the selected flavor version as `appVersion`, including when `appVersion` was absent.
