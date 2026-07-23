@@ -6,6 +6,7 @@ package version
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
@@ -81,6 +82,58 @@ metadata:
 	}
 }
 
+func TestPrepareChartUpdates(t *testing.T) {
+	releaseDir := t.TempDir()
+	flavor := types.Flavor{Name: "base", Version: "1.2.3-uds.0"}
+	charts := []struct {
+		path    string
+		content string
+	}{
+		{"flavor-chart", "apiVersion: v2\nname: flavor-chart\nversion: dev\ndescription: preserved\n"},
+		{"explicit-chart", "apiVersion: v2\nname: explicit-chart\nversion: dev\nappVersion: old\nmaintainers:\n  - name: Alice\n"},
+		{"without-app-version", "apiVersion: v2\nname: without-app-version\nversion: dev\n"},
+		{"non-semver", "apiVersion: v2\nname: non-semver\nversion: dev\n"},
+		{"without-version", "apiVersion: v2\nname: without-version\ndescription: preserved\n"},
+	}
+	for _, chart := range charts {
+		chartDir := filepath.Join(releaseDir, chart.path)
+		require.NoError(t, os.MkdirAll(chartDir, 0755))
+		require.NoError(t, os.WriteFile(filepath.Join(chartDir, "Chart.yaml"), []byte(chart.content), 0640))
+	}
+
+	updates, err := prepareChartUpdates(flavor, releaseDir, []types.Chart{
+		{Path: "flavor-chart", VersionFromFlavor: true},
+		{Path: "explicit-chart", Version: "2.4.0"},
+		{Path: "without-app-version", VersionFromFlavor: true, UpdateAppVersion: true},
+		{Path: "non-semver", Version: "not-a-semver-version"},
+		{Path: "without-version", Version: "3.2.1"},
+	})
+	require.NoError(t, err)
+	require.Len(t, updates, 5)
+	require.Equal(t, os.FileMode(0640), updates[0].mode.Perm())
+
+	contents := make(map[string]string)
+	for _, update := range updates {
+		contents[filepath.Base(filepath.Dir(update.path))] = string(update.content)
+	}
+	require.Contains(t, contents["flavor-chart"], "version: \"1.2.3-uds.0\"")
+	require.Contains(t, contents["flavor-chart"], "description: preserved")
+	require.NotContains(t, contents["flavor-chart"], "appVersion:")
+	require.Contains(t, contents["explicit-chart"], "version: \"2.4.0\"")
+	require.Contains(t, contents["explicit-chart"], "appVersion: old")
+	require.Contains(t, contents["explicit-chart"], "maintainers:")
+	require.True(t, strings.HasSuffix(contents["without-app-version"], "appVersion: \"1.2.3-uds.0\"\n"))
+	require.Contains(t, contents["non-semver"], "version: \"not-a-semver-version\"")
+	require.Contains(t, contents["without-version"], "version: \"3.2.1\"")
+	require.Contains(t, contents["without-version"], "description: preserved")
+}
+
+func TestPrepareChartUpdatesErrors(t *testing.T) {
+	_, err := prepareChartUpdates(types.Flavor{Version: "1.2.3"}, t.TempDir(), []types.Chart{{Path: "missing-chart", Version: "2.4.0"}})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing-chart")
+}
+
 func TestUpdateBundleYaml(t *testing.T) {
 	// Save current working directory
 	cwd, err := os.Getwd()
@@ -154,15 +207,15 @@ packages:
 			bundleDir := filepath.Join(tmpDir, "bundle")
 			err := os.MkdirAll(bundleDir, 0755)
 			require.NoError(t, err)
-			
+
 			bundlePath := filepath.Join(bundleDir, "uds-bundle.yaml")
-			
+
 			// Write initial YAML if it's not testing for non-existent file
 			if tt.initialYaml != "non-existent" {
 				err = os.WriteFile(bundlePath, []byte(tt.initialYaml), 0644)
 				require.NoError(t, err)
 			}
-			
+
 			// Change to temp dir for test
 			err = os.Chdir(tmpDir)
 			require.NoError(t, err)
@@ -180,14 +233,14 @@ packages:
 				var bundle uds.UDSBundle
 				err = utils.LoadYaml("bundle/uds-bundle.yaml", &bundle)
 				require.NoError(t, err)
-				
+
 				// Check bundle version was updated
 				expectedVersion := tt.flavor.Version
 				if tt.flavor.Name != "" {
 					expectedVersion = tt.flavor.Version + "-" + tt.flavor.Name
 				}
 				require.Equal(t, expectedVersion, bundle.Metadata.Version)
-				
+
 				// Check if package ref was updated
 				for _, pkg := range bundle.Packages {
 					if pkg.Name == tt.packageName {

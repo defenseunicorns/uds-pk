@@ -6,6 +6,7 @@ package types
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 )
 
 type Flavor struct {
@@ -16,25 +17,34 @@ type Flavor struct {
 	PublishBundleUrl  string `yaml:"publishBundleUrl,omitempty"`
 }
 
+type Chart struct {
+	Path              string `yaml:"path"`
+	Version           string `yaml:"version"`
+	VersionFromFlavor bool   `yaml:"versionFromFlavor"`
+	UpdateAppVersion  bool   `yaml:"updateAppVersion"`
+}
+
 type Package struct {
 	Name    string   `yaml:"name"`
 	Path    string   `yaml:"path"`
 	Flavors []Flavor `yaml:"flavors"`
+	Charts  []Chart  `yaml:"charts,omitempty"`
 }
 
 type ReleaseConfig struct {
 	Flavors  []Flavor  `yaml:"flavors"`
+	Charts   []Chart   `yaml:"charts,omitempty"`
 	Packages []Package `yaml:"packages,omitempty"`
 	Bundles  []Bundle  `yaml:"bundles,omitempty"`
 }
 
 type Bundle struct {
-	Name    string   `yaml:"name"`
-	Path    string   `yaml:"path"`
-	Version string   `yaml:"version"`
+	Name    string `yaml:"name"`
+	Path    string `yaml:"path"`
+	Version string `yaml:"version"`
 }
 
-func (config ReleaseConfig)VerifyReleaseConfig() error {
+func (config ReleaseConfig) VerifyReleaseConfig() error {
 	// There must be at least one flavor or package defined
 	if len(config.Flavors) == 0 && len(config.Packages) == 0 && len(config.Bundles) == 0 {
 		return errors.New("releaser.yaml must define at least one flavor, package, or bundle")
@@ -121,6 +131,16 @@ func (config ReleaseConfig)VerifyReleaseConfig() error {
 		}
 	}
 
+	chartPaths := make(map[string]bool)
+	if err := verifyCharts(config.Charts, chartPaths); err != nil {
+		return err
+	}
+	for _, pkg := range config.Packages {
+		if err := verifyCharts(pkg.Charts, chartPaths); err != nil {
+			return err
+		}
+	}
+
 	// Each bundle must have a name, path, and version defined
 	for _, bundle := range config.Bundles {
 		if bundle.Name == "" {
@@ -132,6 +152,24 @@ func (config ReleaseConfig)VerifyReleaseConfig() error {
 		if bundle.Version == "" {
 			return errors.New("each bundle must have a version defined")
 		}
+	}
+
+	return nil
+}
+
+func verifyCharts(charts []Chart, chartPaths map[string]bool) error {
+	for _, chart := range charts {
+		if chart.Path == "" {
+			return errors.New("each chart must have a path defined")
+		}
+		if (chart.Version != "") == chart.VersionFromFlavor {
+			return errors.New("each chart must define exactly one of version or versionFromFlavor")
+		}
+		normalizedPath := filepath.Clean(chart.Path)
+		if chartPaths[normalizedPath] {
+			return fmt.Errorf("chart paths must be unique: %s", chart.Path)
+		}
+		chartPaths[normalizedPath] = true
 	}
 
 	return nil

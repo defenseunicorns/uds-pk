@@ -26,6 +26,18 @@ func GetFlavorConfig(flavor string, config types.ReleaseConfig, packageName stri
 	}
 }
 
+func GetCharts(config types.ReleaseConfig, packageName string) ([]types.Chart, error) {
+	if packageName == "" {
+		return config.Charts, nil
+	}
+	for _, pkg := range config.Packages {
+		if pkg.Name == packageName {
+			return pkg.Charts, nil
+		}
+	}
+	return nil, fmt.Errorf("package %s is not defined in releaser.yaml", packageName)
+}
+
 func GetFormattedVersion(packageName string, version string, flavor string) string {
 	return JoinNonEmpty("-", packageName, version, flavor)
 }
@@ -50,11 +62,11 @@ func parseFlavor(flavor string, flavors []types.Flavor) (types.Flavor, error) {
 
 // JoinNonEmpty works like strings.Join but drops any empty elements.
 func JoinNonEmpty(sep string, elems ...string) string {
-    var nonEmptyStrings []string
-    for _, s := range elems {
-        if s != "" {
-            nonEmptyStrings = append(nonEmptyStrings, s)
-        }
-    }
-    return strings.Join(nonEmptyStrings, sep)
+	var nonEmptyStrings []string
+	for _, s := range elems {
+		if s != "" {
+			nonEmptyStrings = append(nonEmptyStrings, s)
+		}
+	}
+	return strings.Join(nonEmptyStrings, sep)
 }
