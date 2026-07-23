@@ -1,0 +1,197 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+name: Greptile Collapsible Summary
+
+# Runs when:
+#   - A comment is created on a PR (e.g. user mentions @greptile, or Greptile itself posts a review)
+#   - A PR is opened, synchronized, or reopened (picks up any pre-existing Greptile comments)
+on:
+  issue_comment:
+    types: [created]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Minimal permissions required: read repo contents, write PR comments
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  greptile-summary:
+    name: Publish Greptile collapsible summary
+    runs-on: ubuntu-latest
+
+    # For issue_comment events, only proceed when the comment is on a pull request
+    # (issue_comment fires on both issues and PRs).
+    # For pull_request events, always proceed.
+    if: >-
+      github.event_name == 'pull_request' ||
+      github.event.issue.pull_request != null
+
+    steps:
+      - name: Build and publish Greptile collapsible summary
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // Stable identifier embedded in every summary comment so we can upsert it.
+            const SUMMARY_HEADER = '<!-- greptile-collapsible-summary -->';
+
+            // Greptile bot actor matching — adjust if your org's bot login differs.
+            // Any login that contains 'greptile' (case-insensitive) is treated as the bot.
+            const isGreptileActor = (login) =>
+              login && login.toLowerCase().includes('greptile');
+
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+
+            // Resolve the pull-request number regardless of trigger event.
+            let prNumber;
+            if (context.eventName === 'pull_request') {
+              prNumber = context.payload.pull_request.number;
+            } else {
+              // issue_comment — guarded above to be a PR context
+              prNumber = context.payload.issue.number;
+            }
+
+            core.info(`Processing PR #${prNumber} in ${owner}/${repo}`);
+
+            // --- 1. Collect all issue-level comments on the PR ---
+            const issueComments = await github.paginate(
+              github.rest.issues.listComments,
+              { owner, repo, issue_number: prNumber, per_page: 100 }
+            );
+
+            // --- 2. Collect inline review comments on the PR ---
+            const reviewComments = await github.paginate(
+              github.rest.pulls.listReviewComments,
+              { owner, repo, pull_number: prNumber, per_page: 100 }
+            );
+
+            // --- 3. Filter for Greptile-authored content ---
+            const greptileBodies = [
+              ...issueComments.filter(c => isGreptileActor(c.user?.login)).map(c => c.body),
+              ...reviewComments.filter(c => isGreptileActor(c.user?.login)).map(c => c.body),
+            ].filter(Boolean);
+
+            if (greptileBodies.length === 0) {
+              core.info('No Greptile comments found on this PR — skipping summary.');
+              return;
+            }
+
+            core.info(`Found ${greptileBodies.length} Greptile comment(s); building summary.`);
+
+            // --- 4. Parse Greptile content into severity buckets ---
+            // Strategy: track the current heading section, then fall back to per-line
+            // heuristic keyword matching for content outside explicit headings.
+            const highItems    = [];
+            const mediumItems  = [];
+            const lowItems     = [];
+            const summaryLines = [];
+            const fixPlanLines = [];
+
+            for (const body of greptileBodies) {
+              let section = 'summary';
+
+              for (const rawLine of body.split('\n')) {
+                const line  = rawLine.trimEnd();
+                const lower = line.toLowerCase();
+                const isHeading = /^#{1,4}\s/.test(line);
+
+                if (isHeading) {
+                  if (/\b(critical|high)\b/.test(lower)) {
+                    section = 'high';
+                  } else if (/\bmedium\b/.test(lower)) {
+                    section = 'medium';
+                  } else if (/\b(low|nit)\b/.test(lower)) {
+                    section = 'low';
+                  } else if (/\b(fix|plan|recommend)\b/.test(lower)) {
+                    section = 'fix';
+                  } else if (/\bsummary\b/.test(lower)) {
+                    section = 'summary';
+                  }
+                  // Include headings in the target section
+                  continue;
+                }
+
+                if (!line.trim()) continue;
+
+                switch (section) {
+                  case 'high':    highItems.push(line);    break;
+                  case 'medium':  mediumItems.push(line);  break;
+                  case 'low':     lowItems.push(line);     break;
+                  case 'fix':     fixPlanLines.push(line); break;
+                  default: {
+                    // Heuristic: classify standalone lines by severity keywords
+                    if (/\b(critical|high)\b/.test(lower)) {
+                      highItems.push(line);
+                    } else if (/\bmedium\b/.test(lower)) {
+                      mediumItems.push(line);
+                    } else if (/\b(low|nit)\b/.test(lower)) {
+                      lowItems.push(line);
+                    } else {
+                      summaryLines.push(line);
+                    }
+                  }
+                }
+              }
+            }
+
+            // --- 5. Build the collapsible Markdown body ---
+            const detailsBlock = (title, lines, open) => {
+              const content = lines.length > 0
+                ? lines.join('\n')
+                : '_No findings in this category._';
+              const openAttr = open ? ' open' : '';
+              return [
+                `<details${openAttr}>`,
+                `<summary><strong>${title}</strong></summary>`,
+                '',
+                content,
+                '',
+                '</details>',
+                '',
+              ].join('\n');
+            };
+
+            const sections = [
+              detailsBlock('Summary', summaryLines, true),
+              detailsBlock(`High Severity (${highItems.length})`, highItems, false),
+              detailsBlock(`Medium Severity (${mediumItems.length})`, mediumItems, false),
+              detailsBlock(`Low / Nitpicks (${lowItems.length})`, lowItems, false),
+            ];
+
+            if (fixPlanLines.length > 0) {
+              sections.push(detailsBlock('Recommended Fix Plan', fixPlanLines, false));
+            }
+
+            const commentBody = [
+              SUMMARY_HEADER,
+              '## Greptile Review — Collapsible Summary',
+              '',
+              ...sections,
+              `_Last updated: ${new Date().toUTCString()}_`,
+            ].join('\n');
+
+            // --- 6. Upsert the sticky summary comment ---
+            // Search the already-fetched issue comments for an existing summary.
+            const existingSticky = issueComments.find(c => c.body?.includes(SUMMARY_HEADER));
+
+            if (existingSticky) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existingSticky.id,
+                body: commentBody,
+              });
+              core.info(`Updated existing Greptile summary comment (id: ${existingSticky.id}).`);
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: commentBody,
+              });
+              core.info('Created new Greptile summary comment.');
+            }
