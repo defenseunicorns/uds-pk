@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
@@ -28,7 +27,6 @@ type chartUpdate struct {
 	path    string
 	version string
 	content []byte
-	mode    os.FileMode
 }
 
 func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Chart) error {
@@ -47,7 +45,8 @@ func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Ch
 	}
 
 	for _, update := range chartUpdates {
-		err = os.WriteFile(update.path, update.content, update.mode)
+		// Chart.yaml was read during update preparation, so WriteFile preserves its existing mode.
+		err = os.WriteFile(update.path, update.content, 0)
 		if err != nil {
 			return fmt.Errorf("update chart %s: %w", update.path, err)
 		}
@@ -60,23 +59,14 @@ func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Ch
 func prepareChartUpdates(flavor types.Flavor, releaseDir string, charts []types.Chart) ([]chartUpdate, error) {
 	updates := make([]chartUpdate, 0, len(charts))
 	for _, chart := range charts {
-		var data []byte
-		var info os.FileInfo
-		var file *ast.File
-		var err error
-
 		version := chart.Version
 		if chart.VersionFromFlavor {
 			version = flavor.Version
 		}
 		chartPath := filepath.Join(releaseDir, chart.Path, "Chart.yaml")
-		data, err = os.ReadFile(chartPath)
+		data, err := os.ReadFile(chartPath)
 		if err != nil {
 			return nil, fmt.Errorf("read chart %s: %w", chartPath, err)
-		}
-		info, err = os.Stat(chartPath)
-		if err != nil {
-			return nil, fmt.Errorf("stat chart %s: %w", chartPath, err)
 		}
 
 		var metadata chartMetadata
@@ -89,10 +79,10 @@ func prepareChartUpdates(flavor types.Flavor, releaseDir string, charts []types.
 			if !strings.HasSuffix(content, "\n") {
 				content += "\n"
 			}
-			data = []byte(content + "version: " + strconv.Quote(version) + "\n")
+			data = []byte(content + "version: " + version + "\n")
 		}
 
-		file, err = yamlParser.ParseBytes(data, yamlParser.ParseComments)
+		file, err := yamlParser.ParseBytes(data, yamlParser.ParseComments)
 		if err != nil {
 			return nil, fmt.Errorf("parse chart %s: %w", chartPath, err)
 		}
@@ -100,23 +90,24 @@ func prepareChartUpdates(flavor types.Flavor, releaseDir string, charts []types.
 		if err != nil {
 			return nil, fmt.Errorf("update chart %s: %w", chartPath, err)
 		}
-		if chart.UpdateAppVersion {
-			if metadata.AppVersion == nil {
-				content := file.String()
-				if !strings.HasSuffix(content, "\n") {
-					content += "\n"
+		var out string
+		if chart.UpdateAppVersion && metadata.AppVersion == nil {
+			out = file.String()
+			if !strings.HasSuffix(out, "\n") {
+				out += "\n"
+			}
+			out += "appVersion: " + flavor.Version + "\n"
+		} else {
+			if chart.UpdateAppVersion {
+				err = replaceChartValue(file, "$.appVersion", flavor.Version)
+				if err != nil {
+					return nil, fmt.Errorf("update chart %s: %w", chartPath, err)
 				}
-				content += "appVersion: " + strconv.Quote(flavor.Version) + "\n"
-				updates = append(updates, chartUpdate{path: chartPath, version: version, content: []byte(content), mode: info.Mode()})
-				continue
 			}
-			err = replaceChartValue(file, "$.appVersion", flavor.Version)
-			if err != nil {
-				return nil, fmt.Errorf("update chart %s: %w", chartPath, err)
-			}
+			out = file.String()
 		}
 
-		updates = append(updates, chartUpdate{path: chartPath, version: version, content: []byte(file.String()), mode: info.Mode()})
+		updates = append(updates, chartUpdate{path: chartPath, version: version, content: []byte(out)})
 	}
 
 	return updates, nil

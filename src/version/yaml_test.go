@@ -110,7 +110,6 @@ func TestPrepareChartUpdates(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, updates, 5)
-	require.Equal(t, os.FileMode(0640), updates[0].mode.Perm())
 
 	contents := make(map[string]string)
 	for _, update := range updates {
@@ -122,7 +121,7 @@ func TestPrepareChartUpdates(t *testing.T) {
 	require.Contains(t, contents["explicit-chart"], "version: 2.4.0")
 	require.Contains(t, contents["explicit-chart"], "appVersion: old")
 	require.Contains(t, contents["explicit-chart"], "maintainers:")
-	require.True(t, strings.HasSuffix(contents["without-app-version"], "appVersion: \"1.2.3-uds.0\"\n"))
+	require.True(t, strings.HasSuffix(contents["without-app-version"], "appVersion: 1.2.3-uds.0\n"))
 	require.Contains(t, contents["non-semver"], "version: not-a-semver-version")
 	require.Contains(t, contents["without-version"], "version: 3.2.1")
 	require.Contains(t, contents["without-version"], "description: preserved")
