@@ -116,15 +116,15 @@ func TestPrepareChartUpdates(t *testing.T) {
 	for _, update := range updates {
 		contents[filepath.Base(filepath.Dir(update.path))] = string(update.content)
 	}
-	require.Contains(t, contents["flavor-chart"], "version: \"1.2.3-uds.0\"")
+	require.Contains(t, contents["flavor-chart"], "version: 1.2.3-uds.0")
 	require.Contains(t, contents["flavor-chart"], "description: preserved")
 	require.NotContains(t, contents["flavor-chart"], "appVersion:")
-	require.Contains(t, contents["explicit-chart"], "version: \"2.4.0\"")
+	require.Contains(t, contents["explicit-chart"], "version: 2.4.0")
 	require.Contains(t, contents["explicit-chart"], "appVersion: old")
 	require.Contains(t, contents["explicit-chart"], "maintainers:")
 	require.True(t, strings.HasSuffix(contents["without-app-version"], "appVersion: \"1.2.3-uds.0\"\n"))
-	require.Contains(t, contents["non-semver"], "version: \"not-a-semver-version\"")
-	require.Contains(t, contents["without-version"], "version: \"3.2.1\"")
+	require.Contains(t, contents["non-semver"], "version: not-a-semver-version")
+	require.Contains(t, contents["without-version"], "version: 3.2.1")
 	require.Contains(t, contents["without-version"], "description: preserved")
 }
 

@@ -127,7 +127,7 @@ func replaceChartValue(file *ast.File, path, value string) error {
 	if err != nil {
 		return err
 	}
-	return chartPath.ReplaceWithReader(file, strings.NewReader(strconv.Quote(value)))
+	return chartPath.ReplaceWithReader(file, strings.NewReader(value))
 }
 
 func UpdateBundleYamlOnly(bundle types.Bundle) error {

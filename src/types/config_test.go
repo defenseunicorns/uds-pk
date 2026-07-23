@@ -329,6 +329,16 @@ func TestVerifyReleaseConfigCharts(t *testing.T) {
 			expectError: true,
 		},
 		{
+			name:        "chart path outside release directory",
+			config:      ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Path: "../../outside/dir", Version: "1.2.3"}}},
+			expectError: true,
+		},
+		{
+			name:        "absolute chart path",
+			config:      ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Path: "/outside/dir", Version: "1.2.3"}}},
+			expectError: true,
+		},
+		{
 			name: "duplicate normalized chart path across release units",
 			config: ReleaseConfig{
 				Flavors: []Flavor{validFlavor},

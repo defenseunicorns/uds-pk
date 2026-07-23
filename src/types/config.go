@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 type Flavor struct {
@@ -166,6 +167,9 @@ func verifyCharts(charts []Chart, chartPaths map[string]bool) error {
 			return errors.New("each chart must define exactly one of version or versionFromFlavor")
 		}
 		normalizedPath := filepath.Clean(chart.Path)
+		if filepath.IsAbs(chart.Path) || normalizedPath == ".." || strings.HasPrefix(normalizedPath, ".."+string(filepath.Separator)) {
+			return fmt.Errorf("chart path must be within the release directory: %s", chart.Path)
+		}
 		if chartPaths[normalizedPath] {
 			return fmt.Errorf("chart paths must be unique: %s", chart.Path)
 		}
