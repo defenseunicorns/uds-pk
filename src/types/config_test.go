@@ -223,7 +223,7 @@ func TestVerifyReleaseConfig(t *testing.T) {
 				Bundles: []Bundle{
 					{
 						Name:    "test-bundle",
-						Path: 	"test/bundle",
+						Path:    "test/bundle",
 						Version: "1.0.0-bundle.0",
 					},
 				},
@@ -235,7 +235,7 @@ func TestVerifyReleaseConfig(t *testing.T) {
 			config: ReleaseConfig{
 				Bundles: []Bundle{
 					{
-						Path: 	"test/bundle",
+						Path:    "test/bundle",
 						Version: "1.0.0-bundle.0",
 					},
 				},
@@ -247,8 +247,8 @@ func TestVerifyReleaseConfig(t *testing.T) {
 			config: ReleaseConfig{
 				Bundles: []Bundle{
 					{
-						Name:    "test-bundle",
-						Path: 	"test/bundle",
+						Name: "test-bundle",
+						Path: "test/bundle",
 					},
 				},
 			},
@@ -283,4 +283,88 @@ func TestVerifyReleaseConfig(t *testing.T) {
 		})
 	}
 
+}
+
+func TestVerifyReleaseConfigCharts(t *testing.T) {
+	validFlavor := Flavor{Name: "base", Version: "1.2.3-uds.0"}
+	tests := []struct {
+		name        string
+		config      ReleaseConfig
+		expectError bool
+	}{
+		{
+			name: "valid explicit and flavor-derived charts",
+			config: ReleaseConfig{
+				Flavors: []Flavor{validFlavor},
+				Charts: []Chart{
+					{Path: "chart", VersionFromFlavor: true},
+					{Path: "charts/installer", Version: "2.4.0"},
+				},
+			},
+		},
+		{
+			name:   "valid Helm-compatible loose chart version",
+			config: ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Path: "chart", Version: "1.0"}}},
+		},
+		{
+			name: "valid package chart",
+			config: ReleaseConfig{Packages: []Package{{
+				Name: "package", Path: "package", Flavors: []Flavor{validFlavor},
+				Charts: []Chart{{Path: "package/chart", VersionFromFlavor: true}},
+			}}},
+		},
+		{
+			name:        "missing chart path",
+			config:      ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Version: "1.2.3"}}},
+			expectError: true,
+		},
+		{
+			name:        "missing chart version source",
+			config:      ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Path: "chart"}}},
+			expectError: true,
+		},
+		{
+			name:        "both chart version sources",
+			config:      ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Path: "chart", Version: "1.2.3", VersionFromFlavor: true}}},
+			expectError: true,
+		},
+		{
+			name:        "chart path outside release directory",
+			config:      ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Path: "../../outside/dir", Version: "1.2.3"}}},
+			expectError: true,
+		},
+		{
+			name:        "absolute chart path",
+			config:      ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Path: "/outside/dir", Version: "1.2.3"}}},
+			expectError: true,
+		},
+		{
+			name: "duplicate normalized chart path across release units",
+			config: ReleaseConfig{
+				Flavors: []Flavor{validFlavor},
+				Charts:  []Chart{{Path: "chart", Version: "1.2.3"}},
+				Packages: []Package{{
+					Name: "package", Path: "package", Flavors: []Flavor{validFlavor},
+					Charts: []Chart{{Path: "charts/../chart", Version: "2.4.0"}},
+				}},
+			},
+			expectError: true,
+		},
+		{
+			name:   "valid non-semver chart version",
+			config: ReleaseConfig{Flavors: []Flavor{validFlavor}, Charts: []Chart{{Path: "chart", Version: "not-a-version"}}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.config.VerifyReleaseConfig()
+			if tt.expectError && err == nil {
+				t.Fatal("expected validation error")
+			}
+			if !tt.expectError && err != nil {
+				t.Fatalf("expected no validation error, got %v", err)
+			}
+		})
+	}
 }

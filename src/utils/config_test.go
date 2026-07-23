@@ -3,7 +3,23 @@
 
 package utils
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/defenseunicorns/uds-pk/src/types"
+	"github.com/stretchr/testify/require"
+)
+
+func TestGetPackage(t *testing.T) {
+	config := types.ReleaseConfig{Packages: []types.Package{{Name: "package", Path: "package"}}}
+
+	pkg, err := getPackage(config, "package")
+	require.NoError(t, err)
+	require.Equal(t, "package", pkg.Name)
+
+	_, err = getPackage(config, "missing")
+	require.ErrorIs(t, err, ErrPackageNotFound)
+}
 
 func TestJoinNonEmpty(t *testing.T) {
 	tests := []struct {

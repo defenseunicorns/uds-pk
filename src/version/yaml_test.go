@@ -6,6 +6,7 @@ package version
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
@@ -81,6 +82,85 @@ metadata:
 	}
 }
 
+func TestPrepareChartUpdates(t *testing.T) {
+	flavor := types.Flavor{Name: "base", Version: "1.2.3-uds.0"}
+
+	tests := []struct {
+		name         string
+		chartContent string
+		chartConfig  types.Chart
+		assertions   func(t *testing.T, content string)
+	}{
+		{
+			name:         "flavor-derived version",
+			chartContent: "apiVersion: v2\nname: flavor-chart\nversion: dev\ndescription: preserved\n",
+			chartConfig:  types.Chart{Path: "chart", VersionFromFlavor: true},
+			assertions: func(t *testing.T, content string) {
+				require.Contains(t, content, "version: 1.2.3-uds.0")
+				require.Contains(t, content, "description: preserved")
+				require.NotContains(t, content, "appVersion:")
+			},
+		},
+		{
+			name:         "explicit version preserves existing fields",
+			chartContent: "apiVersion: v2\nname: explicit-chart\nversion: dev\nappVersion: old\nmaintainers:\n  - name: Alice\n",
+			chartConfig:  types.Chart{Path: "chart", Version: "2.4.0"},
+			assertions: func(t *testing.T, content string) {
+				require.Contains(t, content, "version: 2.4.0")
+				require.Contains(t, content, "appVersion: old")
+				require.Contains(t, content, "maintainers:")
+			},
+		},
+		{
+			name:         "adds appVersion when missing",
+			chartContent: "apiVersion: v2\nname: without-app-version\nversion: dev\n",
+			chartConfig:  types.Chart{Path: "chart", VersionFromFlavor: true, UpdateAppVersion: true},
+			assertions: func(t *testing.T, content string) {
+				require.True(t, strings.HasSuffix(content, "appVersion: 1.2.3-uds.0\n"))
+			},
+		},
+		{
+			name:         "non-semver version",
+			chartContent: "apiVersion: v2\nname: non-semver\nversion: dev\n",
+			chartConfig:  types.Chart{Path: "chart", Version: "not-a-semver-version"},
+			assertions: func(t *testing.T, content string) {
+				require.Contains(t, content, "version: not-a-semver-version")
+			},
+		},
+		{
+			name:         "adds version field when missing",
+			chartContent: "apiVersion: v2\nname: without-version\ndescription: preserved\n",
+			chartConfig:  types.Chart{Path: "chart", Version: "3.2.1"},
+			assertions: func(t *testing.T, content string) {
+				require.Contains(t, content, "version: 3.2.1")
+				require.Contains(t, content, "description: preserved")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			releaseDir := t.TempDir()
+			chartDir := filepath.Join(releaseDir, tt.chartConfig.Path)
+			require.NoError(t, os.MkdirAll(chartDir, 0755))
+			require.NoError(t, os.WriteFile(filepath.Join(chartDir, "Chart.yaml"), []byte(tt.chartContent), 0640))
+
+			updates, err := prepareChartUpdates(flavor, releaseDir, []types.Chart{tt.chartConfig})
+			require.NoError(t, err)
+			require.Len(t, updates, 1)
+
+			tt.assertions(t, string(updates[0].content))
+		})
+	}
+}
+
+
+func TestPrepareChartUpdatesErrors(t *testing.T) {
+	_, err := prepareChartUpdates(types.Flavor{Version: "1.2.3"}, t.TempDir(), []types.Chart{{Path: "missing-chart", Version: "2.4.0"}})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "missing-chart")
+}
+
 func TestUpdateBundleYaml(t *testing.T) {
 	// Save current working directory
 	cwd, err := os.Getwd()
@@ -154,15 +234,15 @@ packages:
 			bundleDir := filepath.Join(tmpDir, "bundle")
 			err := os.MkdirAll(bundleDir, 0755)
 			require.NoError(t, err)
-			
+
 			bundlePath := filepath.Join(bundleDir, "uds-bundle.yaml")
-			
+
 			// Write initial YAML if it's not testing for non-existent file
 			if tt.initialYaml != "non-existent" {
 				err = os.WriteFile(bundlePath, []byte(tt.initialYaml), 0644)
 				require.NoError(t, err)
 			}
-			
+
 			// Change to temp dir for test
 			err = os.Chdir(tmpDir)
 			require.NoError(t, err)
@@ -180,14 +260,14 @@ packages:
 				var bundle uds.UDSBundle
 				err = utils.LoadYaml("bundle/uds-bundle.yaml", &bundle)
 				require.NoError(t, err)
-				
+
 				// Check bundle version was updated
 				expectedVersion := tt.flavor.Version
 				if tt.flavor.Name != "" {
 					expectedVersion = tt.flavor.Version + "-" + tt.flavor.Name
 				}
 				require.Equal(t, expectedVersion, bundle.Metadata.Version)
-				
+
 				// Check if package ref was updated
 				for _, pkg := range bundle.Packages {
 					if pkg.Name == tt.packageName {

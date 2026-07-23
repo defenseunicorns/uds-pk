@@ -72,6 +72,13 @@ flavors:
     version: "1.0.0-uds.0"
   - version: "1.0.0-flavorless.0" # A flavor without a name is valid and will be used when the [flavor] argument is not provided to the various release commands.
 
+charts:
+  - path: chart
+    versionFromFlavor: true
+    updateAppVersion: true
+  - path: charts/installer
+    version: "2.4.0"
+
 packages:
   - name: second-package
     path: second-package/
@@ -83,6 +90,9 @@ packages:
       - name: unicorn
         version: "1.0.0-uds.0"
       - version: "1.0.0-flavorless.0" # A flavor without a name is valid and will be used when the [flavor] argument is not provided to the various release commands.
+    charts:
+      - path: second-package/chart
+        versionFromFlavor: true
 
 # The bundles entry is only used when `uds release bundle CMD BUNDLE_NAME` is used
 bundles:
@@ -93,6 +103,19 @@ bundles:
     path: bundles/prod/
     version: 0.0.1
 ```
+
+### Custom Helm Chart Versions
+
+`uds-pk release update-yaml` updates the `version` field in each configured custom chart's `Chart.yaml`, in addition to `zarf.yaml` and `uds-bundle.yaml`. Define `charts` at the top level for charts owned by the root package or within a `packages` entry for charts owned by that package. Chart paths are relative to the release directory passed with `--dir`.
+
+Each chart requires `path` and exactly one version source:
+
+- **`version`** sets an explicit chart version that does not change with the selected flavor.
+- **`versionFromFlavor: true`** sets the chart version to the selected flavor's version.
+
+Set `updateAppVersion: true` to also set `appVersion` to the selected flavor's version. When `appVersion` is absent, `update-yaml` adds it. Otherwise, `appVersion` is unchanged by default.
+
+Without `--package`, `update-yaml` updates only top-level charts. With `--package PACKAGE`, it updates only the charts declared for that package. The command does not discover charts automatically; every managed chart must be listed in `releaser.yaml`.
 
 ### Multi-Package Support
 
