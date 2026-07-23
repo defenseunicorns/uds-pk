@@ -60,24 +60,27 @@ func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Ch
 func prepareChartUpdates(flavor types.Flavor, releaseDir string, charts []types.Chart) ([]chartUpdate, error) {
 	updates := make([]chartUpdate, 0, len(charts))
 	for _, chart := range charts {
-		var data []byte
-		var info os.FileInfo
-		var file *ast.File
-		var err error
+for _, chart := range charts {
+    version := chart.Version
+    if chart.VersionFromFlavor {
+        version = flavor.Version
+    }
+    chartPath := filepath.Join(releaseDir, chart.Path, "Chart.yaml")
 
-		version := chart.Version
-		if chart.VersionFromFlavor {
-			version = flavor.Version
-		}
-		chartPath := filepath.Join(releaseDir, chart.Path, "Chart.yaml")
-		data, err = os.ReadFile(chartPath)
-		if err != nil {
-			return nil, fmt.Errorf("read chart %s: %w", chartPath, err)
-		}
-		info, err = os.Stat(chartPath)
-		if err != nil {
-			return nil, fmt.Errorf("stat chart %s: %w", chartPath, err)
-		}
+    f, err := os.Open(chartPath)
+    if err != nil {
+        return nil, fmt.Errorf("read chart %s: %w", chartPath, err)
+    }
+    info, err := f.Stat()
+    if err != nil {
+        f.Close()
+        return nil, fmt.Errorf("stat chart %s: %w", chartPath, err)
+    }
+    data, err := io.ReadAll(f)
+    f.Close()
+    if err != nil {
+        return nil, fmt.Errorf("read chart %s: %w", chartPath, err)
+    }
 
 		var metadata chartMetadata
 		err = goyaml.Unmarshal(data, &metadata)
