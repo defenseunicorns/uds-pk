@@ -83,49 +83,77 @@ metadata:
 }
 
 func TestPrepareChartUpdates(t *testing.T) {
-	releaseDir := t.TempDir()
 	flavor := types.Flavor{Name: "base", Version: "1.2.3-uds.0"}
-	charts := []struct {
-		path    string
-		content string
+
+	tests := []struct {
+		name         string
+		chartContent string
+		chartConfig  types.Chart
+		assertions   func(t *testing.T, content string)
 	}{
-		{"flavor-chart", "apiVersion: v2\nname: flavor-chart\nversion: dev\ndescription: preserved\n"},
-		{"explicit-chart", "apiVersion: v2\nname: explicit-chart\nversion: dev\nappVersion: old\nmaintainers:\n  - name: Alice\n"},
-		{"without-app-version", "apiVersion: v2\nname: without-app-version\nversion: dev\n"},
-		{"non-semver", "apiVersion: v2\nname: non-semver\nversion: dev\n"},
-		{"without-version", "apiVersion: v2\nname: without-version\ndescription: preserved\n"},
-	}
-	for _, chart := range charts {
-		chartDir := filepath.Join(releaseDir, chart.path)
-		require.NoError(t, os.MkdirAll(chartDir, 0755))
-		require.NoError(t, os.WriteFile(filepath.Join(chartDir, "Chart.yaml"), []byte(chart.content), 0640))
+		{
+			name:         "flavor-derived version",
+			chartContent: "apiVersion: v2\nname: flavor-chart\nversion: dev\ndescription: preserved\n",
+			chartConfig:  types.Chart{Path: "chart", VersionFromFlavor: true},
+			assertions: func(t *testing.T, content string) {
+				require.Contains(t, content, "version: 1.2.3-uds.0")
+				require.Contains(t, content, "description: preserved")
+				require.NotContains(t, content, "appVersion:")
+			},
+		},
+		{
+			name:         "explicit version preserves existing fields",
+			chartContent: "apiVersion: v2\nname: explicit-chart\nversion: dev\nappVersion: old\nmaintainers:\n  - name: Alice\n",
+			chartConfig:  types.Chart{Path: "chart", Version: "2.4.0"},
+			assertions: func(t *testing.T, content string) {
+				require.Contains(t, content, "version: 2.4.0")
+				require.Contains(t, content, "appVersion: old")
+				require.Contains(t, content, "maintainers:")
+			},
+		},
+		{
+			name:         "adds appVersion when missing",
+			chartContent: "apiVersion: v2\nname: without-app-version\nversion: dev\n",
+			chartConfig:  types.Chart{Path: "chart", VersionFromFlavor: true, UpdateAppVersion: true},
+			assertions: func(t *testing.T, content string) {
+				require.True(t, strings.HasSuffix(content, "appVersion: 1.2.3-uds.0\n"))
+			},
+		},
+		{
+			name:         "non-semver version",
+			chartContent: "apiVersion: v2\nname: non-semver\nversion: dev\n",
+			chartConfig:  types.Chart{Path: "chart", Version: "not-a-semver-version"},
+			assertions: func(t *testing.T, content string) {
+				require.Contains(t, content, "version: not-a-semver-version")
+			},
+		},
+		{
+			name:         "adds version field when missing",
+			chartContent: "apiVersion: v2\nname: without-version\ndescription: preserved\n",
+			chartConfig:  types.Chart{Path: "chart", Version: "3.2.1"},
+			assertions: func(t *testing.T, content string) {
+				require.Contains(t, content, "version: 3.2.1")
+				require.Contains(t, content, "description: preserved")
+			},
+		},
 	}
 
-	updates, err := prepareChartUpdates(flavor, releaseDir, []types.Chart{
-		{Path: "flavor-chart", VersionFromFlavor: true},
-		{Path: "explicit-chart", Version: "2.4.0"},
-		{Path: "without-app-version", VersionFromFlavor: true, UpdateAppVersion: true},
-		{Path: "non-semver", Version: "not-a-semver-version"},
-		{Path: "without-version", Version: "3.2.1"},
-	})
-	require.NoError(t, err)
-	require.Len(t, updates, 5)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			releaseDir := t.TempDir()
+			chartDir := filepath.Join(releaseDir, tt.chartConfig.Path)
+			require.NoError(t, os.MkdirAll(chartDir, 0755))
+			require.NoError(t, os.WriteFile(filepath.Join(chartDir, "Chart.yaml"), []byte(tt.chartContent), 0640))
 
-	contents := make(map[string]string)
-	for _, update := range updates {
-		contents[filepath.Base(filepath.Dir(update.path))] = string(update.content)
+			updates, err := prepareChartUpdates(flavor, releaseDir, []types.Chart{tt.chartConfig})
+			require.NoError(t, err)
+			require.Len(t, updates, 1)
+
+			tt.assertions(t, string(updates[0].content))
+		})
 	}
-	require.Contains(t, contents["flavor-chart"], "version: 1.2.3-uds.0")
-	require.Contains(t, contents["flavor-chart"], "description: preserved")
-	require.NotContains(t, contents["flavor-chart"], "appVersion:")
-	require.Contains(t, contents["explicit-chart"], "version: 2.4.0")
-	require.Contains(t, contents["explicit-chart"], "appVersion: old")
-	require.Contains(t, contents["explicit-chart"], "maintainers:")
-	require.True(t, strings.HasSuffix(contents["without-app-version"], "appVersion: 1.2.3-uds.0\n"))
-	require.Contains(t, contents["non-semver"], "version: not-a-semver-version")
-	require.Contains(t, contents["without-version"], "version: 3.2.1")
-	require.Contains(t, contents["without-version"], "description: preserved")
 }
+
 
 func TestPrepareChartUpdatesErrors(t *testing.T) {
 	_, err := prepareChartUpdates(types.Flavor{Version: "1.2.3"}, t.TempDir(), []types.Chart{{Path: "missing-chart", Version: "2.4.0"}})
