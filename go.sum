@@ -76,6 +76,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/defenseunicorns/uds-cli v0.34.2 h1:wn+f1CdmVB82YZXFMIMS4sd7Q2z+lIfz9RikJD+DzwY=
 github.com/defenseunicorns/uds-cli v0.34.2/go.mod h1:6uZ/CJtQD8/r4+lIEHLRDsIuWeWvR3qFEjXmPpKhiU4=
+github.com/defenseunicorns/uds-cli v0.34.3 h1:TPXaLvp+Pql629N8mhO7SjksOSCX2EHP4kybeDK1Rho=
+github.com/defenseunicorns/uds-cli v0.34.3/go.mod h1:1hVSqRqi0PXp1QiY5Ky8mLZ/dEfqS/abm8Ds/BkwXa4=
 github.com/dimchansky/utfbom v1.1.1 h1:vV6w1AhK4VMnhBno/TPVCoK9U/LP0PkLCS9tbxHdi/U=
 github.com/dimchansky/utfbom v1.1.1/go.mod h1:SxdoEBH5qIqFocHMyGOXVAybYJdr71b1Q/j0mACtrfE=
 github.com/dsnet/compress v0.0.2-0.20230904184137-39efe44ab707 h1:2tV76y6Q9BB+NEBasnqvs7e49aEBFI8ejC89PSnWH+4=
@@ -289,12 +291,16 @@ github.com/yuin/gopher-lua v1.1.2 h1:yF/FjE3hD65tBbt0VXLE13HWS9h34fdzJmrWRXwobGA
 github.com/yuin/gopher-lua v1.1.2/go.mod h1:7aRmXIWl37SqRf0koeyylBEzJ+aPt8A+mmkQ4f1ntR8=
 github.com/zarf-dev/zarf v0.81.1 h1:Hf0qOGT698ujldYISUEj55SheermiUgrkPyF/YXpc/o=
 github.com/zarf-dev/zarf v0.81.1/go.mod h1:pvM+WNPDQMcOl1dBwWNNkh3ENNG8+5hNsVotIr6OC/8=
+github.com/zarf-dev/zarf v0.82.0 h1:nq8+1jSpfOll5skDx3nk4rfFTCHsKu81MhTz79NncDQ=
+github.com/zarf-dev/zarf v0.82.0/go.mod h1:pvM+WNPDQMcOl1dBwWNNkh3ENNG8+5hNsVotIr6OC/8=
 github.com/zclconf/go-cty v1.18.1 h1:yEGE8M4iIZlyKQURZNb2SnEyZlZHUcBCnx6KF81KuwM=
 github.com/zclconf/go-cty v1.18.1/go.mod h1:qpnV6EDNgC1sns/AleL1fvatHw72j+S+nS+MJ+T2CSg=
 github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940 h1:4r45xpDWB6ZMSMNJFMOjqrGHynW3DIBuR2H9j0ug+Mo=
 github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940/go.mod h1:CmBdvvj3nqzfzJ6nTCIwDTPZ56aVGvDrmztiO5g3qrM=
 gitlab.com/gitlab-org/api/client-go/v2 v2.50.0 h1:LSE5kvHA/XWwgN29gRJUGOxvHhAS8lSCmKOSxjTKLT0=
 gitlab.com/gitlab-org/api/client-go/v2 v2.50.0/go.mod h1:P0sRPwCAGIek6HIU0JH5W9Ic5+z3eWvCWwXeg7Pwr7o=
+gitlab.com/gitlab-org/api/client-go/v2 v2.51.0 h1:jP3bsuS3WpiEqhxhG58GJtqCyOnjyACQ8u8oyUg7ru8=
+gitlab.com/gitlab-org/api/client-go/v2 v2.51.0/go.mod h1:P0sRPwCAGIek6HIU0JH5W9Ic5+z3eWvCWwXeg7Pwr7o=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=
