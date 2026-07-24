@@ -4,7 +4,7 @@ go 1.26.5
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.11.0
-	github.com/defenseunicorns/uds-cli v0.34.2
+	github.com/defenseunicorns/uds-cli v0.34.3
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v89 v89.0.0
@@ -13,8 +13,8 @@ require (
 	github.com/olekukonko/tablewriter v1.1.4
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
-	github.com/zarf-dev/zarf v0.81.1
-	gitlab.com/gitlab-org/api/client-go/v2 v2.50.0
+	github.com/zarf-dev/zarf v0.82.0
+	gitlab.com/gitlab-org/api/client-go/v2 v2.51.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
