@@ -146,6 +146,11 @@ func (e2e *UDSPKE2ETest) CreateUDSBundleYamlMultiPackage(t *testing.T, dir strin
 	require.NoError(t, err)
 }
 
+func (e2e *UDSPKE2ETest) CreateReleaseConfig(t *testing.T, dir, content string) {
+	err := os.WriteFile(filepath.Join(dir, "releaser.yaml"), []byte(content), 0o644)
+	require.NoError(t, err)
+}
+
 func (e2e *UDSPKE2ETest) LoadYaml(path string, destVar interface{}) error {
 	data, err := os.ReadFile(path)
 	if err != nil {

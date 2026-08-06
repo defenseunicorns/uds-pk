@@ -42,41 +42,42 @@ func TestPackageFlagUpdateYaml(t *testing.T) {
 	e2e.CreateSandboxDir(t, "bundle", "first", "second")
 	defer e2e.CleanupSandboxDir(t)
 
-	// Create a dummy zarf yaml with devel as version
 	e2e.CreateZarfYaml(t, "src/test/sandbox")
-
-	// Create first alt dummy zarf yaml with devel as version
 	e2e.CreateAltZarfYaml(t, "first", "src/test/sandbox/first")
-
-	// Create second alt dummy zarf yaml with devel as version
 	e2e.CreateAltZarfYaml(t, "second", "src/test/sandbox/second")
-
-	// Create a dummy uds-bundle yaml with devel as version
 	e2e.CreateUDSBundleYamlMultiPackage(t, "src/test/sandbox/bundle")
+	e2e.CreateReleaseConfig(t, "src/test/sandbox", `packages:
+  - name: first
+    path: first
+    flavors:
+      - name: base
+        version: "1.0.0-flag.0"
+  - name: second
+    path: second
+    flavors:
+      - name: base
+        version: "2.0.0-flag.0"
+`)
 
-	stdout, stderr, err := e2e.UDSPKDir("src/test/sandbox", "release", "update-yaml", "base", "-d", "../", "-p", "first")
+	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "update-yaml", "base", "-d", "sandbox", "-p", "first")
 	require.NoError(t, err, stdout, stderr)
 
-	// Check that the base zarf.yaml wasn't updated
 	var zarfPackage zarf.ZarfPackage
 	err = e2e.LoadYaml("src/test/sandbox/zarf.yaml", &zarfPackage)
 	require.NoError(t, err)
 
 	require.Equal(t, "devel", zarfPackage.Metadata.Version)
 
-	// Check that the second zarf.yaml wasn't updated
 	err = e2e.LoadYaml("src/test/sandbox/second/zarf.yaml", &zarfPackage)
 	require.NoError(t, err)
 
 	require.Equal(t, "devel", zarfPackage.Metadata.Version)
 
-	// Check that the first zarf.yaml was updated
 	err = e2e.LoadYaml("src/test/sandbox/first/zarf.yaml", &zarfPackage)
 	require.NoError(t, err)
 
 	require.Equal(t, "1.0.0-flag.0", zarfPackage.Metadata.Version)
 
-	// Check that the uds-bundle.yaml was updated
 	var bundle uds.UDSBundle
 	err = e2e.LoadYaml("src/test/sandbox/bundle/uds-bundle.yaml", &bundle)
 	require.NoError(t, err)
