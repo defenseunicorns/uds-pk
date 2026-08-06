@@ -4,6 +4,7 @@
 package version
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -261,6 +262,77 @@ packages:
 			}
 		})
 	}
+}
+
+func TestWriteUpdatesAtomically(t *testing.T) {
+	t.Run("replaces content and preserves mode", func(t *testing.T) {
+		dir := t.TempDir()
+		firstPath := filepath.Join(dir, "first.yaml")
+		secondPath := filepath.Join(dir, "second.yaml")
+
+		require.NoError(t, os.WriteFile(firstPath, []byte("first: old\n"), 0o640))
+		require.NoError(t, os.WriteFile(secondPath, []byte("second: old\n"), 0o600))
+
+		err := writeUpdatesAtomically([]fileUpdate{
+			{path: firstPath, label: "first.yaml", version: "1.0.0", content: []byte("first: new\n"), mode: 0o640},
+			{path: secondPath, label: "second.yaml", version: "2.0.0", content: []byte("second: new\n"), mode: 0o600},
+		})
+		require.NoError(t, err)
+
+		data, err := os.ReadFile(firstPath)
+		require.NoError(t, err)
+		require.Equal(t, "first: new\n", string(data))
+
+		info, err := os.Stat(firstPath)
+		require.NoError(t, err)
+		require.Equal(t, os.FileMode(0o640), info.Mode())
+
+		data, err = os.ReadFile(secondPath)
+		require.NoError(t, err)
+		require.Equal(t, "second: new\n", string(data))
+
+		info, err = os.Stat(secondPath)
+		require.NoError(t, err)
+		require.Equal(t, os.FileMode(0o600), info.Mode())
+	})
+
+	t.Run("rolls back earlier replacements when a later rename fails", func(t *testing.T) {
+		dir := t.TempDir()
+		firstPath := filepath.Join(dir, "first.yaml")
+		secondPath := filepath.Join(dir, "second.yaml")
+
+		require.NoError(t, os.WriteFile(firstPath, []byte("first: old\n"), 0o644))
+		require.NoError(t, os.WriteFile(secondPath, []byte("second: old\n"), 0o644))
+
+		originalRename := renameFile
+		t.Cleanup(func() {
+			renameFile = originalRename
+		})
+
+		renameCalls := 0
+		renameFile = func(oldpath, newpath string) error {
+			renameCalls++
+			if renameCalls == 4 {
+				return fmt.Errorf("forced rename failure")
+			}
+			return originalRename(oldpath, newpath)
+		}
+
+		err := writeUpdatesAtomically([]fileUpdate{
+			{path: firstPath, label: "first.yaml", version: "1.0.0", content: []byte("first: new\n"), mode: 0o644},
+			{path: secondPath, label: "second.yaml", version: "2.0.0", content: []byte("second: new\n"), mode: 0o644},
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "forced rename failure")
+
+		data, readErr := os.ReadFile(firstPath)
+		require.NoError(t, readErr)
+		require.Equal(t, "first: old\n", string(data))
+
+		data, readErr = os.ReadFile(secondPath)
+		require.NoError(t, readErr)
+		require.Equal(t, "second: old\n", string(data))
+	})
 }
 
 func TestUpdateYamlsSkipsMissingBundle(t *testing.T) {

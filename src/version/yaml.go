@@ -54,11 +54,12 @@ func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Ch
 	}
 	updates = append(updates, chartUpdates...)
 
+	err = writeUpdatesAtomically(updates)
+	if err != nil {
+		return err
+	}
+
 	for _, update := range updates {
-		err = os.WriteFile(update.path, update.content, update.mode)
-		if err != nil {
-			return fmt.Errorf("update %s: %w", update.label, err)
-		}
 		fmt.Printf("Updated %s with version %s\n", update.label, update.version)
 	}
 
@@ -215,18 +216,4 @@ func prepareBundleUpdate(flavor types.Flavor, releaseDir, packageName string) (*
 		content: data,
 		mode:    mode,
 	}, nil
-}
-
-func readFileWithMode(path string) ([]byte, os.FileMode, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	info, err := os.Stat(path)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return data, info.Mode(), nil
 }
