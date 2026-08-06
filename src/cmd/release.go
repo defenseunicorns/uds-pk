@@ -308,7 +308,7 @@ func updateYamlCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update-yaml [flavor]",
 		Aliases: []string{"u"},
-		Short:   "Update the version fields in zarf.yaml, uds-bundle.yaml, and any managed custom Helm charts",
+		Short:   "Update the version fields in zarf.yaml, any managed custom Helm charts, and the default uds-bundle.yaml when applicable",
 		Args:    cobra.MaximumNArgs(1),
 		RunE:    options.run,
 	}
@@ -337,7 +337,8 @@ func (options *UpdateYamlOptions) run(_ *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	return version.UpdateYamls(currentFlavor, path, options.releaseDir, charts)
+	allowMissingBundle := options.packageName != ""
+	return version.UpdateYamls(currentFlavor, path, options.releaseDir, charts, allowMissingBundle)
 }
 
 // releaseCmd represents the release command

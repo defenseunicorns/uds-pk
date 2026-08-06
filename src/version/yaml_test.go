@@ -163,12 +163,14 @@ func TestPrepareChartUpdatesErrors(t *testing.T) {
 
 func TestPrepareBundleUpdate(t *testing.T) {
 	tests := []struct {
-		name        string
-		flavor      types.Flavor
-		packageName string
-		initialYaml string
-		createFile  bool
-		expectNil   bool
+		name               string
+		flavor             types.Flavor
+		packageName        string
+		initialYaml        string
+		createFile         bool
+		allowMissingBundle bool
+		expectNil          bool
+		expectedError      string
 	}{
 		{
 			name: "update existing package",
@@ -187,8 +189,9 @@ packages:
   - name: other-package
     ref: 2.0.0
 `,
-			createFile: true,
-			expectNil:  false,
+			createFile:         true,
+			allowMissingBundle: false,
+			expectNil:          false,
 		},
 		{
 			name: "package not found",
@@ -205,18 +208,31 @@ packages:
   - name: test-package
     ref: 1.0.0
 `,
-			createFile: true,
-			expectNil:  false,
+			createFile:         true,
+			allowMissingBundle: false,
+			expectNil:          false,
 		},
 		{
-			name: "file doesn't exist",
+			name: "file doesn't exist but is allowed",
 			flavor: types.Flavor{
 				Name:    "test",
 				Version: "1.2.3",
 			},
-			packageName: "test-package",
-			createFile:  false,
-			expectNil:   true,
+			packageName:        "test-package",
+			createFile:         false,
+			allowMissingBundle: true,
+			expectNil:          true,
+		},
+		{
+			name: "file doesn't exist and is required",
+			flavor: types.Flavor{
+				Name:    "test",
+				Version: "1.2.3",
+			},
+			packageName:        "test-package",
+			createFile:         false,
+			allowMissingBundle: false,
+			expectedError:      "read bundle",
 		},
 	}
 
@@ -234,7 +250,12 @@ packages:
 				require.NoError(t, err)
 			}
 
-			update, err := prepareBundleUpdate(tt.flavor, tmpDir, tt.packageName)
+			update, err := prepareBundleUpdate(tt.flavor, tmpDir, tt.packageName, tt.allowMissingBundle)
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tt.expectedError)
+				return
+			}
 			require.NoError(t, err)
 			if tt.expectNil {
 				require.Nil(t, update)
@@ -264,7 +285,7 @@ packages:
 	}
 }
 
-func TestWriteUpdatesAtomically(t *testing.T) {
+func TestWriteUpdatesWithRollback(t *testing.T) {
 	t.Run("replaces content and preserves mode", func(t *testing.T) {
 		dir := t.TempDir()
 		firstPath := filepath.Join(dir, "first.yaml")
@@ -273,7 +294,7 @@ func TestWriteUpdatesAtomically(t *testing.T) {
 		require.NoError(t, os.WriteFile(firstPath, []byte("first: old\n"), 0o640))
 		require.NoError(t, os.WriteFile(secondPath, []byte("second: old\n"), 0o600))
 
-		err := writeUpdatesAtomically([]fileUpdate{
+		err := writeUpdatesWithRollback([]fileUpdate{
 			{path: firstPath, label: "first.yaml", version: "1.0.0", content: []byte("first: new\n"), mode: 0o640},
 			{path: secondPath, label: "second.yaml", version: "2.0.0", content: []byte("second: new\n"), mode: 0o600},
 		})
@@ -296,7 +317,7 @@ func TestWriteUpdatesAtomically(t *testing.T) {
 		require.Equal(t, os.FileMode(0o600), info.Mode())
 	})
 
-	t.Run("rolls back earlier replacements when a later rename fails", func(t *testing.T) {
+	t.Run("rolls back earlier replacements when a later write fails", func(t *testing.T) {
 		dir := t.TempDir()
 		firstPath := filepath.Join(dir, "first.yaml")
 		secondPath := filepath.Join(dir, "second.yaml")
@@ -304,26 +325,26 @@ func TestWriteUpdatesAtomically(t *testing.T) {
 		require.NoError(t, os.WriteFile(firstPath, []byte("first: old\n"), 0o644))
 		require.NoError(t, os.WriteFile(secondPath, []byte("second: old\n"), 0o644))
 
-		originalRename := renameFile
+		originalWrite := writeFileInPlace
 		t.Cleanup(func() {
-			renameFile = originalRename
+			writeFileInPlace = originalWrite
 		})
 
-		renameCalls := 0
-		renameFile = func(oldpath, newpath string) error {
-			renameCalls++
-			if renameCalls == 4 {
-				return fmt.Errorf("forced rename failure")
+		writeCalls := 0
+		writeFileInPlace = func(path string, data []byte) error {
+			writeCalls++
+			if writeCalls == 2 {
+				return fmt.Errorf("forced write failure")
 			}
-			return originalRename(oldpath, newpath)
+			return originalWrite(path, data)
 		}
 
-		err := writeUpdatesAtomically([]fileUpdate{
+		err := writeUpdatesWithRollback([]fileUpdate{
 			{path: firstPath, label: "first.yaml", version: "1.0.0", content: []byte("first: new\n"), mode: 0o644},
 			{path: secondPath, label: "second.yaml", version: "2.0.0", content: []byte("second: new\n"), mode: 0o644},
 		})
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "forced rename failure")
+		require.Contains(t, err.Error(), "forced write failure")
 
 		data, readErr := os.ReadFile(firstPath)
 		require.NoError(t, readErr)
@@ -333,19 +354,76 @@ func TestWriteUpdatesAtomically(t *testing.T) {
 		require.NoError(t, readErr)
 		require.Equal(t, "second: old\n", string(data))
 	})
+
+	t.Run("preserves symlinks by updating the target file", func(t *testing.T) {
+		dir := t.TempDir()
+		targetPath := filepath.Join(dir, "target.yaml")
+		linkPath := filepath.Join(dir, "linked.yaml")
+
+		require.NoError(t, os.WriteFile(targetPath, []byte("linked: old\n"), 0o644))
+		require.NoError(t, os.Symlink(targetPath, linkPath))
+
+		err := writeUpdatesWithRollback([]fileUpdate{
+			{path: linkPath, label: "linked.yaml", version: "1.0.0", content: []byte("linked: new\n"), mode: 0o644},
+		})
+		require.NoError(t, err)
+
+		linkInfo, err := os.Lstat(linkPath)
+		require.NoError(t, err)
+		require.NotZero(t, linkInfo.Mode()&os.ModeSymlink)
+
+		data, err := os.ReadFile(targetPath)
+		require.NoError(t, err)
+		require.Equal(t, "linked: new\n", string(data))
+	})
+
+	t.Run("preserves hardlinks by updating the existing inode", func(t *testing.T) {
+		dir := t.TempDir()
+		primaryPath := filepath.Join(dir, "primary.yaml")
+		hardlinkPath := filepath.Join(dir, "hardlink.yaml")
+
+		require.NoError(t, os.WriteFile(primaryPath, []byte("linked: old\n"), 0o644))
+		require.NoError(t, os.Link(primaryPath, hardlinkPath))
+
+		err := writeUpdatesWithRollback([]fileUpdate{
+			{path: primaryPath, label: "primary.yaml", version: "1.0.0", content: []byte("linked: new\n"), mode: 0o644},
+		})
+		require.NoError(t, err)
+
+		data, err := os.ReadFile(hardlinkPath)
+		require.NoError(t, err)
+		require.Equal(t, "linked: new\n", string(data))
+	})
 }
 
 func TestUpdateYamlsSkipsMissingBundle(t *testing.T) {
 	releaseDir := t.TempDir()
 	flavor := types.Flavor{Version: "1.2.3"}
-	require.NoError(t, os.WriteFile(filepath.Join(releaseDir, "zarf.yaml"), []byte("metadata:\n  name: test-package\n  version: dev\n"), 0644))
+	packageDir := filepath.Join(releaseDir, "packages", "example")
+	require.NoError(t, os.MkdirAll(packageDir, 0755))
+	require.NoError(t, os.WriteFile(filepath.Join(packageDir, "zarf.yaml"), []byte("metadata:\n  name: test-package\n  version: dev\n"), 0644))
 
-	err := UpdateYamls(flavor, "", releaseDir, nil)
+	err := UpdateYamls(flavor, "packages/example", releaseDir, nil, true)
 	require.NoError(t, err)
 
 	var zarfPackage zarf.ZarfPackage
-	require.NoError(t, utils.LoadYaml(filepath.Join(releaseDir, "zarf.yaml"), &zarfPackage))
+	require.NoError(t, utils.LoadYaml(filepath.Join(packageDir, "zarf.yaml"), &zarfPackage))
 	require.Equal(t, "1.2.3", zarfPackage.Metadata.Version)
+}
+
+func TestUpdateYamlsFailsWhenBundleIsMissingAndRequired(t *testing.T) {
+	releaseDir := t.TempDir()
+	flavor := types.Flavor{Version: "1.2.3"}
+	zarfPath := filepath.Join(releaseDir, "zarf.yaml")
+	require.NoError(t, os.WriteFile(zarfPath, []byte("metadata:\n  name: test-package\n  version: dev\n"), 0644))
+
+	err := UpdateYamls(flavor, "", releaseDir, nil, false)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "read bundle")
+
+	var zarfPackage zarf.ZarfPackage
+	require.NoError(t, utils.LoadYaml(zarfPath, &zarfPackage))
+	require.Equal(t, "dev", zarfPackage.Metadata.Version)
 }
 
 func TestUpdateYamlsDoesNotModifyZarfWhenBundleIsInvalid(t *testing.T) {
@@ -357,7 +435,7 @@ func TestUpdateYamlsDoesNotModifyZarfWhenBundleIsInvalid(t *testing.T) {
 	require.NoError(t, os.WriteFile(zarfPath, []byte("metadata:\n  name: test-package\n  version: dev\n"), 0644))
 	require.NoError(t, os.WriteFile(filepath.Join(bundleDir, "uds-bundle.yaml"), []byte("not: [valid"), 0644))
 
-	err := UpdateYamls(flavor, "", releaseDir, nil)
+	err := UpdateYamls(flavor, "", releaseDir, nil, false)
 	require.Error(t, err)
 
 	var zarfPackage zarf.ZarfPackage
@@ -371,7 +449,7 @@ func TestUpdateYamlsDoesNotModifyZarfWhenChartPreparationFails(t *testing.T) {
 	zarfPath := filepath.Join(releaseDir, "zarf.yaml")
 	require.NoError(t, os.WriteFile(zarfPath, []byte("metadata:\n  name: test-package\n  version: dev\n"), 0644))
 
-	err := UpdateYamls(flavor, "", releaseDir, []types.Chart{{Path: "missing-chart", Version: "2.4.0"}})
+	err := UpdateYamls(flavor, "", releaseDir, []types.Chart{{Path: "missing-chart", Version: "2.4.0"}}, false)
 	require.Error(t, err)
 
 	var zarfPackage zarf.ZarfPackage

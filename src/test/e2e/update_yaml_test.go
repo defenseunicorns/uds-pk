@@ -65,3 +65,34 @@ func TestUpdateYamlCommandPackageOnlyRepoWithoutBundle(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "1.0.0", zarfPackage.Metadata.Version)
 }
+
+func TestUpdateYamlCommandPackageInMixedRepoWithoutBundle(t *testing.T) {
+	e2e.CreateSandboxDir(t, "packages")
+	defer e2e.CleanupSandboxDir(t)
+
+	packageDir := filepath.Join("src/test/sandbox", "packages", "example")
+	require.NoError(t, os.MkdirAll(packageDir, 0o755))
+	e2e.CreateAltZarfYaml(t, "example", packageDir)
+	e2e.WriteReleaseConfig(t, "src/test/sandbox", releaseTypes.ReleaseConfig{
+		Flavors: []releaseTypes.Flavor{
+			{Name: "base", Version: "9.9.9"},
+		},
+		Packages: []releaseTypes.Package{
+			{
+				Name: "example",
+				Path: "packages/example",
+				Flavors: []releaseTypes.Flavor{
+					{Name: "upstream", Version: "1.0.0"},
+				},
+			},
+		},
+	})
+
+	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "update-yaml", "upstream", "-d", "sandbox", "-p", "example")
+	require.NoError(t, err, stdout, stderr)
+
+	var zarfPackage zarf.ZarfPackage
+	err = e2e.LoadYaml(filepath.Join(packageDir, "zarf.yaml"), &zarfPackage)
+	require.NoError(t, err)
+	require.Equal(t, "1.0.0", zarfPackage.Metadata.Version)
+}

@@ -31,7 +31,7 @@ type fileUpdate struct {
 	mode    os.FileMode
 }
 
-func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Chart) error {
+func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Chart, allowMissingBundle bool) error {
 	zarfUpdate, packageName, err := prepareZarfYamlUpdate(flavor, releaseDir, path)
 	if err != nil {
 		return err
@@ -42,7 +42,7 @@ func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Ch
 		return err
 	}
 
-	bundleUpdate, err := prepareBundleUpdate(flavor, releaseDir, packageName)
+	bundleUpdate, err := prepareBundleUpdate(flavor, releaseDir, packageName, allowMissingBundle)
 	if err != nil {
 		return err
 	}
@@ -54,7 +54,7 @@ func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Ch
 	}
 	updates = append(updates, chartUpdates...)
 
-	err = writeUpdatesAtomically(updates)
+	err = writeUpdatesWithRollback(updates)
 	if err != nil {
 		return err
 	}
@@ -178,12 +178,12 @@ func prepareZarfYamlUpdate(flavor types.Flavor, releaseDir, path string) (fileUp
 	}, zarfPackage.Metadata.Name, nil
 }
 
-func prepareBundleUpdate(flavor types.Flavor, releaseDir, packageName string) (*fileUpdate, error) {
+func prepareBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
 	var bundle uds.UDSBundle
 	bundlePath := filepath.Join(releaseDir, "bundle", "uds-bundle.yaml")
 	data, mode, err := readFileWithMode(bundlePath)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if os.IsNotExist(err) && allowMissingBundle {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("read bundle %s: %w", bundlePath, err)
