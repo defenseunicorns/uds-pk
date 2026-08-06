@@ -16,7 +16,7 @@ import (
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
 
-func TestUpdateZarfYaml(t *testing.T) {
+func TestPrepareZarfYamlUpdate(t *testing.T) {
 	tests := []struct {
 		name          string
 		flavor        types.Flavor
@@ -62,17 +62,16 @@ metadata:
 				require.NoError(t, err)
 			}
 
-			// Call the function
-			packageName, err := updateZarfYaml(tt.flavor, tmpDir)
+			update, packageName, err := prepareZarfYamlUpdate(tt.flavor, tmpDir, "")
 
-			// Check results
 			if tt.expectedError {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+				require.Equal(t, zarfPath, update.path)
 				require.Equal(t, tt.expectedName, packageName)
+				require.NoError(t, os.WriteFile(update.path, update.content, update.mode))
 
-				// Verify the file was updated correctly
 				var zarfPackage zarf.ZarfPackage
 				err = utils.LoadYaml(zarfPath, &zarfPackage)
 				require.NoError(t, err)
@@ -154,30 +153,19 @@ func TestPrepareChartUpdates(t *testing.T) {
 	}
 }
 
-
 func TestPrepareChartUpdatesErrors(t *testing.T) {
 	_, err := prepareChartUpdates(types.Flavor{Version: "1.2.3"}, t.TempDir(), []types.Chart{{Path: "missing-chart", Version: "2.4.0"}})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "missing-chart")
 }
 
-func TestUpdateBundleYaml(t *testing.T) {
-	// Save current working directory
-	cwd, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(cwd)
-		if err != nil {
-			t.Logf("Failed to change back to original directory: %v", err)
-		}
-	}()
-
+func TestPrepareBundleUpdate(t *testing.T) {
 	tests := []struct {
-		name          string
-		flavor        types.Flavor
-		packageName   string
-		initialYaml   string
-		expectedError bool
+		name        string
+		flavor      types.Flavor
+		packageName string
+		initialYaml string
+		expectNil   bool
 	}{
 		{
 			name: "update existing package",
@@ -196,7 +184,7 @@ packages:
   - name: other-package
     ref: 2.0.0
 `,
-			expectedError: false,
+			expectNil: false,
 		},
 		{
 			name: "package not found",
@@ -213,7 +201,7 @@ packages:
   - name: test-package
     ref: 1.0.0
 `,
-			expectedError: false,
+			expectNil: false,
 		},
 		{
 			name: "file doesn't exist",
@@ -221,15 +209,14 @@ packages:
 				Name:    "test",
 				Version: "1.2.3",
 			},
-			packageName:   "test-package",
-			initialYaml:   "non-existent",
-			expectedError: true,
+			packageName: "test-package",
+			initialYaml: "non-existent",
+			expectNil:   true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create temp dir for test
 			tmpDir := t.TempDir()
 			bundleDir := filepath.Join(tmpDir, "bundle")
 			err := os.MkdirAll(bundleDir, 0755)
@@ -237,44 +224,81 @@ packages:
 
 			bundlePath := filepath.Join(bundleDir, "uds-bundle.yaml")
 
-			// Write initial YAML if it's not testing for non-existent file
 			if tt.initialYaml != "non-existent" {
 				err = os.WriteFile(bundlePath, []byte(tt.initialYaml), 0644)
 				require.NoError(t, err)
 			}
 
-			// Change to temp dir for test
-			err = os.Chdir(tmpDir)
+			update, err := prepareBundleUpdate(tt.flavor, tmpDir, tt.packageName)
+			require.NoError(t, err)
+			if tt.expectNil {
+				require.Nil(t, update)
+				return
+			}
+
+			require.NotNil(t, update)
+			require.Equal(t, bundlePath, update.path)
+			require.NoError(t, os.WriteFile(update.path, update.content, update.mode))
+
+			var bundle uds.UDSBundle
+			err = utils.LoadYaml(bundlePath, &bundle)
 			require.NoError(t, err)
 
-			// Call the function
-			err = updateBundleYaml(tt.flavor, tt.packageName)
+			expectedVersion := tt.flavor.Version
+			if tt.flavor.Name != "" {
+				expectedVersion = tt.flavor.Version + "-" + tt.flavor.Name
+			}
+			require.Equal(t, expectedVersion, bundle.Metadata.Version)
 
-			// Check results
-			if tt.expectedError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-
-				// Verify the file was updated correctly
-				var bundle uds.UDSBundle
-				err = utils.LoadYaml("bundle/uds-bundle.yaml", &bundle)
-				require.NoError(t, err)
-
-				// Check bundle version was updated
-				expectedVersion := tt.flavor.Version
-				if tt.flavor.Name != "" {
-					expectedVersion = tt.flavor.Version + "-" + tt.flavor.Name
-				}
-				require.Equal(t, expectedVersion, bundle.Metadata.Version)
-
-				// Check if package ref was updated
-				for _, pkg := range bundle.Packages {
-					if pkg.Name == tt.packageName {
-						require.Equal(t, expectedVersion, pkg.Ref)
-					}
+			for _, pkg := range bundle.Packages {
+				if pkg.Name == tt.packageName {
+					require.Equal(t, expectedVersion, pkg.Ref)
 				}
 			}
 		})
 	}
+}
+
+func TestUpdateYamlsSkipsMissingBundle(t *testing.T) {
+	releaseDir := t.TempDir()
+	flavor := types.Flavor{Version: "1.2.3"}
+	require.NoError(t, os.WriteFile(filepath.Join(releaseDir, "zarf.yaml"), []byte("metadata:\n  name: test-package\n  version: dev\n"), 0644))
+
+	err := UpdateYamls(flavor, "", releaseDir, nil)
+	require.NoError(t, err)
+
+	var zarfPackage zarf.ZarfPackage
+	require.NoError(t, utils.LoadYaml(filepath.Join(releaseDir, "zarf.yaml"), &zarfPackage))
+	require.Equal(t, "1.2.3", zarfPackage.Metadata.Version)
+}
+
+func TestUpdateYamlsDoesNotModifyZarfWhenBundleIsInvalid(t *testing.T) {
+	releaseDir := t.TempDir()
+	flavor := types.Flavor{Version: "1.2.3"}
+	zarfPath := filepath.Join(releaseDir, "zarf.yaml")
+	bundleDir := filepath.Join(releaseDir, "bundle")
+	require.NoError(t, os.MkdirAll(bundleDir, 0755))
+	require.NoError(t, os.WriteFile(zarfPath, []byte("metadata:\n  name: test-package\n  version: dev\n"), 0644))
+	require.NoError(t, os.WriteFile(filepath.Join(bundleDir, "uds-bundle.yaml"), []byte("not: [valid"), 0644))
+
+	err := UpdateYamls(flavor, "", releaseDir, nil)
+	require.Error(t, err)
+
+	var zarfPackage zarf.ZarfPackage
+	require.NoError(t, utils.LoadYaml(zarfPath, &zarfPackage))
+	require.Equal(t, "dev", zarfPackage.Metadata.Version)
+}
+
+func TestUpdateYamlsDoesNotModifyZarfWhenChartPreparationFails(t *testing.T) {
+	releaseDir := t.TempDir()
+	flavor := types.Flavor{Version: "1.2.3"}
+	zarfPath := filepath.Join(releaseDir, "zarf.yaml")
+	require.NoError(t, os.WriteFile(zarfPath, []byte("metadata:\n  name: test-package\n  version: dev\n"), 0644))
+
+	err := UpdateYamls(flavor, "", releaseDir, []types.Chart{{Path: "missing-chart", Version: "2.4.0"}})
+	require.Error(t, err)
+
+	var zarfPackage zarf.ZarfPackage
+	require.NoError(t, utils.LoadYaml(zarfPath, &zarfPackage))
+	require.Equal(t, "dev", zarfPackage.Metadata.Version)
 }

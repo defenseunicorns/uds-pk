@@ -27,30 +27,54 @@ type chartUpdate struct {
 	path    string
 	version string
 	content []byte
+	mode    os.FileMode
+}
+
+type yamlUpdate struct {
+	path        string
+	displayPath string
+	version     string
+	content     []byte
+	mode        os.FileMode
 }
 
 func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Chart) error {
+	zarfUpdate, packageName, err := prepareZarfYamlUpdate(flavor, releaseDir, path)
+	if err != nil {
+		return err
+	}
+
 	chartUpdates, err := prepareChartUpdates(flavor, releaseDir, charts)
 	if err != nil {
 		return err
 	}
 
-	packageName, err := updateZarfYaml(flavor, path)
-	if err != nil {
-		return err
-	}
-	err = updateBundleYaml(flavor, packageName)
+	bundleUpdate, err := prepareBundleUpdate(flavor, releaseDir, packageName)
 	if err != nil {
 		return err
 	}
 
+	updates := make([]yamlUpdate, 0, len(chartUpdates)+2)
+	updates = append(updates, zarfUpdate)
+	if bundleUpdate != nil {
+		updates = append(updates, *bundleUpdate)
+	}
 	for _, update := range chartUpdates {
-		// Chart.yaml was read during update preparation, so WriteFile preserves its existing mode.
-		err = os.WriteFile(update.path, update.content, 0)
+		updates = append(updates, yamlUpdate{
+			path:        update.path,
+			displayPath: update.path,
+			version:     update.version,
+			content:     update.content,
+			mode:        update.mode,
+		})
+	}
+
+	for _, update := range updates {
+		err = os.WriteFile(update.path, update.content, update.mode)
 		if err != nil {
-			return fmt.Errorf("update chart %s: %w", update.path, err)
+			return fmt.Errorf("update %s: %w", update.displayPath, err)
 		}
-		fmt.Printf("Updated %s with version %s\n", update.path, update.version)
+		fmt.Printf("Updated %s with version %s\n", update.displayPath, update.version)
 	}
 
 	return nil
@@ -67,6 +91,10 @@ func prepareChartUpdates(flavor types.Flavor, releaseDir string, charts []types.
 		data, err := os.ReadFile(chartPath)
 		if err != nil {
 			return nil, fmt.Errorf("read chart %s: %w", chartPath, err)
+		}
+		info, err := os.Stat(chartPath)
+		if err != nil {
+			return nil, fmt.Errorf("stat chart %s: %w", chartPath, err)
 		}
 
 		var metadata chartMetadata
@@ -107,7 +135,7 @@ func prepareChartUpdates(flavor types.Flavor, releaseDir string, charts []types.
 			out = file.String()
 		}
 
-		updates = append(updates, chartUpdate{path: chartPath, version: version, content: []byte(out)})
+		updates = append(updates, chartUpdate{path: chartPath, version: version, content: []byte(out), mode: info.Mode()})
 	}
 
 	return updates, nil
@@ -140,31 +168,55 @@ func UpdateBundleYamlOnly(bundle types.Bundle) error {
 	return nil
 }
 
-func updateZarfYaml(flavor types.Flavor, path string) (packageName string, err error) {
+func prepareZarfYamlUpdate(flavor types.Flavor, releaseDir, path string) (yamlUpdate, string, error) {
 	var zarfPackage zarf.ZarfPackage
-	zarfPath := filepath.Join(path, "zarf.yaml")
-	err = utils.LoadYaml(zarfPath, &zarfPackage)
+	zarfPath := filepath.Join(releaseDir, path, "zarf.yaml")
+	data, err := os.ReadFile(zarfPath)
 	if err != nil {
-		return "", err
+		return yamlUpdate{}, "", fmt.Errorf("read zarf %s: %w", zarfPath, err)
+	}
+	info, err := os.Stat(zarfPath)
+	if err != nil {
+		return yamlUpdate{}, "", fmt.Errorf("stat zarf %s: %w", zarfPath, err)
+	}
+	err = goyaml.Unmarshal(data, &zarfPackage)
+	if err != nil {
+		return yamlUpdate{}, "", fmt.Errorf("parse zarf %s: %w", zarfPath, err)
 	}
 
 	zarfPackage.Metadata.Version = flavor.Version
 
-	err = utils.UpdateYaml(zarfPath, zarfPackage)
+	data, err = goyaml.Marshal(zarfPackage)
 	if err != nil {
-		return zarfPackage.Metadata.Name, err
+		return yamlUpdate{}, zarfPackage.Metadata.Name, fmt.Errorf("marshal zarf %s: %w", zarfPath, err)
 	}
 
-	fmt.Printf("Updated zarf.yaml with version %s\n", flavor.Version)
-
-	return zarfPackage.Metadata.Name, nil
+	return yamlUpdate{
+		path:        zarfPath,
+		displayPath: "zarf.yaml",
+		version:     flavor.Version,
+		content:     data,
+		mode:        info.Mode(),
+	}, zarfPackage.Metadata.Name, nil
 }
 
-func updateBundleYaml(flavor types.Flavor, packageName string) error {
+func prepareBundleUpdate(flavor types.Flavor, releaseDir, packageName string) (*yamlUpdate, error) {
 	var bundle uds.UDSBundle
-	err := utils.LoadYaml("bundle/uds-bundle.yaml", &bundle)
+	bundlePath := filepath.Join(releaseDir, "bundle", "uds-bundle.yaml")
+	data, err := os.ReadFile(bundlePath)
 	if err != nil {
-		return err
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("read bundle %s: %w", bundlePath, err)
+	}
+	info, err := os.Stat(bundlePath)
+	if err != nil {
+		return nil, fmt.Errorf("stat bundle %s: %w", bundlePath, err)
+	}
+	err = goyaml.Unmarshal(data, &bundle)
+	if err != nil {
+		return nil, fmt.Errorf("parse bundle %s: %w", bundlePath, err)
 	}
 
 	tag := utils.JoinNonEmpty("-", flavor.Version, flavor.Name)
@@ -178,11 +230,16 @@ func updateBundleYaml(flavor types.Flavor, packageName string) error {
 		}
 	}
 
-	err = utils.UpdateYaml("bundle/uds-bundle.yaml", bundle)
+	data, err = goyaml.Marshal(bundle)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("marshal bundle %s: %w", bundlePath, err)
 	}
 
-	fmt.Printf("Updated uds-bundle.yaml with version %s\n", tag)
-	return nil
+	return &yamlUpdate{
+		path:        bundlePath,
+		displayPath: "uds-bundle.yaml",
+		version:     tag,
+		content:     data,
+		mode:        info.Mode(),
+	}, nil
 }
