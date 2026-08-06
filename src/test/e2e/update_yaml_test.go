@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
+	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/stretchr/testify/require"
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
@@ -19,11 +20,10 @@ func TestUpdateYamlCommand(t *testing.T) {
 
 	e2e.CreateZarfYaml(t, "src/test/sandbox")
 	e2e.CreateUDSBundleYaml(t, "src/test/sandbox/bundle")
-	e2e.CreateReleaseConfig(t, "src/test/sandbox", `flavors:
-  - name: base
-    version: "1.0.0-uds.0"
-  - version: "1.0.0-flavorless.0"
-`)
+	e2e.CreateFlavorReleaseConfig(t, "src/test/sandbox",
+		releaseTypes.Flavor{Name: "base", Version: "1.0.0-uds.0"},
+		releaseTypes.Flavor{Version: "1.0.0-flavorless.0"},
+	)
 
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "update-yaml", "base", "-d", "sandbox")
 	require.NoError(t, err, stdout, stderr)
@@ -49,13 +49,13 @@ func TestUpdateYamlCommandPackageOnlyRepoWithoutBundle(t *testing.T) {
 	packageDir := filepath.Join("src/test/sandbox", "packages", "example")
 	require.NoError(t, os.MkdirAll(packageDir, 0o755))
 	e2e.CreateAltZarfYaml(t, "example", packageDir)
-	e2e.CreateReleaseConfig(t, "src/test/sandbox", `packages:
-  - name: example
-    path: packages/example
-    flavors:
-      - name: upstream
-        version: "1.0.0"
-`)
+	e2e.CreatePackageReleaseConfig(t, "src/test/sandbox", releaseTypes.Package{
+		Name: "example",
+		Path: "packages/example",
+		Flavors: []releaseTypes.Flavor{
+			{Name: "upstream", Version: "1.0.0"},
+		},
+	})
 
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "update-yaml", "upstream", "-d", "sandbox", "-p", "example")
 	require.NoError(t, err, stdout, stderr)

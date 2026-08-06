@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
+	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/stretchr/testify/require"
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
@@ -46,18 +47,22 @@ func TestPackageFlagUpdateYaml(t *testing.T) {
 	e2e.CreateAltZarfYaml(t, "first", "src/test/sandbox/first")
 	e2e.CreateAltZarfYaml(t, "second", "src/test/sandbox/second")
 	e2e.CreateUDSBundleYamlMultiPackage(t, "src/test/sandbox/bundle")
-	e2e.CreateReleaseConfig(t, "src/test/sandbox", `packages:
-  - name: first
-    path: first
-    flavors:
-      - name: base
-        version: "1.0.0-flag.0"
-  - name: second
-    path: second
-    flavors:
-      - name: base
-        version: "2.0.0-flag.0"
-`)
+	e2e.CreatePackageReleaseConfig(t, "src/test/sandbox",
+		releaseTypes.Package{
+			Name: "first",
+			Path: "first",
+			Flavors: []releaseTypes.Flavor{
+				{Name: "base", Version: "1.0.0-flag.0"},
+			},
+		},
+		releaseTypes.Package{
+			Name: "second",
+			Path: "second",
+			Flavors: []releaseTypes.Flavor{
+				{Name: "base", Version: "2.0.0-flag.0"},
+			},
+		},
+	)
 
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "update-yaml", "base", "-d", "sandbox", "-p", "first")
 	require.NoError(t, err, stdout, stderr)

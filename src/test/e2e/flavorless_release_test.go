@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
+	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/stretchr/testify/require"
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
@@ -29,11 +30,10 @@ func TestFlavorlessUpdateYaml(t *testing.T) {
 
 	e2e.CreateZarfYaml(t, "src/test/sandbox")
 	e2e.CreateUDSBundleYaml(t, "src/test/sandbox/bundle")
-	e2e.CreateReleaseConfig(t, "src/test/sandbox", `flavors:
-  - name: base
-    version: "1.0.0-uds.0"
-  - version: "1.0.0-flavorless.0"
-`)
+	e2e.CreateFlavorReleaseConfig(t, "src/test/sandbox",
+		releaseTypes.Flavor{Name: "base", Version: "1.0.0-uds.0"},
+		releaseTypes.Flavor{Version: "1.0.0-flavorless.0"},
+	)
 
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "update-yaml", "-d", "sandbox")
 	require.NoError(t, err, stdout, stderr)

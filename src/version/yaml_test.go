@@ -21,6 +21,7 @@ func TestPrepareZarfYamlUpdate(t *testing.T) {
 		name          string
 		flavor        types.Flavor
 		initialYaml   string
+		createFile    bool
 		expectedName  string
 		expectedError bool
 	}{
@@ -35,6 +36,7 @@ metadata:
   name: test-package
   version: 1.0.0
 `,
+			createFile:    true,
 			expectedName:  "test-package",
 			expectedError: false,
 		},
@@ -44,7 +46,7 @@ metadata:
 				Name:    "test",
 				Version: "1.2.3",
 			},
-			initialYaml:   "non-existent",
+			createFile:    false,
 			expectedName:  "",
 			expectedError: true,
 		},
@@ -56,8 +58,7 @@ metadata:
 			tmpDir := t.TempDir()
 			zarfPath := filepath.Join(tmpDir, "zarf.yaml")
 
-			// Write initial YAML if it's not testing for non-existent file
-			if tt.initialYaml != "non-existent" {
+			if tt.createFile {
 				err := os.WriteFile(zarfPath, []byte(tt.initialYaml), 0644)
 				require.NoError(t, err)
 			}
@@ -165,6 +166,7 @@ func TestPrepareBundleUpdate(t *testing.T) {
 		flavor      types.Flavor
 		packageName string
 		initialYaml string
+		createFile  bool
 		expectNil   bool
 	}{
 		{
@@ -184,7 +186,8 @@ packages:
   - name: other-package
     ref: 2.0.0
 `,
-			expectNil: false,
+			createFile: true,
+			expectNil:  false,
 		},
 		{
 			name: "package not found",
@@ -201,7 +204,8 @@ packages:
   - name: test-package
     ref: 1.0.0
 `,
-			expectNil: false,
+			createFile: true,
+			expectNil:  false,
 		},
 		{
 			name: "file doesn't exist",
@@ -210,7 +214,7 @@ packages:
 				Version: "1.2.3",
 			},
 			packageName: "test-package",
-			initialYaml: "non-existent",
+			createFile:  false,
 			expectNil:   true,
 		},
 	}
@@ -224,7 +228,7 @@ packages:
 
 			bundlePath := filepath.Join(bundleDir, "uds-bundle.yaml")
 
-			if tt.initialYaml != "non-existent" {
+			if tt.createFile {
 				err = os.WriteFile(bundlePath, []byte(tt.initialYaml), 0644)
 				require.NoError(t, err)
 			}
