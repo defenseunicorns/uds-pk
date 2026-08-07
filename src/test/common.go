@@ -1,4 +1,4 @@
-// Copyright 2024 Defense Unicorns
+// Copyright 2024-2026 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 package test
@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
+	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
@@ -143,6 +144,29 @@ func (e2e *UDSPKE2ETest) CreateUDSBundleYamlMultiPackage(t *testing.T, dir strin
 	require.NoError(t, err)
 
 	err = os.WriteFile(filepath.Join(dir, "uds-bundle.yaml"), data, 0o644)
+	require.NoError(t, err)
+}
+
+func (e2e *UDSPKE2ETest) CreateReleaseConfig(t *testing.T, dir, content string) {
+	err := os.WriteFile(filepath.Join(dir, "releaser.yaml"), []byte(content), 0o644)
+	require.NoError(t, err)
+}
+
+func (e2e *UDSPKE2ETest) CreateFlavorReleaseConfig(t *testing.T, dir string, flavors ...releaseTypes.Flavor) {
+	config := releaseTypes.ReleaseConfig{Flavors: flavors}
+	e2e.WriteReleaseConfig(t, dir, config)
+}
+
+func (e2e *UDSPKE2ETest) CreatePackageReleaseConfig(t *testing.T, dir string, packages ...releaseTypes.Package) {
+	config := releaseTypes.ReleaseConfig{Packages: packages}
+	e2e.WriteReleaseConfig(t, dir, config)
+}
+
+func (e2e *UDSPKE2ETest) WriteReleaseConfig(t *testing.T, dir string, config releaseTypes.ReleaseConfig) {
+	data, err := goyaml.Marshal(config)
+	require.NoError(t, err)
+
+	err = os.WriteFile(filepath.Join(dir, "releaser.yaml"), data, 0o644)
 	require.NoError(t, err)
 }
 
