@@ -131,9 +131,10 @@ func replaceChartValue(file *ast.File, path, value string) error {
 	return chartPath.ReplaceWithReader(file, strings.NewReader(value))
 }
 
-func UpdateBundleYamlOnly(bundle types.Bundle) error {
+func UpdateBundleYAML(bundle types.Bundle, releaseDir string) error {
 	var udsBundle uds.UDSBundle
-	bundlePath := filepath.Join(bundle.Path, "uds-bundle.yaml")
+	// TODO: Validate bundle paths like chart paths so absolute or parent-relative paths cannot escape releaseDir.
+	bundlePath := filepath.Join(releaseDir, bundle.Path, "uds-bundle.yaml")
 	err := utils.LoadYaml(bundlePath, &udsBundle)
 	if err != nil {
 		return err

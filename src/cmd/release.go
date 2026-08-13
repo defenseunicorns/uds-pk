@@ -381,7 +381,7 @@ func (options *UpdateBundleYamlOptions) run(_ *cobra.Command, args []string) err
 	if err != nil {
 		return err
 	}
-	return version.UpdateBundleYamlOnly(bundle)
+	return version.UpdateBundleYAML(bundle, options.releaseDir)
 }
 
 type CheckBundleOptions struct {

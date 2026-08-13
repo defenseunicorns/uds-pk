@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/src/types"
+	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,8 +67,13 @@ func TestBundleUpdateYamlCommand(t *testing.T) {
 
 	// Create dummy uds-bundle yaml with devel as version
 	e2e.CreateUDSBundleYaml(t, "src/test/sandbox/bundle1")
+	e2e.WriteReleaseConfig(t, "src/test/sandbox", releaseTypes.ReleaseConfig{
+		Bundles: []releaseTypes.Bundle{
+			{Name: "bundle1", Path: "bundle1", Version: "1.0.0-bundle.0"},
+		},
+	})
 
-	stdout, stderr, err := e2e.UDSPKDir("src/test/sandbox", "release", "bundle", "update-yaml", "bundle1", "-d", "../")
+	stdout, stderr, err := e2e.UDSPKDir("src/test/sandbox", "release", "bundle", "update-yaml", "bundle1", "-d", ".")
 	require.NoError(t, err, stdout, stderr)
 
 	// Check that the uds-bundle.yaml was updated
@@ -76,4 +82,25 @@ func TestBundleUpdateYamlCommand(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, "1.0.0-bundle.0", bundle.Metadata.Version)
+}
+
+func TestBundleUpdateYamlCommandUsesReleaseDir(t *testing.T) {
+	e2e.CreateSandboxDir(t, "bundle1")
+	defer e2e.CleanupSandboxDir(t)
+
+	e2e.CreateUDSBundleYaml(t, "src/test/sandbox/bundle1")
+	e2e.WriteReleaseConfig(t, "src/test/sandbox", releaseTypes.ReleaseConfig{
+		Bundles: []releaseTypes.Bundle{
+			{Name: "bundle1", Path: "bundle1", Version: "2.0.0"},
+		},
+	})
+
+	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "bundle", "update-yaml", "bundle1", "-d", "sandbox")
+	require.NoError(t, err, stdout, stderr)
+
+	var bundle uds.UDSBundle
+	err = e2e.LoadYaml("src/test/sandbox/bundle1/uds-bundle.yaml", &bundle)
+	require.NoError(t, err)
+
+	require.Equal(t, "2.0.0", bundle.Metadata.Version)
 }
