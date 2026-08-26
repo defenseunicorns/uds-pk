@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	uds "github.com/defenseunicorns/uds-cli/src/types"
+	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	goyaml "github.com/goccy/go-yaml"
