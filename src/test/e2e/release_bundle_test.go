@@ -6,7 +6,7 @@ package test
 import (
 	"testing"
 
-	uds "github.com/defenseunicorns/uds-cli/src/types"
+	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/stretchr/testify/require"
 )

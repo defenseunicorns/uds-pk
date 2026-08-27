@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	uds "github.com/defenseunicorns/uds-cli/src/types"
+	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"

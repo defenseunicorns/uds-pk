@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	uds "github.com/defenseunicorns/uds-cli/src/types"
+	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/stretchr/testify/require"

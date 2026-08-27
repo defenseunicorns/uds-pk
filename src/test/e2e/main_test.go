@@ -12,7 +12,7 @@ import (
 
 	"github.com/defenseunicorns/uds-pk/src/test"
 
-	"github.com/defenseunicorns/uds-cli/src/config"
+	"github.com/defenseunicorns/uds-cli/pkg/legacy/config"
 )
 
 var (
