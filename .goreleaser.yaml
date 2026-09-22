@@ -4,6 +4,7 @@
 before:
   hooks:
     - go mod tidy
+    - go run ./src/schema --version {{ .Version }} --output .tmp/stig-profile.schema.json
 
 # Build a universal macOS binary
 universal_binaries:
@@ -54,3 +55,6 @@ release:
   prerelease: auto
   mode: append
   draft: false
+  extra_files:
+    - glob: ./.tmp/stig-profile.schema.json
+      name_template: "stig-profile-{{ .Version }}.schema.json"
