@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright 2026 Defense Unicorns
+ SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+-->
+
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="RHEL_9_STIG" xml:lang="en">
+  <title>Red Hat Enterprise Linux 9 STIG</title>
+  <plain-text id="release-info">Release: 7 Benchmark Date: 01 Apr 2026</plain-text>
+  <Group id="V-1">
+    <title>SRG-OS-000001</title>
+    <description>&lt;GroupDescription&gt;&lt;/GroupDescription&gt;</description>
+    <Rule id="SV-1_rule" severity="medium" weight="10.0">
+      <version>RHEL-09-000001</version>
+      <title>The graphical user interface must not be installed.</title>
+      <description>&lt;VulnDiscussion&gt;GUI increases attack surface.&lt;/VulnDiscussion&gt;</description>
+      <fixtext>Remove GUI packages.</fixtext>
+      <check>
+        <check-content>Verify no GUI packages are installed.</check-content>
+      </check>
+    </Rule>
+  </Group>
+</Benchmark>

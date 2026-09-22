@@ -4,10 +4,12 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/defenseunicorns/uds-pk/src/stig"
 	"github.com/spf13/cobra"
@@ -16,8 +18,8 @@ import (
 // GenerateChecklistOptions holds flags for the generate-checklist subcommand.
 type GenerateChecklistOptions struct {
 	ProfilePath string
-	XCCDFPath   string
-	OutputPath  string
+	XCCDFPaths  []string
+	OutputPaths []string
 }
 
 func generateChecklistCmd() *cobra.Command {
@@ -28,8 +30,8 @@ func generateChecklistCmd() *cobra.Command {
 		RunE:  options.run,
 	}
 	cmd.Flags().StringVar(&options.ProfilePath, "profile", "stig-profile.yaml", "Path to stig-profile.yaml")
-	cmd.Flags().StringVar(&options.XCCDFPath, "xccdf", "", "Path to XCCDF XML file (optional when the profile identifies a supported DISA STIG)")
-	cmd.Flags().StringVar(&options.OutputPath, "output", "", "Output .cklb file path (default: <app_name>-<stig>-<revision>.cklb)")
+	cmd.Flags().StringSliceVar(&options.XCCDFPaths, "xccdf", nil, "Comma-separated XCCDF XML paths in profile order (optional when the profile identifies supported DISA STIGs)")
+	cmd.Flags().StringSliceVar(&options.OutputPaths, "output", nil, "Comma-separated output .cklb paths in profile order (default: <app_name>-<stig>-<revision>.cklb)")
 	return cmd
 }
 
@@ -42,53 +44,122 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load profile: %w", err)
 	}
-
-	outputPath := o.OutputPath
-	if outputPath == "" {
-		if profile.SelectedSTIG == nil {
-			return fmt.Errorf("failed to determine output path: no supported STIG found in profile")
-		}
-		definition, err := stig.LookupSTIGDefinition(profile.SelectedSTIG.ID)
-		if err != nil {
-			return fmt.Errorf("failed to determine output path: %w", err)
-		}
-		outputPath = stig.DefaultChecklistFilename(profile.AppName, definition)
+	if err := profile.ValidateVersion(CLIVersion); err != nil {
+		return fmt.Errorf("invalid profile schema version: %w", err)
 	}
 
-	xccdfPath, cleanup, err := stig.ResolveXCCDFPath(ctx, profile, o.XCCDFPath)
+	profiles := profile.SupportedSTIGs()
+	if len(profiles) == 0 {
+		return fmt.Errorf("no supported STIG found in profile")
+	}
+	if err := validateUniqueSTIGs(profiles); err != nil {
+		return err
+	}
+	if err := validatePathCount("xccdf", o.XCCDFPaths, len(profiles)); err != nil {
+		return err
+	}
+	if err := validatePathCount("output", o.OutputPaths, len(profiles)); err != nil {
+		return err
+	}
+	outputPaths, err := resolveOutputPaths(profile.AppName, profiles, o.OutputPaths)
 	if err != nil {
-		return fmt.Errorf("failed to resolve XCCDF: %w", err)
+		return err
+	}
+
+	for i, stigProfile := range profiles {
+		profile.ActivateSTIG(stigProfile)
+		xccdfPath := pathAt(o.XCCDFPaths, i)
+		outputPath := outputPaths[i]
+		if err := generateChecklist(ctx, cmd, log, profile, xccdfPath, outputPath); err != nil {
+			return fmt.Errorf("generating checklist for STIG %q: %w", stigProfile.ID, err)
+		}
+	}
+	return nil
+}
+
+func validateUniqueSTIGs(profiles []*stig.STIGProfile) error {
+	seen := map[string]struct{}{}
+	for _, profile := range profiles {
+		if _, exists := seen[profile.ID]; exists {
+			return fmt.Errorf("profile contains duplicate STIG %q", profile.ID)
+		}
+		seen[profile.ID] = struct{}{}
+	}
+	return nil
+}
+
+func validatePathCount(flagName string, paths []string, stigCount int) error {
+	if len(paths) != 0 && len(paths) != stigCount {
+		return fmt.Errorf("--%s must contain one path per supported STIG: got %d paths for %d STIGs", flagName, len(paths), stigCount)
+	}
+	return nil
+}
+
+func pathAt(paths []string, index int) string {
+	if len(paths) == 0 {
+		return ""
+	}
+	return paths[index]
+}
+
+func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPaths []string) ([]string, error) {
+	paths := explicitPaths
+	if len(paths) == 0 {
+		paths = make([]string, len(profiles))
+		for i, profile := range profiles {
+			definition, err := stig.LookupSTIGDefinition(profile.ID)
+			if err != nil {
+				return nil, fmt.Errorf("determining output path for STIG %q: %w", profile.ID, err)
+			}
+			paths[i] = stig.DefaultChecklistFilename(appName, definition)
+		}
+	}
+
+	seen := map[string]struct{}{}
+	for _, path := range paths {
+		absolutePath, err := filepath.Abs(path)
+		if err != nil {
+			return nil, fmt.Errorf("resolving output path %q: %w", path, err)
+		}
+		if _, exists := seen[absolutePath]; exists {
+			return nil, fmt.Errorf("output paths must be unique: %q is used more than once", path)
+		}
+		seen[absolutePath] = struct{}{}
+	}
+	return paths, nil
+}
+
+func generateChecklist(ctx context.Context, cmd *cobra.Command, log *slog.Logger, profile *stig.Profile, explicitXCCDFPath, outputPath string) error {
+	xccdfPath, cleanup, err := stig.ResolveXCCDFPath(ctx, profile, explicitXCCDFPath)
+	if err != nil {
+		return fmt.Errorf("resolving XCCDF: %w", err)
 	}
 	defer cleanup()
 
-	log.Info("Parsing XCCDF", slog.String("path", xccdfPath))
-	s, err := stig.ParseXCCDF(xccdfPath, profile)
+	log.Info("Parsing XCCDF", slog.String("path", xccdfPath), slog.String("stig", profile.SelectedSTIG.ID))
+	parsedSTIG, err := stig.ParseXCCDF(xccdfPath, profile)
 	if err != nil {
 		return fmt.Errorf("failed to parse XCCDF: %w", err)
 	}
 
-	checklist := stig.BuildChecklist(profile, s)
-
-	data, err := json.MarshalIndent(checklist, "", "  ")
+	data, err := json.MarshalIndent(stig.BuildChecklist(profile, parsedSTIG), "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
+		return fmt.Errorf("marshalling JSON: %w", err)
+	}
+	if err := os.WriteFile(outputPath, data, 0o644); err != nil {
+		return fmt.Errorf("writing output: %w", err)
 	}
 
-	if err := os.WriteFile(outputPath, data, 0644); err != nil {
-		return fmt.Errorf("failed to write output: %w", err)
-	}
-
-	// Print summary
 	counts := map[string]int{}
-	for _, r := range s.Rules {
-		counts[r.Status]++
+	for _, rule := range parsedSTIG.Rules {
+		counts[rule.Status]++
 	}
 	w := cmd.OutOrStdout()
 	_, _ = fmt.Fprintf(w, "Generated %s\n", outputPath)
-	_, _ = fmt.Fprintf(w, "Total rules: %d\n", len(s.Rules))
+	_, _ = fmt.Fprintf(w, "Total rules: %d\n", len(parsedSTIG.Rules))
 	for _, status := range []string{"not_a_finding", "not_applicable", "not_reviewed", "open"} {
-		if c, ok := counts[status]; ok {
-			_, _ = fmt.Fprintf(w, "  %s: %d\n", status, c)
+		if count, ok := counts[status]; ok {
+			_, _ = fmt.Fprintf(w, "  %s: %d\n", status, count)
 		}
 	}
 	return nil

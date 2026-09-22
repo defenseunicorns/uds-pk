@@ -76,6 +76,49 @@ func TestStigGenerateChecklist(t *testing.T) {
 	require.Len(t, rules, 5)
 }
 
+func TestStigGenerateMultipleChecklists(t *testing.T) {
+	outputDir := t.TempDir()
+	asdOutput := filepath.Join(outputDir, "asd.cklb")
+	rhelOutput := filepath.Join(outputDir, "rhel9.cklb")
+	xccdfPaths := "src/test/stig/test-xccdf.xml,src/test/stig/test-rhel9-xccdf.xml"
+	outputPaths := asdOutput + "," + rhelOutput
+
+	stdout, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-multi-profile.yaml",
+		"--xccdf", xccdfPaths,
+		"--output", outputPaths,
+	)
+	require.NoError(t, err, stdout, stderr)
+
+	assert.Contains(t, stdout, "Generated "+asdOutput)
+	assert.Contains(t, stdout, "Generated "+rhelOutput)
+
+	expectedTitles := map[string]string{
+		asdOutput:  "e2e-multi-stig-asd-v6r4",
+		rhelOutput: "e2e-multi-stig-rhel9-v2r7",
+	}
+	for outputPath, expectedTitle := range expectedTitles {
+		data, err := os.ReadFile(outputPath)
+		require.NoError(t, err)
+
+		var checklist map[string]interface{}
+		require.NoError(t, json.Unmarshal(data, &checklist))
+		assert.Equal(t, expectedTitle, checklist["title"])
+		stigs, ok := checklist["stigs"].([]interface{})
+		require.True(t, ok)
+		require.Len(t, stigs, 1)
+	}
+}
+
+func TestStigGenerateChecklistRequiresPathPerSTIG(t *testing.T) {
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-multi-profile.yaml",
+		"--xccdf", "src/test/stig/test-xccdf.xml",
+	)
+	require.Error(t, err)
+	assert.Contains(t, stderr, "--xccdf must contain one path per supported STIG")
+}
+
 func TestStigGenerateChecklistRuleStatuses(t *testing.T) {
 	outputDir := t.TempDir()
 	outputPath := filepath.Join(outputDir, "statuses.cklb")
@@ -210,11 +253,11 @@ func TestStigGenerateChecklistMissingXCCDF(t *testing.T) {
 kind: UDS STIG Profile
 metadata:
   name: no-stig-app
-  version: 0.1.0
+  version: dev
 stigs:
   - id: unsupported_v0r0
     description: Unsupported
-	`), 0644)
+`), 0o644)
 	require.NoError(t, err)
 
 	_, _, err = e2e.UDSPK("stig", "generate-checklist",

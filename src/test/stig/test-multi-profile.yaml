@@ -1,0 +1,22 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+kind: UDS STIG Profile
+metadata:
+  name: e2e-multi-stig
+  description: E2E profile containing multiple STIGs.
+  version: dev
+
+stigs:
+  - id: asd_v6r4
+    description: Application Security and Development STIG, Version 6, Revision 4
+    characteristics:
+      uses_soap: false
+    platform:
+      auth_provider: Keycloak
+  - id: rhel9_v2r7
+    description: Red Hat Enterprise Linux 9 STIG, Version 2, Release 7
+    characteristics:
+      uses_selinux: true
+    platform:
+      host_role: Kubernetes Node
