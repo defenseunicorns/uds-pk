@@ -14,7 +14,7 @@ import (
 func TestLoadProfile_Success(t *testing.T) {
 	dir := t.TempDir()
 	profilePath := filepath.Join(dir, "stig-profile.yaml")
-content := `
+	content := `
 kind: UDS STIG Profile
 metadata:
   name: test-app
@@ -79,6 +79,12 @@ stigs:
 	require.Equal(t, "not_a_finding", ov.Status)
 	require.Equal(t, "Custom details.", ov.FindingDetails)
 	require.Equal(t, "Custom comment.", ov.Comments)
+
+	supported := profile.SupportedSTIGs()
+	require.Len(t, supported, 2)
+	profile.ActivateSTIG(supported[1])
+	require.Equal(t, RHEL9STIGProfileKey, profile.SelectedSTIG.ID)
+	require.Empty(t, profile.Overrides)
 }
 
 func TestLoadProfile_SelectsFirstSupportedSTIG(t *testing.T) {
@@ -115,6 +121,15 @@ stigs:
 	require.Equal(t, "Standalone Kubernetes server", profile.Platform.HostRole)
 }
 
+func TestProfileValidateVersion(t *testing.T) {
+	profile := &Profile{Metadata: ProfileMetadata{Version: "1.2.3"}}
+	require.NoError(t, profile.ValidateVersion("1.2.3"))
+	require.EqualError(t, profile.ValidateVersion("1.2.4"), `metadata.version "1.2.3" does not match uds-pk version "1.2.4"`)
+
+	profile.Metadata.Version = ""
+	require.EqualError(t, profile.ValidateVersion("1.2.3"), "metadata.version is required")
+}
+
 func TestLoadProfile_FileNotFound(t *testing.T) {
 	_, err := LoadProfile("/nonexistent/profile.yaml")
 	require.Error(t, err)
@@ -134,7 +149,7 @@ func TestLoadProfile_InvalidYAML(t *testing.T) {
 func TestLoadProfile_MissingAppName(t *testing.T) {
 	dir := t.TempDir()
 	profilePath := filepath.Join(dir, "no-name.yaml")
-content := `
+	content := `
 kind: UDS STIG Profile
 metadata:
   description: No app name.
