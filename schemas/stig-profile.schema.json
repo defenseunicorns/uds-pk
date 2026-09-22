@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/defenseunicorns/uds-pk/main/schemas/stig-profile.schema.json",
+  "title": "UDS STIG Profile",
+  "description": "Configuration for generating UDS STIG checklists.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "metadata",
+    "stigs"
+  ],
+  "properties": {
+    "kind": {
+      "const": "UDS STIG Profile"
+    },
+    "metadata": {
+      "$ref": "#/$defs/metadata"
+    },
+    "stigs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/stig"
+      }
+    }
+  },
+  "$defs": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Application name used in the generated checklist."
+        },
+        "fqdn": {
+          "type": "string",
+          "description": "Fully qualified domain name of the profiled application."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the profiled application."
+        },
+        "version": {
+          "type": "string",
+          "const": "dev",
+          "description": "UDS STIG profile schema version, matching the uds-pk version used to generate the checklist."
+        }
+      }
+    },
+    "stig": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "asd_v6r4",
+            "rhel9_v2r7"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "characteristics": {
+          "$ref": "#/$defs/characteristics"
+        },
+        "platform": {
+          "$ref": "#/$defs/platformConfig"
+        },
+        "overrides": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^.+$": {
+              "$ref": "#/$defs/override"
+            }
+          }
+        }
+      }
+    },
+    "characteristics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "uses_soap": { "type": "boolean" },
+        "uses_saml": { "type": "boolean" },
+        "uses_xml": { "type": "boolean" },
+        "uses_database": { "type": "boolean" },
+        "uses_passwords": { "type": "boolean" },
+        "uses_pki_cac": { "type": "boolean" },
+        "processes_classified_data": { "type": "boolean" },
+        "processes_cui": { "type": "boolean" },
+        "has_user_input": { "type": "boolean" },
+        "has_admin_interface": { "type": "boolean" },
+        "has_file_upload": { "type": "boolean" },
+        "is_stateless": { "type": "boolean" },
+        "has_mobile_code": { "type": "boolean" },
+        "is_high_availability": { "type": "boolean" },
+        "is_publicly_accessible": { "type": "boolean" },
+        "has_web_services": { "type": "boolean" },
+        "has_shared_accounts": { "type": "boolean" },
+        "has_non_local_maintenance": { "type": "boolean" },
+        "does_key_exchange": { "type": "boolean" },
+        "is_transaction_based": { "type": "boolean" },
+        "is_config_mgmt_app": { "type": "boolean" },
+        "authenticates_devices": { "type": "boolean" },
+        "has_crypto_module_access": { "type": "boolean" },
+        "in_dod_dmz": { "type": "boolean" },
+        "is_critical": { "type": "boolean" },
+        "hosts_non_org_users": { "type": "boolean" },
+        "developed_in_house": { "type": "boolean" },
+        "language": { "type": "string" },
+        "is_virtual_machine": { "type": "boolean" },
+        "is_container_host": { "type": "boolean" },
+        "is_kubernetes_node": { "type": "boolean" },
+        "is_standalone_server": { "type": "boolean" },
+        "has_gui": { "type": "boolean" },
+        "boots_to_multi_user_target": { "type": "boolean" },
+        "interactive_console_present": { "type": "boolean" },
+        "has_local_interactive_users": { "type": "boolean" },
+        "is_domain_joined": { "type": "boolean" },
+        "uses_fips_mode": { "type": "boolean" },
+        "uses_selinux": { "type": "boolean" },
+        "uses_auditd": { "type": "boolean" },
+        "uses_journald": { "type": "boolean" },
+        "uses_time_sync": { "type": "boolean" },
+        "uses_crypto_policy": { "type": "boolean" },
+        "uses_firewall": { "type": "boolean" },
+        "uses_ssh": { "type": "boolean" },
+        "uses_sudo": { "type": "boolean" },
+        "uses_aide": { "type": "boolean" },
+        "uses_encrypted_storage": { "type": "boolean" },
+        "uses_ipv6": { "type": "boolean" },
+        "permits_wireless": { "type": "boolean" },
+        "uses_removable_media": { "type": "boolean" },
+        "usb_storage_disabled": { "type": "boolean" },
+        "is_air_gapped": { "type": "boolean" },
+        "separate_tmp": { "type": "boolean" },
+        "separate_var": { "type": "boolean" },
+        "separate_var_log": { "type": "boolean" },
+        "separate_var_log_audit": { "type": "boolean" },
+        "separate_var_tmp": { "type": "boolean" },
+        "separate_home": { "type": "boolean" }
+      }
+    },
+    "platformConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "auth_provider": { "type": "string" },
+        "auth_proxy": { "type": "string" },
+        "service_mesh": { "type": "string" },
+        "tls_provider": { "type": "string" },
+        "container_runtime": { "type": "string" },
+        "container_user": { "type": "string" },
+        "base_image": { "type": "string" },
+        "network_policies": { "type": "boolean" },
+        "cicd_sast": { "type": "string" },
+        "cicd_secrets_scan": { "type": "string" },
+        "cicd_signing": { "type": "string" },
+        "dependency_monitoring": { "type": "string" },
+        "scm": { "type": "string" },
+        "defect_tracking": { "type": "string" },
+        "centralized_logging": { "type": "boolean" },
+        "resource_limits": { "type": "string" },
+        "os_name": { "type": "string" },
+        "os_version": { "type": "string" },
+        "host_role": { "type": "string" },
+        "installation_type": { "type": "string" },
+        "virtualization": { "type": "string" },
+        "network_environment": { "type": "string" },
+        "management_plane": { "type": "string" },
+        "authentication": { "type": "string" },
+        "privileged_access": { "type": "string" },
+        "selinux_mode": { "type": "string" },
+        "fips_mode": { "type": "boolean" },
+        "audit_service": { "type": "string" },
+        "journald_enabled": { "type": "boolean" },
+        "rngd_enabled": { "type": "boolean" },
+        "time_sync": { "type": "string" },
+        "firewall": { "type": "string" },
+        "package_source": { "type": "string" },
+        "file_integrity": { "type": "string" },
+        "antivirus_or_edr": { "type": "string" },
+        "ssh_access": { "type": "string" },
+        "bootloader_protected": { "type": "boolean" },
+        "crypto_policy": { "type": "string" },
+        "disk_encryption": { "type": "string" },
+        "mount_strategy": { "type": "string" },
+        "tmp_mount_options": { "type": "string" },
+        "var_tmp_mount_options": { "type": "string" },
+        "audit_log_mount_options": { "type": "string" },
+        "local_account_policy": { "type": "string" },
+        "kubernetes_distribution": { "type": "string" },
+        "update_model": { "type": "string" }
+      }
+    },
+    "override": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string" },
+        "finding_details": { "type": "string" },
+        "comments": { "type": "string" }
+      }
+    }
+  }
+}
