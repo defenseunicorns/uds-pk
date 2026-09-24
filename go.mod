@@ -8,7 +8,6 @@ require (
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v90 v90.0.0
-	github.com/google/go-github/v91 v91.0.0
 	github.com/google/uuid v1.6.0
 	github.com/mikefarah/yq/v4 v4.53.6
 	github.com/olekukonko/tablewriter v1.1.4
@@ -17,7 +16,6 @@ require (
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zarf-dev/zarf v0.85.0
 	gitlab.com/gitlab-org/api/client-go/v2 v2.64.0
-	gitlab.com/gitlab-org/api/client-go/v3 v3.9.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
