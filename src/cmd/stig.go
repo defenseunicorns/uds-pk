@@ -6,6 +6,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -123,16 +124,40 @@ func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPa
 
 	seen := map[string]struct{}{}
 	for _, path := range paths {
-		absolutePath, err := filepath.Abs(path)
+		resolvedPath, err := resolveOutputPath(path)
 		if err != nil {
-			return nil, fmt.Errorf("resolving output path %q: %w", path, err)
+			return nil, err
 		}
-		if _, exists := seen[absolutePath]; exists {
+		if _, exists := seen[resolvedPath]; exists {
 			return nil, fmt.Errorf("output paths must be unique: %q is used more than once", path)
 		}
-		seen[absolutePath] = struct{}{}
+		seen[resolvedPath] = struct{}{}
 	}
 	return paths, nil
+}
+
+func resolveOutputPath(path string) (string, error) {
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("resolving output path %q: %w", path, err)
+	}
+
+	if resolvedPath, err := filepath.EvalSymlinks(absolutePath); err == nil {
+		return resolvedPath, nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("resolving output path symlinks for %q: %w", path, err)
+	}
+
+	absoluteDir := filepath.Dir(absolutePath)
+	resolvedDir, err := filepath.EvalSymlinks(absoluteDir)
+	if err == nil {
+		return filepath.Join(resolvedDir, filepath.Base(absolutePath)), nil
+	}
+	if !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("resolving output path directory symlinks for %q: %w", path, err)
+	}
+
+	return absolutePath, nil
 }
 
 func generateChecklist(ctx context.Context, cmd *cobra.Command, log *slog.Logger, profile *stig.Profile, explicitXCCDFPath, outputPath string) error {
