@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/stig"
 	"github.com/spf13/cobra"
@@ -91,6 +92,11 @@ func validateUniqueSTIGs(profiles []*stig.STIGProfile) error {
 func validatePathCount(flagName string, paths []string, stigCount int) error {
 	if len(paths) != 0 && len(paths) != stigCount {
 		return fmt.Errorf("--%s must contain one path per supported STIG: got %d paths for %d STIGs", flagName, len(paths), stigCount)
+	}
+	for _, path := range paths {
+		if strings.TrimSpace(path) == "" {
+			return fmt.Errorf("--%s must not contain empty paths", flagName)
+		}
 	}
 	return nil
 }
