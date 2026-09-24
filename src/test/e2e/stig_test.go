@@ -128,6 +128,15 @@ func TestStigGenerateChecklistRejectsEmptyXCCDFPathEntry(t *testing.T) {
 	assert.Contains(t, stderr, "--xccdf must not contain empty paths")
 }
 
+func TestStigGenerateChecklistRejectsEmptyOutputPathEntry(t *testing.T) {
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-multi-profile.yaml",
+		"--output", filepath.Join(t.TempDir(), "asd.cklb")+",",
+	)
+	require.Error(t, err)
+	assert.Contains(t, stderr, "--output must not contain empty paths")
+}
+
 func TestStigGenerateChecklistRuleStatuses(t *testing.T) {
 	outputDir := t.TempDir()
 	outputPath := filepath.Join(outputDir, "statuses.cklb")
