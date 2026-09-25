@@ -67,6 +67,7 @@ func TestLoadXCCDFResults_RejectsInvalidInput(t *testing.T) {
 		{name: "wrong namespace", content: resultFixture("urn:invalid", resultRow("rule", ResultPass, ""))},
 		{name: "no test result", content: `<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="benchmark"/>`},
 		{name: "multiple results", content: `<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="benchmark"><TestResult id="one"/><TestResult id="two"/></Benchmark>`},
+		{name: "no rule results", content: resultFixture(xccdfNamespace12, "")},
 		{name: "missing id", content: resultFixture(xccdfNamespace12, `<rule-result><result>pass</result></rule-result>`)},
 		{name: "invalid status", content: resultFixture(xccdfNamespace12, `<rule-result idref="rule"><result>other</result></rule-result>`)},
 		{name: "uppercase status", content: resultFixture(xccdfNamespace12, `<rule-result idref="rule"><result>PASS</result></rule-result>`)},
@@ -101,9 +102,6 @@ func TestCompareXCCDFResults_AllPairs(t *testing.T) {
 			wantUnchanged, wantRegressions, wantImprovements, wantReclassifications := 0, 0, 0, 0
 			if before == after {
 				wantUnchanged = 1
-			} else if before == ResultNotSelected || after == ResultNotSelected {
-				wantReclassifications = 1
-				require.Equal(t, Reclassification, comparison.Changes[0].Classification)
 			} else {
 				beforeTier, _ := resultStatusTier(before)
 				afterTier, _ := resultStatusTier(after)
@@ -188,7 +186,7 @@ func TestCompareXCCDFResults_RequiresEquivalentIdentities(t *testing.T) {
 	require.Equal(t, []string{"new-only"}, incompatible.NewOnly)
 }
 
-func TestCompareXCCDFResults_TreatsUnknownAsUnevaluated(t *testing.T) {
+func TestCompareXCCDFResults_TreatsUnknownAsFailing(t *testing.T) {
 	base := &XCCDFResultSet{
 		RuleResults: map[string]XCCDFRuleResult{
 			"rule": {Identity: "rule", Status: ResultUnknown},
@@ -202,19 +200,42 @@ func TestCompareXCCDFResults_TreatsUnknownAsUnevaluated(t *testing.T) {
 	comparison, err := CompareXCCDFResults(base, newResults)
 	require.NoError(t, err)
 	require.Zero(t, comparison.RegressionCount)
-	require.Zero(t, comparison.ImprovementCount)
-	require.Equal(t, 1, comparison.ReclassifyCount)
-	require.Equal(t, Reclassification, comparison.Changes[0].Classification)
+	require.Equal(t, 1, comparison.ImprovementCount)
+	require.Zero(t, comparison.ReclassifyCount)
+	require.Equal(t, Improvement, comparison.Changes[0].Classification)
 }
 
-func TestCompareXCCDFResults_TreatsNotSelectedAsOutOfScope(t *testing.T) {
+func TestCompareXCCDFResults_ClassifiesNotSelectedTransitions(t *testing.T) {
 	tests := []struct {
-		name      string
-		base      ResultStatus
-		candidate ResultStatus
+		name                    string
+		base                    ResultStatus
+		candidate               ResultStatus
+		classification          ChangeClassification
+		regressions             int
+		improvements            int
+		reclassifications       int
 	}{
-		{name: "not selected to fail", base: ResultNotSelected, candidate: ResultFail},
-		{name: "fail to not selected", base: ResultFail, candidate: ResultNotSelected},
+		{
+			name:              "not selected to fail",
+			base:              ResultNotSelected,
+			candidate:         ResultFail,
+			classification:    Regression,
+			regressions:       1,
+		},
+		{
+			name:           "fail to not selected",
+			base:           ResultFail,
+			candidate:      ResultNotSelected,
+			classification: Improvement,
+			improvements:   1,
+		},
+		{
+			name:              "not selected to not checked",
+			base:              ResultNotSelected,
+			candidate:         ResultNotChecked,
+			classification:    Reclassification,
+			reclassifications: 1,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -228,12 +249,14 @@ func TestCompareXCCDFResults_TreatsNotSelectedAsOutOfScope(t *testing.T) {
 					"rule": {Identity: "rule", Status: test.candidate},
 				},
 			}
+
 			comparison, err := CompareXCCDFResults(base, newResults)
 			require.NoError(t, err)
-			require.Zero(t, comparison.RegressionCount)
-			require.Zero(t, comparison.ImprovementCount)
-			require.Equal(t, 1, comparison.ReclassifyCount)
-			require.Equal(t, Reclassification, comparison.Changes[0].Classification)
+			require.Equal(t, test.classification, comparison.Changes[0].Classification)
+			require.Equal(t, test.regressions, comparison.RegressionCount)
+			require.Equal(t, test.improvements, comparison.ImprovementCount)
+			require.Equal(t, test.reclassifications, comparison.ReclassifyCount)
+			require.Equal(t, test.regressions > 0, comparison.HasRegressions())
 		})
 	}
 }
