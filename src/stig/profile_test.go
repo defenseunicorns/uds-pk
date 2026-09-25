@@ -50,6 +50,7 @@ stigs:
 
 	profile, err := LoadProfile(profilePath)
 	require.NoError(t, err)
+	require.NoError(t, profile.ValidateSchema("0.1.0"))
 
 	require.Equal(t, ProfileKind, profile.Kind)
 	require.Equal(t, "test-app", profile.AppName)
@@ -136,6 +137,26 @@ func TestProfileValidateSTIGs(t *testing.T) {
 
 	profile.STIGs = append(profile.STIGs, STIGProfile{ID: "unsupported_v0r0"})
 	require.EqualError(t, profile.ValidateSTIGs(), `profile contains unsupported STIG "unsupported_v0r0"`)
+}
+
+func TestProfileValidateSchemaRejectsUnknownFields(t *testing.T) {
+	profilePath := filepath.Join(t.TempDir(), "stig-profile.yaml")
+	content := `
+kind: UDS STIG Profile
+metadata:
+  name: test-app
+  version: 1.2.3
+  unknown: value
+stigs:
+  - id: asd_v6r4
+`
+	require.NoError(t, os.WriteFile(profilePath, []byte(content), 0o644))
+
+	profile, err := LoadProfile(profilePath)
+	require.NoError(t, err)
+	err = profile.ValidateSchema("1.2.3")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Additional property unknown is not allowed")
 }
 
 func TestLoadProfile_FileNotFound(t *testing.T) {

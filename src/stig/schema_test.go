@@ -43,6 +43,34 @@ func TestProfileSchema(t *testing.T) {
 		require.False(t, result.Valid())
 	})
 
+	for _, status := range []string{"not_a_finding", "not_applicable", "not_reviewed", "open"} {
+		t.Run("accepts override status "+status, func(t *testing.T) {
+			document := loadYAMLDocument(t, filepath.Join("..", "test", "stig", "test-profile.yaml"))
+			stigs := document["stigs"].([]any)
+			stigProfile := stigs[0].(map[string]any)
+			stigProfile["overrides"] = map[string]any{
+				"APSC-DV-000160": map[string]any{"status": status},
+			}
+
+			result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
+			require.NoError(t, err)
+			require.True(t, result.Valid(), result.Errors())
+		})
+	}
+
+	t.Run("rejects an unsupported override status", func(t *testing.T) {
+		document := loadYAMLDocument(t, filepath.Join("..", "test", "stig", "test-profile.yaml"))
+		stigs := document["stigs"].([]any)
+		stigProfile := stigs[0].(map[string]any)
+		stigProfile["overrides"] = map[string]any{
+			"APSC-DV-000160": map[string]any{"status": "passed"},
+		}
+
+		result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
+		require.NoError(t, err)
+		require.False(t, result.Valid())
+	})
+
 	for name, appName := range map[string]string{
 		"forward slash":  "../other/file",
 		"backward slash": `..\other\file`,

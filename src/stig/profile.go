@@ -26,6 +26,7 @@ func LoadProfile(path string) (*Profile, error) {
 	if err := yaml.Unmarshal(data, &p); err != nil {
 		return nil, fmt.Errorf("parsing %s: %w", path, err)
 	}
+	p.source = data
 	p.AppName = p.Metadata.Name
 	p.FQDN = p.Metadata.FQDN
 	p.Description = p.Metadata.Description

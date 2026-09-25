@@ -210,7 +210,15 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "status": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_a_finding",
+            "not_applicable",
+            "not_reviewed",
+            "open"
+          ]
+        },
         "finding_details": { "type": "string" },
         "comments": { "type": "string" }
       }

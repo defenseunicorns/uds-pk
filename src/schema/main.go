@@ -4,11 +4,12 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	profileschema "github.com/defenseunicorns/uds-pk/schemas"
 )
 
 func main() {
@@ -33,35 +34,11 @@ func renderSchema(sourcePath, outputPath, version string) error {
 		return fmt.Errorf("reading schema: %w", err)
 	}
 
-	var schema map[string]any
-	if err := json.Unmarshal(data, &schema); err != nil {
-		return fmt.Errorf("parsing schema: %w", err)
-	}
-
-	definitions, ok := schema["$defs"].(map[string]any)
-	if !ok {
-		return fmt.Errorf("schema is missing $defs")
-	}
-	metadata, ok := definitions["metadata"].(map[string]any)
-	if !ok {
-		return fmt.Errorf("schema is missing $defs.metadata")
-	}
-	properties, ok := metadata["properties"].(map[string]any)
-	if !ok {
-		return fmt.Errorf("schema is missing $defs.metadata.properties")
-	}
-	versionProperty, ok := properties["version"].(map[string]any)
-	if !ok {
-		return fmt.Errorf("schema is missing $defs.metadata.properties.version")
-	}
-	versionProperty["const"] = version
-	schema["$id"] = fmt.Sprintf("https://github.com/defenseunicorns/uds-pk/releases/download/v%s/stig-profile-%s.schema.json", version, version)
-
-	rendered, err := json.MarshalIndent(schema, "", "  ")
+	schemaID := fmt.Sprintf("https://github.com/defenseunicorns/uds-pk/releases/download/v%s/stig-profile-%s.schema.json", version, version)
+	rendered, err := profileschema.Render(data, version, schemaID)
 	if err != nil {
-		return fmt.Errorf("marshalling schema: %w", err)
+		return err
 	}
-	rendered = append(rendered, '\n')
 
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
 		return fmt.Errorf("creating output directory: %w", err)
