@@ -367,6 +367,9 @@ func resultStatusTier(status ResultStatus) (int, bool) {
 }
 
 func classifyStatusChange(base, newStatus ResultStatus) ChangeClassification {
+	if base == ResultNotSelected || newStatus == ResultNotSelected {
+		return Reclassification
+	}
 	baseTier, _ := resultStatusTier(base)
 	newTier, _ := resultStatusTier(newStatus)
 	if newTier < baseTier {
