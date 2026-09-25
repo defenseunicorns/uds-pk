@@ -185,6 +185,25 @@ func TestCompareXCCDFResults_RequiresEquivalentIdentities(t *testing.T) {
 	require.Equal(t, []string{"new-only"}, incompatible.NewOnly)
 }
 
+func TestCompareXCCDFResults_TreatsUnknownAsUnevaluated(t *testing.T) {
+	base := &XCCDFResultSet{
+		RuleResults: map[string]XCCDFRuleResult{
+			"rule": {Identity: "rule", Status: ResultUnknown},
+		},
+	}
+	newResults := &XCCDFResultSet{
+		RuleResults: map[string]XCCDFRuleResult{
+			"rule": {Identity: "rule", Status: ResultNotChecked},
+		},
+	}
+	comparison, err := CompareXCCDFResults(base, newResults)
+	require.NoError(t, err)
+	require.Zero(t, comparison.RegressionCount)
+	require.Zero(t, comparison.ImprovementCount)
+	require.Equal(t, 1, comparison.ReclassifyCount)
+	require.Equal(t, Reclassification, comparison.Changes[0].Classification)
+}
+
 func TestRenderXCCDFComparison_IsDeterministic(t *testing.T) {
 	set := &XCCDFResultSet{
 		SourcePath:   "same.xml",
