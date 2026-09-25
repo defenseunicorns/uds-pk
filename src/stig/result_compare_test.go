@@ -101,6 +101,9 @@ func TestCompareXCCDFResults_AllPairs(t *testing.T) {
 			wantUnchanged, wantRegressions, wantImprovements, wantReclassifications := 0, 0, 0, 0
 			if before == after {
 				wantUnchanged = 1
+			} else if before == ResultNotSelected || after == ResultNotSelected {
+				wantReclassifications = 1
+				require.Equal(t, Reclassification, comparison.Changes[0].Classification)
 			} else {
 				beforeTier, _ := resultStatusTier(before)
 				afterTier, _ := resultStatusTier(after)
@@ -202,6 +205,37 @@ func TestCompareXCCDFResults_TreatsUnknownAsUnevaluated(t *testing.T) {
 	require.Zero(t, comparison.ImprovementCount)
 	require.Equal(t, 1, comparison.ReclassifyCount)
 	require.Equal(t, Reclassification, comparison.Changes[0].Classification)
+}
+
+func TestCompareXCCDFResults_TreatsNotSelectedAsOutOfScope(t *testing.T) {
+	tests := []struct {
+		name      string
+		base      ResultStatus
+		candidate ResultStatus
+	}{
+		{name: "not selected to fail", base: ResultNotSelected, candidate: ResultFail},
+		{name: "fail to not selected", base: ResultFail, candidate: ResultNotSelected},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			base := &XCCDFResultSet{
+				RuleResults: map[string]XCCDFRuleResult{
+					"rule": {Identity: "rule", Status: test.base},
+				},
+			}
+			newResults := &XCCDFResultSet{
+				RuleResults: map[string]XCCDFRuleResult{
+					"rule": {Identity: "rule", Status: test.candidate},
+				},
+			}
+			comparison, err := CompareXCCDFResults(base, newResults)
+			require.NoError(t, err)
+			require.Zero(t, comparison.RegressionCount)
+			require.Zero(t, comparison.ImprovementCount)
+			require.Equal(t, 1, comparison.ReclassifyCount)
+			require.Equal(t, Reclassification, comparison.Changes[0].Classification)
+		})
+	}
 }
 
 func TestRenderXCCDFComparison_IsDeterministic(t *testing.T) {
