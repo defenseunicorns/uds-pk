@@ -68,3 +68,7 @@ We prefer to use Testify's [require](https://github.com/stretchr/testify/tree/ma
 - **Unit Tests**: To run unit tests, run `uds run test:unit` from the root of the repo. This will run all unit tests in the `src` directory.
 
 - **E2E Tests**: To run E2E tests, you'll need build UDS Package Kit locally, and re-build any time you make a change to the source code; this is because the binary in the `build` directory is used to drive the tests. To run the entire suite of E2E tests locally, run `uds run e2e`.
+
+### Pre-commit checks
+
+Install [pre-commit](https://pre-commit.com/#install) and the latest [golangci-lint](https://golangci-lint.run/docs/welcome/install/local/), then run `pre-commit install` from the repository root. Keep your local golangci-lint installation up to date to match CI, which uses the latest release. When a commit includes Go files, `go.mod`, or `go.sum`, the hook runs `golangci-lint run --timeout=0` across the full Go module. To check without committing, run `pre-commit run --all-files`.

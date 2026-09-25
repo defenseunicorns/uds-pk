@@ -1,0 +1,13 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+repos:
+  - repo: local
+    hooks:
+      - id: golangci-lint
+        name: golangci-lint
+        entry: golangci-lint run --timeout=0
+        language: system
+        files: '(\.go$|^go\.(mod|sum)$)'
+        types: [file]
+        pass_filenames: false
