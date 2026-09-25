@@ -26,6 +26,8 @@ type Profile struct {
 	Platform     PlatformConfig      `yaml:"-"`
 	Overrides    map[string]Override `yaml:"-"`
 	SelectedSTIG *STIGProfile        `yaml:"-"`
+
+	source []byte
 }
 
 type ProfileMetadata struct {

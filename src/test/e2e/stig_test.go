@@ -136,6 +136,38 @@ stigs:
 	require.ErrorIs(t, statErr, os.ErrNotExist)
 }
 
+func TestStigGenerateChecklistRejectsInvalidOverrideBeforeWriting(t *testing.T) {
+	dir := t.TempDir()
+	profilePath := filepath.Join(dir, "invalid-override-profile.yaml")
+	asdOutput := filepath.Join(dir, "asd.cklb")
+	rhelOutput := filepath.Join(dir, "rhel9.cklb")
+	err := os.WriteFile(profilePath, []byte(`
+kind: UDS STIG Profile
+metadata:
+  name: invalid-override-app
+  version: dev
+stigs:
+  - id: asd_v6r4
+  - id: rhel9_v2r7
+    overrides:
+      RHEL-09-000001:
+        status: passed
+`), 0o644)
+	require.NoError(t, err)
+
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", profilePath,
+		"--xccdf", "src/test/stig/test-xccdf.xml,src/test/stig/test-rhel9-xccdf.xml",
+		"--output", asdOutput+","+rhelOutput,
+	)
+	require.Error(t, err)
+	assert.Contains(t, stderr, "RHEL-09-000001.status must be one of")
+	for _, outputPath := range []string{asdOutput, rhelOutput} {
+		_, statErr := os.Stat(outputPath)
+		require.ErrorIs(t, statErr, os.ErrNotExist)
+	}
+}
+
 func TestStigGenerateChecklistRequiresPathPerSTIG(t *testing.T) {
 	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
 		"--profile", "src/test/stig/test-multi-profile.yaml",
