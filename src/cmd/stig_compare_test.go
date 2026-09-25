@@ -85,3 +85,36 @@ func TestCompareResultsCommandReturnsEvidenceWriteExitCode(t *testing.T) {
 	require.Equal(t, 2, coded.ExitCode())
 	require.Empty(t, stdout.String())
 }
+
+func TestCompareResultsCommandRejectsOutputPathConflictsWithInputs(t *testing.T) {
+	base := writeCommandResult(t, "base.xml", commandResultXML("pass", "base-rule"))
+	newResults := writeCommandResult(t, "new.xml", commandResultXML("pass", "new-rule"))
+
+	symlinkPath := filepath.Join(t.TempDir(), "base-link.xml")
+	require.NoError(t, os.Symlink(base, symlinkPath))
+
+	hardlinkPath := filepath.Join(t.TempDir(), "new-link.xml")
+	require.NoError(t, os.Link(newResults, hardlinkPath))
+
+	for name, outputPath := range map[string]string{
+		"same file": base,
+		"symlink":   symlinkPath,
+		"hard link": hardlinkPath,
+	} {
+		t.Run(name, func(t *testing.T) {
+			command := compareResultsCmd()
+			var stdout bytes.Buffer
+			command.SetOut(&stdout)
+			command.SetArgs([]string{base, newResults, "--output", outputPath})
+
+			err := command.Execute()
+			var coded *exitCodeError
+			require.True(t, errors.As(err, &coded))
+			require.Equal(t, 2, coded.ExitCode())
+			require.Empty(t, stdout.String())
+			contents, readErr := os.ReadFile(outputPath)
+			require.NoError(t, readErr)
+			require.Contains(t, string(contents), "<Benchmark")
+		})
+	}
+}
