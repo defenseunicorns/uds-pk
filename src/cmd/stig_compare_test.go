@@ -92,7 +92,7 @@ func TestCompareResultsCommandWritesOnceWhenOutputMatchesStdout(t *testing.T) {
 	newResults := writeCommandResult(t, "new.xml", commandResultXML("pass", "rule"))
 	stdoutFile, err := os.CreateTemp(t.TempDir(), "stdout-*.txt")
 	require.NoError(t, err)
-	defer stdoutFile.Close()
+	defer func() { _ = stdoutFile.Close() }()
 
 	command := compareResultsCmd()
 	command.SetOut(stdoutFile)
