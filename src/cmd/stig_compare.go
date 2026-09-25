@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -54,6 +55,9 @@ func (o *CompareResultsOptions) run(cmd *cobra.Command, args []string) error {
 	}
 	report := stig.RenderXCCDFComparison(comparison)
 	if o.OutputPath != "" {
+		if err := validateCompareResultsOutputPath(o.OutputPath, args[0], args[1]); err != nil {
+			return newExitCodeError(2, err)
+		}
 		if err := os.WriteFile(o.OutputPath, []byte(report), 0o644); err != nil {
 			return newExitCodeError(2, fmt.Errorf("writing comparison evidence: %w", err))
 		}
@@ -65,5 +69,25 @@ func (o *CompareResultsOptions) run(cmd *cobra.Command, args []string) error {
 		return newExitCodeError(1, fmt.Errorf("XCCDF regressions detected"))
 	}
 
+	return nil
+}
+
+func validateCompareResultsOutputPath(outputPath string, inputPaths ...string) error {
+	outputInfo, err := os.Stat(outputPath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("resolving output path %q: %w", outputPath, err)
+	}
+	for _, inputPath := range inputPaths {
+		inputInfo, err := os.Stat(inputPath)
+		if err != nil {
+			return fmt.Errorf("resolving input path %q: %w", inputPath, err)
+		}
+		if os.SameFile(outputInfo, inputInfo) {
+			return fmt.Errorf("output path %q conflicts with input path %q", outputPath, inputPath)
+		}
+	}
 	return nil
 }

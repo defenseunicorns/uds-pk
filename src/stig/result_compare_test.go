@@ -16,7 +16,7 @@ import (
 
 func resultFixture(namespace string, rows string) string {
 	return fmt.Sprintf(`<?xml version="1.0"?>
-<Benchmark xmlns="%s" id="benchmark"><title>Benchmark title</title><TestResult id="run-1" start-time="2026-01-01T00:00:00Z" end-time="2026-01-01T00:01:00Z"><title>Run title</title><target> target-b </target><target>target-a</target>%s</TestResult></Benchmark>`, namespace, rows)
+<Benchmark xmlns="%s" id="benchmark"><title>Benchmark title</title><TestResult id="run-1" start-time="2026-01-01T00:00:00Z" end-time="2026-01-01T00:01:00Z"><title>Run title</title><profile idref="profile-a"/><target> target-b </target><target>target-a</target>%s</TestResult></Benchmark>`, namespace, rows)
 }
 
 func resultRow(id string, status ResultStatus, instance string) string {
@@ -42,6 +42,7 @@ func TestLoadXCCDFResults_AllStatusesAndMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "benchmark", set.BenchmarkID)
 	require.Equal(t, "run-1", set.TestResultID)
+	require.Equal(t, "profile-a", set.ProfileID)
 	require.Equal(t, "2026-01-01T00:00:00Z", set.StartTime)
 	require.Equal(t, []string{"target-a", "target-b"}, set.Targets)
 	require.Len(t, set.RuleResults, len(orderedResultStatuses)+2)
@@ -64,8 +65,8 @@ func TestLoadXCCDFResults_RejectsInvalidInput(t *testing.T) {
 	}{
 		{name: "malformed", content: `<Benchmark`},
 		{name: "wrong namespace", content: resultFixture("urn:invalid", resultRow("rule", ResultPass, ""))},
-		{name: "no test result", content: `<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2"/>`},
-		{name: "multiple results", content: `<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2"><TestResult id="one"/><TestResult id="two"/></Benchmark>`},
+		{name: "no test result", content: `<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="benchmark"/>`},
+		{name: "multiple results", content: `<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="benchmark"><TestResult id="one"/><TestResult id="two"/></Benchmark>`},
 		{name: "missing id", content: resultFixture(xccdfNamespace12, `<rule-result><result>pass</result></rule-result>`)},
 		{name: "invalid status", content: resultFixture(xccdfNamespace12, `<rule-result idref="rule"><result>other</result></rule-result>`)},
 		{name: "uppercase status", content: resultFixture(xccdfNamespace12, `<rule-result idref="rule"><result>PASS</result></rule-result>`)},
@@ -236,6 +237,18 @@ func TestCanonicalInstanceNormalizesWhitespaceAndEscapesDelimiters(t *testing.T)
 	require.Equal(t, `name="one two;three",context="context,one",parent="parent=one"`, instance)
 }
 
+func TestCanonicalInstanceSortsRepeatedInstances(t *testing.T) {
+	first := canonicalInstance([]xccdfInstance{
+		{Text: "beta", Context: "user"},
+		{Text: "alpha", Context: "user"},
+	})
+	second := canonicalInstance([]xccdfInstance{
+		{Text: "alpha", Context: "user"},
+		{Text: "beta", Context: "user"},
+	})
+	require.Equal(t, second, first)
+}
+
 func TestRenderXCCDFComparison_Golden(t *testing.T) {
 	base := &XCCDFResultSet{
 		SourcePath:       "base.xml",
@@ -316,8 +329,8 @@ PASS: no XCCDF regressions detected.
 	require.Equal(t, expected, RenderXCCDFComparison(comparison))
 }
 
-func TestLoadXCCDFResults_UsesProfileElementText(t *testing.T) {
-	content := `<?xml version="1.0"?><Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="benchmark"><version>1</version><TestResult id="run"><profile> profile-a </profile><target>target</target><rule-result idref="rule"><result>pass</result></rule-result></TestResult></Benchmark>`
+func TestLoadXCCDFResults_UsesProfileIDRef(t *testing.T) {
+	content := `<?xml version="1.0"?><Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="benchmark"><version>1</version><TestResult id="run"><profile idref=" profile-a "/><target>target</target><rule-result idref="rule"><result>pass</result></rule-result></TestResult></Benchmark>`
 	set, err := LoadXCCDFResults(writeResultFixture(t, content))
 	require.NoError(t, err)
 	require.Equal(t, "profile-a", set.ProfileID)

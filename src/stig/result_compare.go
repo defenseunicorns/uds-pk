@@ -130,7 +130,7 @@ type xccdfTestResult struct {
 	StartTime   string               `xml:"start-time,attr"`
 	EndTime     string               `xml:"end-time,attr"`
 	Title       xccdfText            `xml:"title"`
-	Profile     xccdfText            `xml:"profile"`
+	Profile     xccdfProfileRef      `xml:"profile"`
 	Targets     []xccdfText          `xml:"target"`
 	RuleResults []xccdfXMLRuleResult `xml:"rule-result"`
 }
@@ -138,6 +138,11 @@ type xccdfTestResult struct {
 type xccdfText struct {
 	XMLName xml.Name
 	Value   string `xml:",chardata"`
+}
+
+type xccdfProfileRef struct {
+	XMLName xml.Name `xml:"profile"`
+	IDRef   string   `xml:"idref,attr"`
 }
 
 type xccdfXMLRuleResult struct {
@@ -186,7 +191,7 @@ func LoadXCCDFResults(path string) (*XCCDFResultSet, error) {
 		BenchmarkID:      strings.TrimSpace(benchmark.ID),
 		BenchmarkVersion: normalizeWhitespace(benchmark.Version.Value),
 		TestResultID:     strings.TrimSpace(testResult.ID),
-		ProfileID:        strings.TrimSpace(testResult.Profile.Value),
+		ProfileID:        strings.TrimSpace(testResult.Profile.IDRef),
 		StartTime:        strings.TrimSpace(testResult.StartTime),
 		EndTime:          strings.TrimSpace(testResult.EndTime),
 		Targets:          normalizedTargets(testResult.Targets),
@@ -387,6 +392,7 @@ func canonicalInstance(instances []xccdfInstance) string {
 			normalizeWhitespace(instance.ParentContext),
 		))
 	}
+	sort.Strings(parts)
 	return strings.Join(parts, ";")
 }
 
