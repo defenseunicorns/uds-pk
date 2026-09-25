@@ -6,6 +6,7 @@ package stig
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -36,6 +37,9 @@ func LoadProfile(path string) (*Profile, error) {
 	}
 	if p.AppName == "" {
 		return nil, fmt.Errorf("metadata.name is required in %s", path)
+	}
+	if strings.ContainsAny(p.AppName, `/\`) {
+		return nil, fmt.Errorf("metadata.name must not contain path separators in %s", path)
 	}
 	return &p, nil
 }

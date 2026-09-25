@@ -42,6 +42,21 @@ func TestProfileSchema(t *testing.T) {
 		require.NoError(t, err)
 		require.False(t, result.Valid())
 	})
+
+	for name, appName := range map[string]string{
+		"forward slash":  "../other/file",
+		"backward slash": `..\other\file`,
+	} {
+		t.Run("rejects name with "+name, func(t *testing.T) {
+			document := loadYAMLDocument(t, filepath.Join("..", "test", "stig", "test-profile.yaml"))
+			metadata := document["metadata"].(map[string]any)
+			metadata["name"] = appName
+
+			result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
+			require.NoError(t, err)
+			require.False(t, result.Valid())
+		})
+	}
 }
 
 func loadYAMLDocument(t *testing.T, path string) map[string]any {
