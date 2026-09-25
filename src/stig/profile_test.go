@@ -130,6 +130,14 @@ func TestProfileValidateVersion(t *testing.T) {
 	require.EqualError(t, profile.ValidateVersion("1.2.3"), "metadata.version is required")
 }
 
+func TestProfileValidateSTIGs(t *testing.T) {
+	profile := &Profile{STIGs: []STIGProfile{{ID: ASDSTIGProfileKey}, {ID: RHEL9STIGProfileKey}}}
+	require.NoError(t, profile.ValidateSTIGs())
+
+	profile.STIGs = append(profile.STIGs, STIGProfile{ID: "unsupported_v0r0"})
+	require.EqualError(t, profile.ValidateSTIGs(), `profile contains unsupported STIG "unsupported_v0r0"`)
+}
+
 func TestLoadProfile_FileNotFound(t *testing.T) {
 	_, err := LoadProfile("/nonexistent/profile.yaml")
 	require.Error(t, err)

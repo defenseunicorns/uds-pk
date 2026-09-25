@@ -49,6 +49,9 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 	if err := profile.ValidateVersion(CLIVersion); err != nil {
 		return fmt.Errorf("invalid profile schema version: %w", err)
 	}
+	if err := profile.ValidateSTIGs(); err != nil {
+		return err
+	}
 
 	profiles := profile.SupportedSTIGs()
 	if len(profiles) == 0 {
