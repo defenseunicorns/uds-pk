@@ -110,6 +110,32 @@ func TestStigGenerateMultipleChecklists(t *testing.T) {
 	}
 }
 
+func TestStigGenerateChecklistRejectsMixedSupportedAndUnsupportedSTIGs(t *testing.T) {
+	dir := t.TempDir()
+	profilePath := filepath.Join(dir, "mixed-profile.yaml")
+	outputPath := filepath.Join(dir, "output.cklb")
+	err := os.WriteFile(profilePath, []byte(`
+kind: UDS STIG Profile
+metadata:
+  name: mixed-stig-app
+  version: dev
+stigs:
+  - id: asd_v6r4
+  - id: unsupported_v0r0
+`), 0o644)
+	require.NoError(t, err)
+
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", profilePath,
+		"--xccdf", "src/test/stig/test-xccdf.xml",
+		"--output", outputPath,
+	)
+	require.Error(t, err)
+	assert.Contains(t, stderr, `profile contains unsupported STIG "unsupported_v0r0"`)
+	_, statErr := os.Stat(outputPath)
+	require.ErrorIs(t, statErr, os.ErrNotExist)
+}
+
 func TestStigGenerateChecklistRequiresPathPerSTIG(t *testing.T) {
 	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
 		"--profile", "src/test/stig/test-multi-profile.yaml",
@@ -265,8 +291,8 @@ func TestStigGenerateChecklistDefaultOutput(t *testing.T) {
 	require.NoError(t, err, "default output file should exist")
 }
 
-func TestStigGenerateChecklistMissingXCCDF(t *testing.T) {
-	profilePath := filepath.Join(t.TempDir(), "profile-without-supported-stig.yaml")
+func TestStigGenerateChecklistRejectsUnsupportedSTIG(t *testing.T) {
+	profilePath := filepath.Join(t.TempDir(), "profile-with-unsupported-stig.yaml")
 	err := os.WriteFile(profilePath, []byte(`
 kind: UDS STIG Profile
 metadata:
@@ -278,10 +304,11 @@ stigs:
 `), 0o644)
 	require.NoError(t, err)
 
-	_, _, err = e2e.UDSPK("stig", "generate-checklist",
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
 		"--profile", profilePath,
 	)
 	require.Error(t, err)
+	assert.Contains(t, stderr, `profile contains unsupported STIG "unsupported_v0r0"`)
 }
 
 func TestStigGenerateChecklistInvalidProfile(t *testing.T) {

@@ -63,6 +63,15 @@ func (p *Profile) ValidateVersion(expected string) error {
 	return nil
 }
 
+func (p *Profile) ValidateSTIGs() error {
+	for _, stigProfile := range p.STIGs {
+		if _, err := LookupSTIGDefinition(stigProfile.ID); err != nil {
+			return fmt.Errorf("profile contains %w", err)
+		}
+	}
+	return nil
+}
+
 func (p *Profile) SupportedSTIGs() []*STIGProfile {
 	stigs := make([]*STIGProfile, 0, len(p.STIGs))
 	for i := range p.STIGs {
