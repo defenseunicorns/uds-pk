@@ -1,4 +1,9 @@
 <?xml version="1.0"?>
+<!--
+ Copyright 2026 Defense Unicorns
+ SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+-->
+
 <Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="test">
   <TestResult id="run">
     <target>test-target</target>
