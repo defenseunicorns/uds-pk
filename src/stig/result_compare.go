@@ -357,10 +357,12 @@ func resultStatusTier(status ResultStatus) (int, bool) {
 	switch status {
 	case ResultFail, ResultError:
 		return 0, true
-	case ResultUnknown, ResultNotChecked, ResultNotSelected:
+	case ResultUnknown, ResultNotChecked:
 		return 1, true
 	case ResultPass, ResultFixed, ResultNotApplicable, ResultInformational:
 		return 2, true
+	case ResultNotSelected:
+		return 3, true
 	default:
 		return 0, false
 	}
