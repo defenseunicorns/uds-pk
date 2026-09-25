@@ -67,6 +67,9 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return err
 	}
+	if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
+		return err
+	}
 
 	for i, stigProfile := range profiles {
 		profile.ActivateSTIG(stigProfile)
@@ -107,6 +110,28 @@ func pathAt(paths []string, index int) string {
 		return ""
 	}
 	return paths[index]
+}
+
+func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) error {
+	xccdfPathSet := make(map[string]string, len(xccdfPaths))
+	for _, path := range xccdfPaths {
+		absolutePath, err := filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("resolving XCCDF path %q: %w", path, err)
+		}
+		xccdfPathSet[absolutePath] = path
+	}
+
+	for _, path := range outputPaths {
+		absolutePath, err := filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("resolving output path %q: %w", path, err)
+		}
+		if xccdfPath, exists := xccdfPathSet[absolutePath]; exists {
+			return fmt.Errorf("output path %q conflicts with XCCDF input path %q", path, xccdfPath)
+		}
+	}
+	return nil
 }
 
 func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPaths []string) ([]string, error) {

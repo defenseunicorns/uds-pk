@@ -50,3 +50,16 @@ func TestResolveOutputPathsRejectsSymlinkAliasDuplicates(t *testing.T) {
 	_, err := resolveOutputPaths("test-app", profiles, []string{realOutput, symlinkOutput})
 	require.EqualError(t, err, `output paths must be unique: "`+symlinkOutput+`" is used more than once`)
 }
+
+func TestValidateOutputPathsDoNotOverwriteXCCDFsRejectsCrossEntryCollision(t *testing.T) {
+	dir := t.TempDir()
+	firstXCCDF := filepath.Join(dir, "first.xml")
+	secondXCCDF := filepath.Join(dir, "second.xml")
+	outputPath := filepath.Join(dir, "output.cklb")
+
+	err := validateOutputPathsDoNotOverwriteXCCDFs(
+		[]string{secondXCCDF, outputPath},
+		[]string{firstXCCDF, secondXCCDF},
+	)
+	require.EqualError(t, err, `output path "`+secondXCCDF+`" conflicts with XCCDF input path "`+secondXCCDF+`"`)
+}
