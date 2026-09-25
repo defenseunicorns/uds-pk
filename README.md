@@ -298,8 +298,8 @@ All XCCDF result statuses are preserved in the report. A change to a lower tier 
 
 | Tier | Statuses |
 |------|----------|
-| Failing | `fail`, `error`, `unknown` |
-| Unevaluated | `notchecked`, `notselected` |
+| Failing | `fail`, `error` |
+| Unevaluated | `unknown`, `notchecked`, `notselected` |
 | Acceptable | `pass`, `fixed`, `notapplicable`, `informational` |
 
 The two inputs must be XCCDF 1.1 or 1.2 `Benchmark` documents that contain exactly one `TestResult`, the same benchmark ID and version, the same selected profile, and the same rule-result identities. Multiple instances of a rule are compared using their rule ID and instance details.

@@ -355,9 +355,9 @@ func parseResultStatus(value string) (ResultStatus, error) {
 
 func resultStatusTier(status ResultStatus) (int, bool) {
 	switch status {
-	case ResultFail, ResultError, ResultUnknown:
+	case ResultFail, ResultError:
 		return 0, true
-	case ResultNotChecked, ResultNotSelected:
+	case ResultUnknown, ResultNotChecked, ResultNotSelected:
 		return 1, true
 	case ResultPass, ResultFixed, ResultNotApplicable, ResultInformational:
 		return 2, true

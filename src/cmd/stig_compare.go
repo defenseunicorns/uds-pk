@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/defenseunicorns/uds-pk/src/stig"
 	"github.com/spf13/cobra"
@@ -73,14 +74,30 @@ func (o *CompareResultsOptions) run(cmd *cobra.Command, args []string) error {
 }
 
 func validateCompareResultsOutputPath(outputPath string, inputPaths ...string) error {
-	outputInfo, err := os.Stat(outputPath)
+	resolvedOutputPath, err := filepath.Abs(outputPath)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
 		return fmt.Errorf("resolving output path %q: %w", outputPath, err)
 	}
+	outputInfo, err := os.Stat(outputPath)
+	outputExists := err == nil
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			outputExists = false
+		} else {
+			return fmt.Errorf("resolving output path %q: %w", outputPath, err)
+		}
+	}
 	for _, inputPath := range inputPaths {
+		resolvedInputPath, err := filepath.Abs(inputPath)
+		if err != nil {
+			return fmt.Errorf("resolving input path %q: %w", inputPath, err)
+		}
+		if resolvedOutputPath == resolvedInputPath {
+			return fmt.Errorf("output path %q conflicts with input path %q", outputPath, inputPath)
+		}
+		if !outputExists {
+			continue
+		}
 		inputInfo, err := os.Stat(inputPath)
 		if err != nil {
 			return fmt.Errorf("resolving input path %q: %w", inputPath, err)
