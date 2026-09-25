@@ -165,3 +165,29 @@ stigs:
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "metadata.name is required")
 }
+
+func TestLoadProfile_NameWithPathSeparator(t *testing.T) {
+	tests := map[string]string{
+		"forward slash":  "../other/file",
+		"backward slash": `..\other\file`,
+	}
+
+	for name, appName := range tests {
+		t.Run(name, func(t *testing.T) {
+			profilePath := filepath.Join(t.TempDir(), "stig-profile.yaml")
+			content := `
+kind: UDS STIG Profile
+metadata:
+  name: ` + appName + `
+  version: 0.1.0
+stigs:
+  - id: rhel9_v2r7
+`
+			require.NoError(t, os.WriteFile(profilePath, []byte(content), 0o644))
+
+			_, err := LoadProfile(profilePath)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "metadata.name must not contain path separators")
+		})
+	}
+}

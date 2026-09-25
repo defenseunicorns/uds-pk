@@ -37,7 +37,8 @@
         "name": {
           "type": "string",
           "minLength": 1,
-          "description": "Application name used in the generated checklist."
+          "pattern": "^[^/\\\\]+$",
+          "description": "Application name used in the generated checklist and default output filename. Must not contain path separators."
         },
         "fqdn": {
           "type": "string",
