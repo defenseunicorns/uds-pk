@@ -294,13 +294,12 @@ Exit codes are:
 | `1` | Valid comparison with one or more regressions |
 | `2` | Invalid arguments, unreadable/invalid XCCDF, incomparable result sets, or evidence-write failure |
 
-All XCCDF result statuses are preserved in the report. A change to a lower tier is a regression:
+All XCCDF result statuses are preserved in the report. For in-scope results, a change to a lower tier is a regression:
 
 | Tier | Statuses |
 |------|----------|
 | Failing | `fail`, `error` |
 | Unevaluated | `unknown`, `notchecked` |
-| Out of scope | `notselected` |
 | Acceptable | `pass`, `fixed`, `notapplicable`, `informational` |
 
 Changes involving `notselected` are always reported as reclassifications because that rule is out of profile scope.
