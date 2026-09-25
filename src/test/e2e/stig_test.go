@@ -5,7 +5,9 @@ package test
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
+	osexec "os/exec"
 	"path/filepath"
 	"testing"
 
@@ -391,4 +393,49 @@ func TestStigGenerateChecklistWithRealSTIG(t *testing.T) {
 	stigs := checklist["stigs"].([]interface{})
 	stig := stigs[0].(map[string]interface{})
 	assert.Equal(t, float64(286), stig["size"])
+}
+
+func TestStigCompareResults(t *testing.T) {
+	evidencePath := filepath.Join(t.TempDir(), "comparison.txt")
+	stdout, stderr, err := e2e.UDSPK("stig", "compare-results",
+		"src/test/stig/compare-base.xml",
+		"src/test/stig/compare-improved.xml",
+		"--output", evidencePath,
+	)
+	require.NoError(t, err, stdout, stderr)
+	assert.Contains(t, stdout, "IMPROVEMENTS (1):")
+	assert.Contains(t, stdout, "PASS: no XCCDF regressions detected.")
+	evidence, err := os.ReadFile(evidencePath)
+	require.NoError(t, err)
+	assert.Equal(t, stdout, string(evidence))
+}
+
+func TestStigCompareResultsRegression(t *testing.T) {
+	evidencePath := filepath.Join(t.TempDir(), "comparison.txt")
+	stdout, stderr, err := e2e.UDSPK("stig", "compare-results",
+		"src/test/stig/compare-base.xml",
+		"src/test/stig/compare-regression.xml",
+		"--output", evidencePath,
+	)
+	require.Error(t, err)
+	assert.Contains(t, stdout, "REGRESSIONS (1):")
+	assert.Contains(t, stdout, "FAIL: 1 XCCDF regression(s) detected.")
+	evidence, readErr := os.ReadFile(evidencePath)
+	require.NoError(t, readErr)
+	assert.Equal(t, stdout, string(evidence))
+	assert.Contains(t, stderr, "XCCDF regressions detected")
+	var exitErr *osexec.ExitError
+	require.True(t, errors.As(err, &exitErr))
+	assert.Equal(t, 1, exitErr.ExitCode())
+}
+
+func TestStigCompareResultsInvalidInput(t *testing.T) {
+	stdout, stderr, err := e2e.UDSPK("stig", "compare-results", "missing-base.xml", "missing-new.xml")
+	require.Error(t, err)
+	assert.Empty(t, stdout)
+	assert.Contains(t, stderr, "reading missing-base.xml")
+
+	var exitErr *osexec.ExitError
+	require.True(t, errors.As(err, &exitErr))
+	assert.Equal(t, 2, exitErr.ExitCode())
 }

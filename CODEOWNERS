@@ -5,6 +5,7 @@
 stig/ @defenseunicorns/narwhals
 src/test/e2e/*stig* @defenseunicorns/narwhals
 src/cmd/stig.go @defenseunicorns/narwhals
+src/cmd/stig_compare.go @defenseunicorns/narwhals
 
 # Additional privileged files
 /CODEOWNERS @jeff-mccoy @daveworth
