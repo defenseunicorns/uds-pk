@@ -186,6 +186,9 @@ func LoadXCCDFResults(path string) (*XCCDFResultSet, error) {
 	if strings.TrimSpace(testResult.ID) == "" {
 		return nil, fmt.Errorf("%s TestResult is missing id", path)
 	}
+	if len(testResult.RuleResults) == 0 {
+		return nil, fmt.Errorf("%s TestResult contains no rule-result elements", path)
+	}
 	set := &XCCDFResultSet{
 		SourcePath:       path,
 		BenchmarkID:      strings.TrimSpace(benchmark.ID),
@@ -355,23 +358,18 @@ func parseResultStatus(value string) (ResultStatus, error) {
 
 func resultStatusTier(status ResultStatus) (int, bool) {
 	switch status {
-	case ResultFail, ResultError:
+	case ResultFail, ResultError, ResultUnknown:
 		return 0, true
-	case ResultUnknown, ResultNotChecked:
+	case ResultNotChecked, ResultNotSelected:
 		return 1, true
 	case ResultPass, ResultFixed, ResultNotApplicable, ResultInformational:
 		return 2, true
-	case ResultNotSelected:
-		return 3, true
 	default:
 		return 0, false
 	}
 }
 
 func classifyStatusChange(base, newStatus ResultStatus) ChangeClassification {
-	if base == ResultNotSelected || newStatus == ResultNotSelected {
-		return Reclassification
-	}
 	baseTier, _ := resultStatusTier(base)
 	newTier, _ := resultStatusTier(newStatus)
 	if newTier < baseTier {

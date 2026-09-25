@@ -62,16 +62,25 @@ func (o *CompareResultsOptions) run(cmd *cobra.Command, args []string) error {
 	}
 	report := stig.RenderXCCDFComparison(comparison)
 	destination := cmd.OutOrStdout()
+	var closeOutput func() error
 	if o.OutputPath != "" {
-		outputWriter, closeOutput, err := openCompareResultsOutputWriter(o.OutputPath, cmd.OutOrStdout(), cmd.ErrOrStderr())
+		outputWriter, closeWriter, err := openCompareResultsOutputWriter(o.OutputPath, args, cmd.OutOrStdout(), cmd.ErrOrStderr())
 		if err != nil {
 			return newExitCodeError(2, err)
 		}
-		defer closeOutput()
+		closeOutput = closeWriter
 		destination = outputWriter
 	}
 	if _, err := fmt.Fprint(destination, report); err != nil {
+		if closeOutput != nil {
+			_ = closeOutput()
+		}
 		return newExitCodeError(2, fmt.Errorf("writing comparison report: %w", err))
+	}
+	if closeOutput != nil {
+		if err := closeOutput(); err != nil {
+			return newExitCodeError(2, fmt.Errorf("closing comparison evidence: %w", err))
+		}
 	}
 	if comparison.HasRegressions() {
 		return newExitCodeError(1, fmt.Errorf("XCCDF regressions detected"))
@@ -116,8 +125,10 @@ func validateCompareResultsOutputPath(outputPath string, inputPaths ...string) e
 	return nil
 }
 
-func openCompareResultsOutputWriter(outputPath string, stdout, stderr io.Writer) (io.Writer, func(), error) {
-	file, err := os.OpenFile(outputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+func openCompareResultsOutputWriter(outputPath string, inputPaths []string, stdout, stderr io.Writer) (io.Writer, func() error, error) {
+	// Open without O_TRUNC so the inode selected by this open can be checked
+	// against the inputs before modifying it.
+	file, err := os.OpenFile(outputPath, os.O_WRONLY|os.O_CREATE, 0o644)
 	if err != nil {
 		return nil, nil, fmt.Errorf("writing comparison evidence: %w", err)
 	}
@@ -126,10 +137,29 @@ func openCompareResultsOutputWriter(outputPath string, stdout, stderr io.Writer)
 		_ = file.Close()
 		return nil, nil, fmt.Errorf("writing comparison evidence: %w", err)
 	}
-	if writerMatchesFile(stdout, fileInfo) || writerMatchesFile(stderr, fileInfo) {
-		return file, func() { _ = file.Close() }, nil
+	for _, inputPath := range inputPaths {
+		inputInfo, err := os.Stat(inputPath)
+		if err != nil {
+			_ = file.Close()
+			return nil, nil, fmt.Errorf("resolving input path %q: %w", inputPath, err)
+		}
+		if os.SameFile(fileInfo, inputInfo) {
+			_ = file.Close()
+			return nil, nil, fmt.Errorf("output path %q conflicts with input path %q", outputPath, inputPath)
+		}
 	}
-	return io.MultiWriter(stdout, file), func() { _ = file.Close() }, nil
+	if err := file.Truncate(0); err != nil {
+		_ = file.Close()
+		return nil, nil, fmt.Errorf("writing comparison evidence: %w", err)
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		_ = file.Close()
+		return nil, nil, fmt.Errorf("writing comparison evidence: %w", err)
+	}
+	if writerMatchesFile(stdout, fileInfo) || writerMatchesFile(stderr, fileInfo) {
+		return file, file.Close, nil
+	}
+	return io.MultiWriter(stdout, file), file.Close, nil
 }
 
 func writerMatchesFile(writer io.Writer, fileInfo os.FileInfo) bool {

@@ -55,6 +55,22 @@ func TestCompareResultsCommandReturnsRegressionExitCode(t *testing.T) {
 	require.Contains(t, stdout.String(), "FAIL: 1 XCCDF regression(s) detected.")
 }
 
+func TestCompareResultsCommandTreatsNotSelectedToFailAsRegression(t *testing.T) {
+	base := writeCommandResult(t, "base.xml", commandResultXML("notselected", "rule"))
+	newResults := writeCommandResult(t, "new.xml", commandResultXML("fail", "rule"))
+	command := compareResultsCmd()
+	var stdout bytes.Buffer
+	command.SetOut(&stdout)
+	command.SetArgs([]string{base, newResults})
+
+	err := command.Execute()
+	var coded *exitCodeError
+	require.True(t, errors.As(err, &coded))
+	require.Equal(t, 1, coded.ExitCode())
+	require.Contains(t, stdout.String(), "REGRESSIONS (1):")
+	require.Contains(t, stdout.String(), "FAIL: 1 XCCDF regression(s) detected.")
+}
+
 func TestCompareResultsCommandReturnsInputExitCode(t *testing.T) {
 	base := writeCommandResult(t, "base.xml", commandResultXML("pass", "base-rule"))
 	newResults := writeCommandResult(t, "new.xml", commandResultXML("pass", "new-rule"))
@@ -139,4 +155,20 @@ func TestCompareResultsCommandRejectsOutputPathConflictsWithInputs(t *testing.T)
 			require.Contains(t, string(contents), "<Benchmark")
 		})
 	}
+}
+
+func TestOpenCompareResultsOutputWriterRejectsOpenedInputFileBeforeTruncation(t *testing.T) {
+	base := writeCommandResult(t, "base.xml", commandResultXML("pass", "base-rule"))
+	outputPath := filepath.Join(t.TempDir(), "output.xml")
+	require.NoError(t, validateCompareResultsOutputPath(outputPath, base))
+	require.NoError(t, os.Link(base, outputPath))
+
+	writer, closeOutput, err := openCompareResultsOutputWriter(outputPath, []string{base}, io.Discard, io.Discard)
+	require.Error(t, err)
+	require.Nil(t, writer)
+	require.Nil(t, closeOutput)
+
+	contents, readErr := os.ReadFile(base)
+	require.NoError(t, readErr)
+	require.Contains(t, string(contents), "<Benchmark")
 }
