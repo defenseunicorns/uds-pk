@@ -272,6 +272,51 @@ my-app-asd-v6r4.cklb
 generic-rhel9-k8s-server-rhel9-v2r7.cklb
 ```
 
+### STIG Result Comparison
+
+`uds-pk stig compare-results` compares two XCCDF Benchmark result files and reports whether the newer scan regresses from the baseline. It is intended for CI gates and reviewable compliance evidence.
+
+```bash
+uds-pk stig compare-results BASE_RESULTS NEW_RESULTS [--output evidence.txt]
+```
+
+The command prints a deterministic evidence report to stdout. `--output` writes the identical report to a file, including when regressions are found.
+
+```bash
+uds-pk stig compare-results base-results.xml final-results.xml --output stig-comparison.txt
+```
+
+Exit codes are:
+
+| Code | Meaning |
+|------|---------|
+| `0` | Valid comparison with no regressions |
+| `1` | Valid comparison with one or more regressions |
+| `2` | Invalid arguments, unreadable/invalid XCCDF, incomparable result sets, or evidence-write failure |
+
+All XCCDF result statuses are preserved in the report. A change to a lower tier is a regression:
+
+| Tier | Statuses |
+|------|----------|
+| Failing | `fail`, `error`, `unknown` |
+| Unevaluated | `notchecked`, `notselected` |
+| Acceptable | `pass`, `fixed`, `notapplicable`, `informational` |
+
+The two inputs must be XCCDF 1.1 or 1.2 `Benchmark` documents that contain exactly one `TestResult`, the same benchmark ID and version, the same selected profile, and the same rule-result identities. Multiple instances of a rule are compared using their rule ID and instance details.
+
+The evidence report includes scan metadata, a count for every XCCDF status, in-scope counts, sorted regressions, improvements, reclassifications, and the final PASS/FAIL verdict.
+
+Example CI gate:
+
+```bash
+uds-pk stig compare-results base-results.xml final-results.xml --output stig-comparison.txt
+case $? in
+  0) echo "No STIG regressions" ;;
+  1) echo "STIG regression detected"; exit 1 ;;
+  2) echo "STIG comparison could not run"; exit 2 ;;
+esac
+```
+
 ### Supported STIGs
 
 | ID | STIG | Auto-download |

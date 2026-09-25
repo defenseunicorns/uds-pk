@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -107,10 +108,40 @@ func Verbose(ctx *context.Context) bool {
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(exitCode(err))
 	}
+}
+
+func exitCode(err error) int {
+	if err != nil {
+		var codedError interface{ ExitCode() int }
+		if errors.As(err, &codedError) {
+			return codedError.ExitCode()
+		}
+	}
+	return 1
+}
+
+type exitCodeError struct {
+	code int
+	err  error
+}
+
+func newExitCodeError(code int, err error) *exitCodeError {
+	return &exitCodeError{code: code, err: err}
+}
+
+func (e *exitCodeError) Error() string {
+	return e.err.Error()
+}
+
+func (e *exitCodeError) Unwrap() error {
+	return e.err
+}
+
+func (e *exitCodeError) ExitCode() int {
+	return e.code
 }
 
 func init() {

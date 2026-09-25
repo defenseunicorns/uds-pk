@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="test">
+  <TestResult id="run">
+    <target>test-target</target>
+    <rule-result idref="rule-a">
+      <result>pass</result>
+    </rule-result>
+    <rule-result idref="rule-b">
+      <result>pass</result>
+    </rule-result>
+    <rule-result idref="rule-c">
+      <result>notselected</result>
+    </rule-result>
+  </TestResult>
+</Benchmark>
