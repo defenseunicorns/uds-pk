@@ -6,6 +6,7 @@ package cmd
 import (
 	"bytes"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -84,6 +85,27 @@ func TestCompareResultsCommandReturnsEvidenceWriteExitCode(t *testing.T) {
 	require.True(t, errors.As(err, &coded))
 	require.Equal(t, 2, coded.ExitCode())
 	require.Empty(t, stdout.String())
+}
+
+func TestCompareResultsCommandWritesOnceWhenOutputMatchesStdout(t *testing.T) {
+	base := writeCommandResult(t, "base.xml", commandResultXML("fail", "rule"))
+	newResults := writeCommandResult(t, "new.xml", commandResultXML("pass", "rule"))
+	stdoutFile, err := os.CreateTemp(t.TempDir(), "stdout-*.txt")
+	require.NoError(t, err)
+	defer stdoutFile.Close()
+
+	command := compareResultsCmd()
+	command.SetOut(stdoutFile)
+	command.SetErr(io.Discard)
+	command.SetArgs([]string{base, newResults, "--output", stdoutFile.Name()})
+
+	require.NoError(t, command.Execute())
+	require.NoError(t, stdoutFile.Close())
+
+	contents, err := os.ReadFile(stdoutFile.Name())
+	require.NoError(t, err)
+	require.Equal(t, 1, bytes.Count(contents, []byte("XCCDF Result Comparison")))
+	require.Contains(t, string(contents), "PASS: no XCCDF regressions detected.")
 }
 
 func TestCompareResultsCommandRejectsOutputPathConflictsWithInputs(t *testing.T) {

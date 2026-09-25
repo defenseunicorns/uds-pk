@@ -6,6 +6,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -55,15 +56,19 @@ func (o *CompareResultsOptions) run(cmd *cobra.Command, args []string) error {
 		return newExitCodeError(2, err)
 	}
 	report := stig.RenderXCCDFComparison(comparison)
+	destination := cmd.OutOrStdout()
 	if o.OutputPath != "" {
 		if err := validateCompareResultsOutputPath(o.OutputPath, args[0], args[1]); err != nil {
 			return newExitCodeError(2, err)
 		}
-		if err := os.WriteFile(o.OutputPath, []byte(report), 0o644); err != nil {
-			return newExitCodeError(2, fmt.Errorf("writing comparison evidence: %w", err))
+		outputWriter, closeOutput, err := openCompareResultsOutputWriter(o.OutputPath, cmd.OutOrStdout(), cmd.ErrOrStderr())
+		if err != nil {
+			return newExitCodeError(2, err)
 		}
+		defer closeOutput()
+		destination = outputWriter
 	}
-	if _, err := fmt.Fprint(cmd.OutOrStdout(), report); err != nil {
+	if _, err := fmt.Fprint(destination, report); err != nil {
 		return newExitCodeError(2, fmt.Errorf("writing comparison report: %w", err))
 	}
 	if comparison.HasRegressions() {
@@ -107,4 +112,32 @@ func validateCompareResultsOutputPath(outputPath string, inputPaths ...string) e
 		}
 	}
 	return nil
+}
+
+func openCompareResultsOutputWriter(outputPath string, stdout, stderr io.Writer) (io.Writer, func(), error) {
+	file, err := os.OpenFile(outputPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	if err != nil {
+		return nil, nil, fmt.Errorf("writing comparison evidence: %w", err)
+	}
+	fileInfo, err := file.Stat()
+	if err != nil {
+		_ = file.Close()
+		return nil, nil, fmt.Errorf("writing comparison evidence: %w", err)
+	}
+	if writerMatchesFile(stdout, fileInfo) || writerMatchesFile(stderr, fileInfo) {
+		return file, func() { _ = file.Close() }, nil
+	}
+	return io.MultiWriter(stdout, file), func() { _ = file.Close() }, nil
+}
+
+func writerMatchesFile(writer io.Writer, fileInfo os.FileInfo) bool {
+	file, ok := writer.(*os.File)
+	if !ok {
+		return false
+	}
+	writerInfo, err := file.Stat()
+	if err != nil {
+		return false
+	}
+	return os.SameFile(fileInfo, writerInfo)
 }
