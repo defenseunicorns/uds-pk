@@ -43,6 +43,11 @@ func compareResultsArgs(_ *cobra.Command, args []string) error {
 }
 
 func (o *CompareResultsOptions) run(cmd *cobra.Command, args []string) error {
+	if o.OutputPath != "" {
+		if err := validateCompareResultsOutputPath(o.OutputPath, args[0], args[1]); err != nil {
+			return newExitCodeError(2, err)
+		}
+	}
 	baseResults, err := stig.LoadXCCDFResults(args[0])
 	if err != nil {
 		return newExitCodeError(2, err)
@@ -58,9 +63,6 @@ func (o *CompareResultsOptions) run(cmd *cobra.Command, args []string) error {
 	report := stig.RenderXCCDFComparison(comparison)
 	destination := cmd.OutOrStdout()
 	if o.OutputPath != "" {
-		if err := validateCompareResultsOutputPath(o.OutputPath, args[0], args[1]); err != nil {
-			return newExitCodeError(2, err)
-		}
 		outputWriter, closeOutput, err := openCompareResultsOutputWriter(o.OutputPath, cmd.OutOrStdout(), cmd.ErrOrStderr())
 		if err != nil {
 			return newExitCodeError(2, err)
