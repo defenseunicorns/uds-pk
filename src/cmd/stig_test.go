@@ -63,3 +63,19 @@ func TestValidateOutputPathsDoNotOverwriteXCCDFsRejectsCrossEntryCollision(t *te
 	)
 	require.EqualError(t, err, `output path "`+secondXCCDF+`" conflicts with XCCDF input path "`+secondXCCDF+`"`)
 }
+
+func TestValidateOutputPathsDoNotOverwriteXCCDFsRejectsSymlinkToInput(t *testing.T) {
+	dir := t.TempDir()
+	xccdfPath := filepath.Join(dir, "input.xml")
+	outputPath := filepath.Join(dir, "output.cklb")
+	require.NoError(t, os.WriteFile(xccdfPath, []byte("original XCCDF"), 0o644))
+	if err := os.Symlink(xccdfPath, outputPath); err != nil {
+		t.Skipf("symlink not supported: %v", err)
+	}
+
+	err := validateOutputPathsDoNotOverwriteXCCDFs(
+		[]string{outputPath},
+		[]string{xccdfPath},
+	)
+	require.EqualError(t, err, `output path "`+outputPath+`" conflicts with XCCDF input path "`+xccdfPath+`"`)
+}
