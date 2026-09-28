@@ -44,7 +44,7 @@ var testProfile = &Profile{
 const minimalXCCDF = `<?xml version="1.0" encoding="utf-8"?>
 <Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1"
            xmlns:dc="http://purl.org/dc/elements/1.1/"
-           id="Test_STIG" xml:lang="en">
+           id="Application_Security_Development_STIG" xml:lang="en">
   <status date="2025-01-01">accepted</status>
   <title>Test STIG</title>
   <version>1</version>
@@ -261,6 +261,17 @@ func TestBuildChecklist(t *testing.T) {
 	require.Len(t, checklist.STIGs[0].Rules, 1)
 }
 
+func TestParseXCCDF_RejectsMismatchedBenchmark(t *testing.T) {
+	dir := t.TempDir()
+	xccdfPath := filepath.Join(dir, "mismatched-xccdf.xml")
+	require.NoError(t, os.WriteFile(xccdfPath, []byte(minimalXCCDF), 0o644))
+
+	profile := *testProfile
+	profile.SelectedSTIG = &STIGProfile{ID: RHEL9STIGProfileKey}
+	_, err := ParseXCCDF(xccdfPath, &profile)
+	require.EqualError(t, err, `XCCDF benchmark "Application_Security_Development_STIG" does not match STIG "rhel9_v2r7" (expected "RHEL_9_STIG")`)
+}
+
 func TestParseXCCDF_RHEL9UsesBenchmarkMetadata(t *testing.T) {
 	dir := t.TempDir()
 	xccdfPath := filepath.Join(dir, "rhel9-xccdf.xml")
@@ -384,7 +395,7 @@ func TestParseXCCDF_EmptyNilSlices(t *testing.T) {
 	// Rules with no idents should get empty (not nil) slices
 	dir := t.TempDir()
 	xml := `<?xml version="1.0" encoding="utf-8"?>
-<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="Test_STIG" xml:lang="en">
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="Application_Security_Development_STIG" xml:lang="en">
   <version>1</version>
   <Group id="V-999999">
     <title>SRG-TEST</title>

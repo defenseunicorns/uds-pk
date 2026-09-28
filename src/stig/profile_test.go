@@ -14,7 +14,7 @@ import (
 func TestLoadProfile_Success(t *testing.T) {
 	dir := t.TempDir()
 	profilePath := filepath.Join(dir, "stig-profile.yaml")
-content := `
+	content := `
 kind: UDS STIG Profile
 metadata:
   name: test-app
@@ -50,6 +50,7 @@ stigs:
 
 	profile, err := LoadProfile(profilePath)
 	require.NoError(t, err)
+	require.NoError(t, profile.ValidateSchema("0.1.0"))
 
 	require.Equal(t, ProfileKind, profile.Kind)
 	require.Equal(t, "test-app", profile.AppName)
@@ -79,6 +80,12 @@ stigs:
 	require.Equal(t, "not_a_finding", ov.Status)
 	require.Equal(t, "Custom details.", ov.FindingDetails)
 	require.Equal(t, "Custom comment.", ov.Comments)
+
+	supported := profile.SupportedSTIGs()
+	require.Len(t, supported, 2)
+	profile.ActivateSTIG(supported[1])
+	require.Equal(t, RHEL9STIGProfileKey, profile.SelectedSTIG.ID)
+	require.Empty(t, profile.Overrides)
 }
 
 func TestLoadProfile_SelectsFirstSupportedSTIG(t *testing.T) {
@@ -115,6 +122,43 @@ stigs:
 	require.Equal(t, "Standalone Kubernetes server", profile.Platform.HostRole)
 }
 
+func TestProfileValidateVersion(t *testing.T) {
+	profile := &Profile{Metadata: ProfileMetadata{Version: "1.2.3"}}
+	require.NoError(t, profile.ValidateVersion("1.2.3"))
+	require.EqualError(t, profile.ValidateVersion("1.2.4"), `metadata.version "1.2.3" does not match uds-pk version "1.2.4"`)
+
+	profile.Metadata.Version = ""
+	require.EqualError(t, profile.ValidateVersion("1.2.3"), "metadata.version is required")
+}
+
+func TestProfileValidateSTIGs(t *testing.T) {
+	profile := &Profile{STIGs: []STIGProfile{{ID: ASDSTIGProfileKey}, {ID: RHEL9STIGProfileKey}}}
+	require.NoError(t, profile.ValidateSTIGs())
+
+	profile.STIGs = append(profile.STIGs, STIGProfile{ID: "unsupported_v0r0"})
+	require.EqualError(t, profile.ValidateSTIGs(), `profile contains unsupported STIG "unsupported_v0r0"`)
+}
+
+func TestProfileValidateSchemaRejectsUnknownFields(t *testing.T) {
+	profilePath := filepath.Join(t.TempDir(), "stig-profile.yaml")
+	content := `
+kind: UDS STIG Profile
+metadata:
+  name: test-app
+  version: 1.2.3
+  unknown: value
+stigs:
+  - id: asd_v6r4
+`
+	require.NoError(t, os.WriteFile(profilePath, []byte(content), 0o644))
+
+	profile, err := LoadProfile(profilePath)
+	require.NoError(t, err)
+	err = profile.ValidateSchema("1.2.3")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "Additional property unknown is not allowed")
+}
+
 func TestLoadProfile_FileNotFound(t *testing.T) {
 	_, err := LoadProfile("/nonexistent/profile.yaml")
 	require.Error(t, err)
@@ -134,7 +178,7 @@ func TestLoadProfile_InvalidYAML(t *testing.T) {
 func TestLoadProfile_MissingAppName(t *testing.T) {
 	dir := t.TempDir()
 	profilePath := filepath.Join(dir, "no-name.yaml")
-content := `
+	content := `
 kind: UDS STIG Profile
 metadata:
   description: No app name.
@@ -149,4 +193,30 @@ stigs:
 	_, err = LoadProfile(profilePath)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "metadata.name is required")
+}
+
+func TestLoadProfile_NameWithPathSeparator(t *testing.T) {
+	tests := map[string]string{
+		"forward slash":  "../other/file",
+		"backward slash": `..\other\file`,
+	}
+
+	for name, appName := range tests {
+		t.Run(name, func(t *testing.T) {
+			profilePath := filepath.Join(t.TempDir(), "stig-profile.yaml")
+			content := `
+kind: UDS STIG Profile
+metadata:
+  name: ` + appName + `
+  version: 0.1.0
+stigs:
+  - id: rhel9_v2r7
+`
+			require.NoError(t, os.WriteFile(profilePath, []byte(content), 0o644))
+
+			_, err := LoadProfile(profilePath)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "metadata.name must not contain path separators")
+		})
+	}
 }

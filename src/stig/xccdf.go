@@ -81,6 +81,9 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 	if err != nil {
 		return nil, err
 	}
+	if bench.ID != definition.STIGID {
+		return nil, fmt.Errorf("XCCDF benchmark %q does not match STIG %q (expected %q)", bench.ID, definition.ID, definition.STIGID)
+	}
 
 	releaseInfo := ""
 	for _, pt := range bench.PlainText {

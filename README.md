@@ -240,7 +240,7 @@ Existing vulnerabilities: <count>
 
 ## STIG Checklist Generation
 
-The `stig generate-checklist` command creates a `.cklb` checklist from a STIG profile YAML. For supported STIGs, the XCCDF source file is automatically downloaded from DISA — no local copy required.
+The `stig generate-checklist` command creates a `.cklb` checklist for every supported STIG entry in a profile YAML. XCCDF source files are automatically downloaded from DISA — no local copies required.
 
 ### Usage
 
@@ -250,7 +250,14 @@ uds-pk stig generate-checklist --profile stig-profile.yaml
 
 # Provide your own XCCDF file
 uds-pk stig generate-checklist --profile stig-profile.yaml --xccdf /path/to/stig.xml
+
+# Provide XCCDF and output paths for two STIG entries
+uds-pk stig generate-checklist --profile stig-profile.yaml \
+  --xccdf /path/to/asd.xml,/path/to/rhel9.xml \
+  --output my-app-asd-v6r4.cklb,my-app-rhel9-v2r7.cklb
 ```
+
+For multiple supported entries, pass comma-separated paths to `--xccdf` or `--output`. Values are matched to supported `stigs` entries in profile order; omit `--xccdf` to auto-download sources or `--output` to use the default filenames.
 
 If `--output` is omitted, the default filename is:
 
@@ -274,7 +281,17 @@ generic-rhel9-k8s-server-rhel9-v2r7.cklb
 
 ### Profile Schema
 
-Profiles use `kind: UDS STIG Profile` and list one or more STIGs under the `stigs` key. The first recognized STIG ID in the list is used when generating the checklist.
+Profiles use `kind: UDS STIG Profile` and list one or more STIGs under the `stigs` key. Every entry with a supported ID produces its own checklist. `metadata.version` is the STIG profile schema version and must match the `uds-pk` release used to process it.
+
+Pin editor and CI validation to the schema asset from the same `uds-pk` release you use. Replace `X.Y.Z` in the URL and profile with that release version:
+
+```yaml
+# yaml-language-server: $schema=https://github.com/defenseunicorns/uds-pk/releases/download/vX.Y.Z/stig-profile-X.Y.Z.schema.json
+kind: UDS STIG Profile
+metadata:
+  name: example-app
+  version: X.Y.Z
+```
 
 ### ASD Profile Example
 
@@ -285,7 +302,7 @@ metadata:
   fqdn: app.example.mil
   description: >-
     Example application deployed behind platform identity and networking controls.
-  version: 1.0.0
+  version: X.Y.Z
 
 stigs:
   - id: asd_v6r4
@@ -318,7 +335,7 @@ metadata:
   description: >-
     Red Hat Enterprise Linux 9 server hosting a standalone Kubernetes deployment
     in a small air-gapped network.
-  version: 1.0.0
+  version: X.Y.Z
 
 stigs:
   - id: rhel9_v2r7
@@ -359,13 +376,13 @@ stigs:
 
 ### Multi-STIG Profiles
 
-A single profile can list multiple STIGs. The first one with a recognized ID is selected automatically:
+A single profile can list multiple STIGs. Each supported entry generates a separate checklist:
 
 ```yaml
 kind: UDS STIG Profile
 metadata:
   name: my-app
-  version: 1.0.0
+  version: X.Y.Z
 
 stigs:
   - id: asd_v6r4
