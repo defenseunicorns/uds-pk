@@ -376,6 +376,10 @@ func classifyStatusChange(base, newStatus ResultStatus) ChangeClassification {
 		return Regression
 	}
 	if newTier > baseTier {
+		// Unevaluated results do not demonstrate increased compliance.
+		if newStatus == ResultNotChecked || newStatus == ResultNotSelected {
+			return Reclassification
+		}
 		return Improvement
 	}
 	return Reclassification

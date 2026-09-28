@@ -109,7 +109,7 @@ func TestCompareXCCDFResults_AllPairs(t *testing.T) {
 				case afterTier < beforeTier:
 					wantRegressions = 1
 					require.Equal(t, Regression, comparison.Changes[0].Classification)
-				case afterTier > beforeTier:
+				case afterTier > beforeTier && after != ResultNotChecked && after != ResultNotSelected:
 					wantImprovements = 1
 					require.Equal(t, Improvement, comparison.Changes[0].Classification)
 				default:
@@ -186,7 +186,7 @@ func TestCompareXCCDFResults_RequiresEquivalentIdentities(t *testing.T) {
 	require.Equal(t, []string{"new-only"}, incompatible.NewOnly)
 }
 
-func TestCompareXCCDFResults_TreatsUnknownAsFailing(t *testing.T) {
+func TestCompareXCCDFResults_DoesNotTreatUnevaluatedResultAsImprovement(t *testing.T) {
 	base := &XCCDFResultSet{
 		RuleResults: map[string]XCCDFRuleResult{
 			"rule": {Identity: "rule", Status: ResultUnknown},
@@ -200,9 +200,9 @@ func TestCompareXCCDFResults_TreatsUnknownAsFailing(t *testing.T) {
 	comparison, err := CompareXCCDFResults(base, newResults)
 	require.NoError(t, err)
 	require.Zero(t, comparison.RegressionCount)
-	require.Equal(t, 1, comparison.ImprovementCount)
-	require.Zero(t, comparison.ReclassifyCount)
-	require.Equal(t, Improvement, comparison.Changes[0].Classification)
+	require.Zero(t, comparison.ImprovementCount)
+	require.Equal(t, 1, comparison.ReclassifyCount)
+	require.Equal(t, Reclassification, comparison.Changes[0].Classification)
 }
 
 func TestCompareXCCDFResults_ClassifiesNotSelectedTransitions(t *testing.T) {
@@ -223,11 +223,11 @@ func TestCompareXCCDFResults_ClassifiesNotSelectedTransitions(t *testing.T) {
 			regressions:       1,
 		},
 		{
-			name:           "fail to not selected",
-			base:           ResultFail,
-			candidate:      ResultNotSelected,
-			classification: Improvement,
-			improvements:   1,
+			name:              "fail to not selected",
+			base:              ResultFail,
+			candidate:         ResultNotSelected,
+			classification:    Reclassification,
+			reclassifications: 1,
 		},
 		{
 			name:              "not selected to not checked",
