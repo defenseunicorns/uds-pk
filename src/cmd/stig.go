@@ -338,9 +338,6 @@ func writeChecklistsWithWriter(cmd *cobra.Command, checklists []*generatedCheckl
 			entry.touched = true
 		}
 	}
-	if err := cleanupStagedTemps(staged); err != nil {
-		return fmt.Errorf("cleaning staged outputs: %w", err)
-	}
 	for _, entry := range staged {
 		printChecklist(cmd, entry.checklist)
 	}
@@ -393,6 +390,13 @@ func stageChecklistWithTempCreator(checklist *generatedChecklist, createTemp fun
 	}
 	if err := temp.Close(); err != nil {
 		return nil, fmt.Errorf("closing temporary output: %w", err)
+	}
+	if entry.existed {
+		if err := os.Remove(tempPath); err != nil {
+			return nil, fmt.Errorf("removing temporary output: %w", err)
+		}
+		tempPath = ""
+		return entry, nil
 	}
 
 	tempPath = ""

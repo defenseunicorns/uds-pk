@@ -151,6 +151,15 @@ func TestWriteChecklistsRollsBackExistingOutputs(t *testing.T) {
 	}
 	commitFailed := false
 	writeFile := func(path string, data []byte, mode os.FileMode) error {
+		if string(data) == "new first" || string(data) == "new second" {
+			stagedFiles, err := filepath.Glob(filepath.Join(dir, "."+filepath.Base(path)+"-*"))
+			if err != nil {
+				return err
+			}
+			if len(stagedFiles) != 0 {
+				return errors.New("staged output still consumes commit space")
+			}
+		}
 		if path == secondOutput && string(data) == "new second" {
 			commitFailed = true
 			return errors.New("injected write failure")
@@ -231,6 +240,26 @@ func TestStageChecklistAllowsExistingOutputWithoutDirectoryWriteAccess(t *testin
 	require.True(t, staged.existed)
 	require.Empty(t, staged.tempPath)
 	require.Equal(t, []byte("original checklist"), staged.original)
+}
+
+func TestStageChecklistReleasesExistingOutputPreflight(t *testing.T) {
+	dir := t.TempDir()
+	outputPath := filepath.Join(dir, "output.cklb")
+	require.NoError(t, os.WriteFile(outputPath, []byte("original checklist"), 0o600))
+	checklist := &generatedChecklist{
+		stigID:          stig.ASDSTIGProfileKey,
+		outputPath:      outputPath,
+		destinationPath: outputPath,
+		data:            []byte("new checklist"),
+	}
+
+	staged, err := stageChecklist(checklist)
+	require.NoError(t, err)
+	require.True(t, staged.existed)
+	require.Empty(t, staged.tempPath)
+	stagedFiles, err := filepath.Glob(filepath.Join(dir, ".output.cklb-*"))
+	require.NoError(t, err)
+	require.Empty(t, stagedFiles)
 }
 
 func TestStageChecklistRequiresDirectoryWriteAccessForNewOutput(t *testing.T) {
