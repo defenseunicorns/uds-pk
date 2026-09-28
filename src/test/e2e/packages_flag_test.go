@@ -4,6 +4,7 @@
 package test
 
 import (
+	"regexp"
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
@@ -24,12 +25,17 @@ func TestPackageFlagShow(t *testing.T) {
 	require.Equal(t, "1.0.0-flag.0\n", stdout)
 }
 
+func withoutLogTimestamps(log string) string {
+	pattern := regexp.MustCompile(`(?m)^\[[^]]+\] `)
+	return pattern.ReplaceAllString(log, "")
+}
+
 func TestFlagsWithEmptyStrings(t *testing.T) {
 	// Test that the flags can be used with empty strings
 	stdoutNoFlag, stderrNoFlag, errNoFlag := e2e.UDSPKDir("src/test", "release", "check", "base", "-r", "https://localhost:9090/registry/path", "--verbose")
 	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "check", "base", "-p", "", "-r", "https://localhost:9090/registry/path", "--verbose")
 	require.Equal(t, stdoutNoFlag, stdout)
-	require.Equal(t, stderrNoFlag, stderr)
+	require.Equal(t, withoutLogTimestamps(stderrNoFlag), withoutLogTimestamps(stderr))
 	require.Equal(t, errNoFlag, err)
 
 	stdoutNoFlag, stderrNoFlag, errNoFlag = e2e.UDSPK("release", "show", "base", "-d", "src/test")

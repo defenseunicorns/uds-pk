@@ -470,5 +470,6 @@ func init() {
 		Short: "STIG checklist operations",
 	}
 	stigCmd.AddCommand(generateChecklistCmd())
+	stigCmd.AddCommand(compareResultsCmd())
 	rootCmd.AddCommand(stigCmd)
 }
