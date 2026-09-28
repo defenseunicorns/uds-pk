@@ -95,6 +95,22 @@ func (c *XCCDFComparison) HasRegressions() bool {
 	return c.RegressionCount > 0
 }
 
+// FailingRulesRemovedFromScope counts failing rules that are no longer selected.
+func (c *XCCDFComparison) FailingRulesRemovedFromScope() int {
+	count := 0
+	for _, change := range c.Changes {
+		if change.BaseStatus == ResultFail && change.NewStatus == ResultNotSelected {
+			count++
+		}
+	}
+	return count
+}
+
+// HasBlockingChanges reports whether the comparison should fail the CI gate.
+func (c *XCCDFComparison) HasBlockingChanges() bool {
+	return c.HasRegressions() || c.FailingRulesRemovedFromScope() > 0
+}
+
 // IncompatibleResultSetsError indicates that scans evaluated different rule-result identities.
 type IncompatibleResultSetsError struct {
 	BaseOnly []string
@@ -340,9 +356,15 @@ func RenderXCCDFComparison(comparison *XCCDFComparison) string {
 			fmt.Fprintf(&builder, "  %s\n    base=%s  new=%s\n", change.Identity, change.BaseStatus, change.NewStatus)
 		}
 	}
-	if comparison.HasRegressions() {
+	scopeLosses := comparison.FailingRulesRemovedFromScope()
+	switch {
+	case comparison.HasRegressions() && scopeLosses > 0:
+		fmt.Fprintf(&builder, "\nFAIL: %d XCCDF regression(s) and %d failing rule(s) removed from scope.\n", comparison.RegressionCount, scopeLosses)
+	case comparison.HasRegressions():
 		fmt.Fprintf(&builder, "\nFAIL: %d XCCDF regression(s) detected.\n", comparison.RegressionCount)
-	} else {
+	case scopeLosses > 0:
+		fmt.Fprintf(&builder, "\nFAIL: %d failing rule(s) removed from scope.\n", scopeLosses)
+	default:
 		builder.WriteString("\nPASS: no XCCDF regressions detected.\n")
 	}
 	return builder.String()

@@ -55,6 +55,23 @@ func TestCompareResultsCommandReturnsRegressionExitCode(t *testing.T) {
 	require.Contains(t, stdout.String(), "FAIL: 1 XCCDF regression(s) detected.")
 }
 
+func TestCompareResultsCommandBlocksFailToNotSelected(t *testing.T) {
+	base := writeCommandResult(t, "base.xml", commandResultXML("fail", "rule"))
+	newResults := writeCommandResult(t, "new.xml", commandResultXML("notselected", "rule"))
+	command := compareResultsCmd()
+	var stdout bytes.Buffer
+	command.SetOut(&stdout)
+	command.SetArgs([]string{base, newResults})
+
+	err := command.Execute()
+	var coded *exitCodeError
+	require.True(t, errors.As(err, &coded))
+	require.Equal(t, 1, coded.ExitCode())
+	require.Contains(t, stdout.String(), "RECLASSIFICATIONS (1):")
+	require.Contains(t, stdout.String(), "base=fail  new=notselected")
+	require.Contains(t, stdout.String(), "FAIL: 1 failing rule(s) removed from scope.")
+}
+
 func TestCompareResultsCommandTreatsNotSelectedToFailAsRegression(t *testing.T) {
 	base := writeCommandResult(t, "base.xml", commandResultXML("notselected", "rule"))
 	newResults := writeCommandResult(t, "new.xml", commandResultXML("fail", "rule"))

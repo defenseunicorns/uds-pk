@@ -82,8 +82,8 @@ func (o *CompareResultsOptions) run(cmd *cobra.Command, args []string) error {
 			return newExitCodeError(2, fmt.Errorf("closing comparison evidence: %w", err))
 		}
 	}
-	if comparison.HasRegressions() {
-		return newExitCodeError(1, fmt.Errorf("XCCDF regressions detected"))
+	if comparison.HasBlockingChanges() {
+		return newExitCodeError(1, fmt.Errorf("XCCDF comparison failed"))
 	}
 
 	return nil

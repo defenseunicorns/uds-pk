@@ -214,6 +214,8 @@ func TestCompareXCCDFResults_ClassifiesNotSelectedTransitions(t *testing.T) {
 		regressions             int
 		improvements            int
 		reclassifications       int
+		scopeLosses             int
+		blocksCI                bool
 	}{
 		{
 			name:              "not selected to fail",
@@ -221,6 +223,7 @@ func TestCompareXCCDFResults_ClassifiesNotSelectedTransitions(t *testing.T) {
 			candidate:         ResultFail,
 			classification:    Regression,
 			regressions:       1,
+			blocksCI:          true,
 		},
 		{
 			name:              "fail to not selected",
@@ -228,6 +231,8 @@ func TestCompareXCCDFResults_ClassifiesNotSelectedTransitions(t *testing.T) {
 			candidate:         ResultNotSelected,
 			classification:    Reclassification,
 			reclassifications: 1,
+			scopeLosses:       1,
+			blocksCI:          true,
 		},
 		{
 			name:              "not selected to not checked",
@@ -257,6 +262,8 @@ func TestCompareXCCDFResults_ClassifiesNotSelectedTransitions(t *testing.T) {
 			require.Equal(t, test.improvements, comparison.ImprovementCount)
 			require.Equal(t, test.reclassifications, comparison.ReclassifyCount)
 			require.Equal(t, test.regressions > 0, comparison.HasRegressions())
+			require.Equal(t, test.scopeLosses, comparison.FailingRulesRemovedFromScope())
+			require.Equal(t, test.blocksCI, comparison.HasBlockingChanges())
 		})
 	}
 }
