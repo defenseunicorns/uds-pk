@@ -77,13 +77,20 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
+	checklists := make([]*generatedChecklist, 0, len(profiles))
 	for i, stigProfile := range profiles {
 		profile.ActivateSTIG(stigProfile)
 		xccdfPath := pathAt(o.XCCDFPaths, i)
 		outputPath := outputPaths[i]
-		if err := generateChecklist(ctx, cmd, log, profile, xccdfPath, outputPath); err != nil {
+		checklist, err := prepareChecklist(ctx, log, profile, xccdfPath, outputPath)
+		if err != nil {
 			return fmt.Errorf("generating checklist for STIG %q: %w", stigProfile.ID, err)
 		}
+		checklists = append(checklists, checklist)
+	}
+
+	if err := writeChecklists(cmd, checklists); err != nil {
+		return err
 	}
 	return nil
 }
@@ -120,32 +127,22 @@ func pathAt(paths []string, index int) string {
 
 func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) error {
 	xccdfPathSet := make(map[string]string, len(xccdfPaths))
-	for _, path := range xccdfPaths {
-		absolutePath, err := filepath.Abs(path)
-		if err != nil {
-			return fmt.Errorf("resolving XCCDF path %q: %w", path, err)
-		}
-		xccdfPathSet[absolutePath] = path
-	}
-
-	for _, path := range outputPaths {
-		absolutePath, err := filepath.Abs(path)
-		if err != nil {
-			return fmt.Errorf("resolving output path %q: %w", path, err)
-		}
-		if xccdfPath, exists := xccdfPathSet[absolutePath]; exists {
-			return fmt.Errorf("output path %q conflicts with XCCDF input path %q", path, xccdfPath)
-		}
-	}
-	return nil
-func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) error {
-	xccdfPathSet := make(map[string]string, len(xccdfPaths))
+	existingXCCDFs := []existingPath{}
 	for _, path := range xccdfPaths {
 		resolved, err := resolveOutputPath(path)
 		if err != nil {
 			return fmt.Errorf("resolving XCCDF path %q: %w", path, err)
 		}
 		xccdfPathSet[resolved] = path
+
+		info, err := os.Stat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("stating XCCDF path %q: %w", path, err)
+		}
+		existingXCCDFs = append(existingXCCDFs, existingPath{path: path, info: info})
 	}
 
 	for _, path := range outputPaths {
@@ -156,8 +153,26 @@ func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) e
 		if xccdfPath, exists := xccdfPathSet[resolved]; exists {
 			return fmt.Errorf("output path %q conflicts with XCCDF input path %q", path, xccdfPath)
 		}
+
+		info, err := os.Stat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("stating output path %q: %w", path, err)
+		}
+		for _, xccdf := range existingXCCDFs {
+			if os.SameFile(info, xccdf.info) {
+				return fmt.Errorf("output path %q conflicts with XCCDF input path %q", path, xccdf.path)
+			}
+		}
 	}
 	return nil
+}
+
+type existingPath struct {
+	path string
+	info os.FileInfo
 }
 
 func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPaths []string) ([]string, error) {
@@ -174,6 +189,7 @@ func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPa
 	}
 
 	seen := map[string]struct{}{}
+	existingOutputs := []os.FileInfo{}
 	for _, path := range paths {
 		resolvedPath, err := resolveOutputPath(path)
 		if err != nil {
@@ -183,6 +199,20 @@ func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPa
 			return nil, fmt.Errorf("output paths must be unique: %q is used more than once", path)
 		}
 		seen[resolvedPath] = struct{}{}
+
+		info, err := os.Stat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("stating output path %q: %w", path, err)
+		}
+		for _, existingInfo := range existingOutputs {
+			if os.SameFile(info, existingInfo) {
+				return nil, fmt.Errorf("output paths must be unique: %q is used more than once", path)
+			}
+		}
+		existingOutputs = append(existingOutputs, info)
 	}
 	return paths, nil
 }
@@ -199,6 +229,21 @@ func resolveOutputPath(path string) (string, error) {
 		return "", fmt.Errorf("resolving output path symlinks for %q: %w", path, err)
 	}
 
+	info, err := os.Lstat(absolutePath)
+	if err == nil && info.Mode()&os.ModeSymlink != 0 {
+		target, err := os.Readlink(absolutePath)
+		if err != nil {
+			return "", fmt.Errorf("reading output path symlink %q: %w", path, err)
+		}
+		if !filepath.IsAbs(target) {
+			target = filepath.Join(filepath.Dir(absolutePath), target)
+		}
+		return resolveOutputPath(target)
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return "", fmt.Errorf("stating output path %q: %w", path, err)
+	}
+
 	absoluteDir := filepath.Dir(absolutePath)
 	resolvedDir, err := filepath.EvalSymlinks(absoluteDir)
 	if err == nil {
@@ -211,40 +256,204 @@ func resolveOutputPath(path string) (string, error) {
 	return absolutePath, nil
 }
 
-func generateChecklist(ctx context.Context, cmd *cobra.Command, log *slog.Logger, profile *stig.Profile, explicitXCCDFPath, outputPath string) error {
+type generatedChecklist struct {
+	stigID          string
+	outputPath      string
+	destinationPath string
+	data            []byte
+	ruleCount       int
+	statusCounts    map[string]int
+}
+
+func prepareChecklist(ctx context.Context, log *slog.Logger, profile *stig.Profile, explicitXCCDFPath, outputPath string) (*generatedChecklist, error) {
 	xccdfPath, cleanup, err := stig.ResolveXCCDFPath(ctx, profile, explicitXCCDFPath)
 	if err != nil {
-		return fmt.Errorf("resolving XCCDF: %w", err)
+		return nil, fmt.Errorf("resolving XCCDF: %w", err)
 	}
 	defer cleanup()
 
 	log.Info("Parsing XCCDF", slog.String("path", xccdfPath), slog.String("stig", profile.SelectedSTIG.ID))
 	parsedSTIG, err := stig.ParseXCCDF(xccdfPath, profile)
 	if err != nil {
-		return fmt.Errorf("failed to parse XCCDF: %w", err)
+		return nil, fmt.Errorf("failed to parse XCCDF: %w", err)
 	}
 
 	data, err := json.MarshalIndent(stig.BuildChecklist(profile, parsedSTIG), "", "  ")
 	if err != nil {
-		return fmt.Errorf("marshalling JSON: %w", err)
+		return nil, fmt.Errorf("marshalling JSON: %w", err)
 	}
-	if err := os.WriteFile(outputPath, data, 0o644); err != nil {
-		return fmt.Errorf("writing output: %w", err)
+	destinationPath, err := resolveOutputPath(outputPath)
+	if err != nil {
+		return nil, err
 	}
 
 	counts := map[string]int{}
 	for _, rule := range parsedSTIG.Rules {
 		counts[rule.Status]++
 	}
+	return &generatedChecklist{
+		stigID:          profile.SelectedSTIG.ID,
+		outputPath:      outputPath,
+		destinationPath: destinationPath,
+		data:            data,
+		ruleCount:       len(parsedSTIG.Rules),
+		statusCounts:    counts,
+	}, nil
+}
+
+type stagedChecklist struct {
+	checklist    *generatedChecklist
+	tempPath     string
+	original     []byte
+	originalMode os.FileMode
+	existed      bool
+	touched      bool
+}
+
+func writeChecklists(cmd *cobra.Command, checklists []*generatedChecklist) error {
+	return writeChecklistsWithWriter(cmd, checklists, os.WriteFile)
+}
+
+func writeChecklistsWithWriter(cmd *cobra.Command, checklists []*generatedChecklist, writeFile func(string, []byte, os.FileMode) error) error {
+	staged := make([]*stagedChecklist, 0, len(checklists))
+	for _, checklist := range checklists {
+		entry, err := stageChecklist(checklist)
+		if err != nil {
+			return cleanupAfterError(staged, fmt.Errorf("writing checklist for STIG %q: %w", checklist.stigID, err))
+		}
+		staged = append(staged, entry)
+	}
+
+	for _, entry := range staged {
+		if entry.existed {
+			if err := os.Remove(entry.tempPath); err != nil {
+				return cleanupAfterError(staged, fmt.Errorf("writing checklist for STIG %q: removing staged output: %w", entry.checklist.stigID, err))
+			}
+			entry.tempPath = ""
+		}
+	}
+
+	for _, entry := range staged {
+		if entry.existed {
+			entry.touched = true
+			if err := writeFile(entry.checklist.destinationPath, entry.checklist.data, entry.originalMode); err != nil {
+				return rollbackStagedChecklists(staged, writeFile, fmt.Errorf("writing checklist for STIG %q: %w", entry.checklist.stigID, err))
+			}
+		} else {
+			if err := os.Rename(entry.tempPath, entry.checklist.destinationPath); err != nil {
+				return rollbackStagedChecklists(staged, writeFile, fmt.Errorf("writing checklist for STIG %q: %w", entry.checklist.stigID, err))
+			}
+			entry.tempPath = ""
+			entry.touched = true
+		}
+	}
+	for _, entry := range staged {
+		printChecklist(cmd, entry.checklist)
+	}
+	return nil
+}
+
+func stageChecklist(checklist *generatedChecklist) (*stagedChecklist, error) {
+	mode := os.FileMode(0o644)
+	entry := &stagedChecklist{checklist: checklist}
+	info, err := os.Stat(checklist.destinationPath)
+	if err == nil {
+		if !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("output path %q is not a regular file", checklist.outputPath)
+		}
+		mode = info.Mode().Perm()
+		entry.original, err = os.ReadFile(checklist.destinationPath)
+		if err != nil {
+			return nil, fmt.Errorf("reading existing output %q: %w", checklist.outputPath, err)
+		}
+		entry.originalMode = mode
+		entry.existed = true
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("stating output path %q: %w", checklist.outputPath, err)
+	}
+
+	temp, err := os.CreateTemp(filepath.Dir(checklist.destinationPath), "."+filepath.Base(checklist.destinationPath)+"-*")
+	if err != nil {
+		return nil, fmt.Errorf("creating temporary output: %w", err)
+	}
+	tempPath := temp.Name()
+	defer func() {
+		if tempPath != "" {
+			_ = os.Remove(tempPath)
+		}
+	}()
+	if _, err := temp.Write(checklist.data); err != nil {
+		_ = temp.Close()
+		return nil, fmt.Errorf("writing temporary output: %w", err)
+	}
+	if err := temp.Chmod(mode); err != nil {
+		_ = temp.Close()
+		return nil, fmt.Errorf("setting temporary output permissions: %w", err)
+	}
+	if err := temp.Close(); err != nil {
+		return nil, fmt.Errorf("closing temporary output: %w", err)
+	}
+
+	tempPath = ""
+	entry.tempPath = temp.Name()
+	return entry, nil
+}
+
+func rollbackStagedChecklists(staged []*stagedChecklist, writeFile func(string, []byte, os.FileMode) error, originalErr error) error {
+	var rollbackErr error
+	for _, entry := range staged {
+		if !entry.touched {
+			continue
+		}
+		if entry.existed {
+			if err := writeFile(entry.checklist.destinationPath, entry.original, entry.originalMode); err != nil && rollbackErr == nil {
+				rollbackErr = err
+			}
+		} else if err := os.Remove(entry.checklist.destinationPath); err != nil && !errors.Is(err, os.ErrNotExist) && rollbackErr == nil {
+			rollbackErr = err
+		}
+	}
+	cleanupErr := cleanupStagedTemps(staged)
+	if rollbackErr != nil && cleanupErr != nil {
+		return fmt.Errorf("%w (restoring previous outputs: %v; cleaning staged outputs: %v)", originalErr, rollbackErr, cleanupErr)
+	}
+	if rollbackErr != nil {
+		return fmt.Errorf("%w (restoring previous outputs: %v)", originalErr, rollbackErr)
+	}
+	if cleanupErr != nil {
+		return fmt.Errorf("%w (cleaning staged outputs: %v)", originalErr, cleanupErr)
+	}
+	return originalErr
+}
+
+func cleanupAfterError(staged []*stagedChecklist, originalErr error) error {
+	if cleanupErr := cleanupStagedTemps(staged); cleanupErr != nil {
+		return fmt.Errorf("%w (cleaning staged outputs: %v)", originalErr, cleanupErr)
+	}
+	return originalErr
+}
+
+func cleanupStagedTemps(staged []*stagedChecklist) error {
+	var cleanupErr error
+	for _, entry := range staged {
+		if entry.tempPath != "" {
+			if err := os.Remove(entry.tempPath); err != nil && !errors.Is(err, os.ErrNotExist) && cleanupErr == nil {
+				cleanupErr = err
+			}
+		}
+	}
+	return cleanupErr
+}
+
+func printChecklist(cmd *cobra.Command, checklist *generatedChecklist) {
 	w := cmd.OutOrStdout()
-	_, _ = fmt.Fprintf(w, "Generated %s\n", outputPath)
-	_, _ = fmt.Fprintf(w, "Total rules: %d\n", len(parsedSTIG.Rules))
+	_, _ = fmt.Fprintf(w, "Generated %s\n", checklist.outputPath)
+	_, _ = fmt.Fprintf(w, "Total rules: %d\n", checklist.ruleCount)
 	for _, status := range []string{"not_a_finding", "not_applicable", "not_reviewed", "open"} {
-		if count, ok := counts[status]; ok {
+		if count, ok := checklist.statusCounts[status]; ok {
 			_, _ = fmt.Fprintf(w, "  %s: %d\n", status, count)
 		}
 	}
-	return nil
 }
 
 func init() {

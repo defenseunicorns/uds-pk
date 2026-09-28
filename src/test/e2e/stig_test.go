@@ -110,6 +110,46 @@ func TestStigGenerateMultipleChecklists(t *testing.T) {
 	}
 }
 
+func TestStigGenerateChecklistDoesNotWriteOutputsUntilAllXCCDFsAreValid(t *testing.T) {
+	outputDir := t.TempDir()
+	firstOutput := filepath.Join(outputDir, "asd.cklb")
+	secondOutput := filepath.Join(outputDir, "rhel9.cklb")
+	require.NoError(t, os.WriteFile(firstOutput, []byte("original asd checklist"), 0o644))
+	require.NoError(t, os.WriteFile(secondOutput, []byte("original rhel checklist"), 0o644))
+
+	_, _, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-multi-profile.yaml",
+		"--xccdf", "src/test/stig/test-xccdf.xml,"+filepath.Join(outputDir, "missing.xml"),
+		"--output", firstOutput+","+secondOutput,
+	)
+	require.Error(t, err)
+
+	firstData, err := os.ReadFile(firstOutput)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("original asd checklist"), firstData)
+	secondData, err := os.ReadFile(secondOutput)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("original rhel checklist"), secondData)
+}
+
+func TestStigGenerateChecklistDoesNotWriteOutputsUntilAllWritesCanBeStaged(t *testing.T) {
+	outputDir := t.TempDir()
+	firstOutput := filepath.Join(outputDir, "asd.cklb")
+	secondOutput := filepath.Join(outputDir, "missing", "rhel9.cklb")
+	require.NoError(t, os.WriteFile(firstOutput, []byte("original asd checklist"), 0o644))
+
+	_, _, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-multi-profile.yaml",
+		"--xccdf", "src/test/stig/test-xccdf.xml,src/test/stig/test-rhel9-xccdf.xml",
+		"--output", firstOutput+","+secondOutput,
+	)
+	require.Error(t, err)
+
+	firstData, err := os.ReadFile(firstOutput)
+	require.NoError(t, err)
+	assert.Equal(t, []byte("original asd checklist"), firstData)
+}
+
 func TestStigGenerateChecklistRejectsMixedSupportedAndUnsupportedSTIGs(t *testing.T) {
 	dir := t.TempDir()
 	profilePath := filepath.Join(dir, "mixed-profile.yaml")
