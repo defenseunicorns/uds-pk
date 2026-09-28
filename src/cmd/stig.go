@@ -138,6 +138,26 @@ func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) e
 		}
 	}
 	return nil
+func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) error {
+	xccdfPathSet := make(map[string]string, len(xccdfPaths))
+	for _, path := range xccdfPaths {
+		resolved, err := resolveOutputPath(path)
+		if err != nil {
+			return fmt.Errorf("resolving XCCDF path %q: %w", path, err)
+		}
+		xccdfPathSet[resolved] = path
+	}
+
+	for _, path := range outputPaths {
+		resolved, err := resolveOutputPath(path)
+		if err != nil {
+			return err
+		}
+		if xccdfPath, exists := xccdfPathSet[resolved]; exists {
+			return fmt.Errorf("output path %q conflicts with XCCDF input path %q", path, xccdfPath)
+		}
+	}
+	return nil
 }
 
 func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPaths []string) ([]string, error) {
