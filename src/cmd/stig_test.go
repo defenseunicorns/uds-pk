@@ -149,9 +149,20 @@ func TestWriteChecklistsRollsBackExistingOutputs(t *testing.T) {
 		{stigID: stig.ASDSTIGProfileKey, outputPath: firstOutput, destinationPath: firstOutput, data: []byte("new first")},
 		{stigID: stig.RHEL9STIGProfileKey, outputPath: secondOutput, destinationPath: secondOutput, data: []byte("new second")},
 	}
+	commitFailed := false
 	writeFile := func(path string, data []byte, mode os.FileMode) error {
 		if path == secondOutput && string(data) == "new second" {
+			commitFailed = true
 			return errors.New("injected write failure")
+		}
+		if commitFailed {
+			stagedFiles, err := filepath.Glob(filepath.Join(dir, ".*.cklb-*"))
+			if err != nil {
+				return err
+			}
+			if len(stagedFiles) != 0 {
+				return errors.New("staged files still consume rollback space")
+			}
 		}
 		return os.WriteFile(path, data, mode)
 	}
@@ -199,4 +210,41 @@ func TestWriteChecklistsPreservesHardLinks(t *testing.T) {
 	linkedData, err := os.ReadFile(linkedPath)
 	require.NoError(t, err)
 	require.Equal(t, []byte("new checklist"), linkedData)
+}
+
+func TestStageChecklistAllowsExistingOutputWithoutDirectoryWriteAccess(t *testing.T) {
+	dir := t.TempDir()
+	outputPath := filepath.Join(dir, "output.cklb")
+	require.NoError(t, os.WriteFile(outputPath, []byte("original checklist"), 0o600))
+	checklist := &generatedChecklist{
+		stigID:          stig.ASDSTIGProfileKey,
+		outputPath:      outputPath,
+		destinationPath: outputPath,
+		data:            []byte("new checklist"),
+	}
+	createTemp := func(string, string) (*os.File, error) {
+		return nil, os.ErrPermission
+	}
+
+	staged, err := stageChecklistWithTempCreator(checklist, createTemp)
+	require.NoError(t, err)
+	require.True(t, staged.existed)
+	require.Empty(t, staged.tempPath)
+	require.Equal(t, []byte("original checklist"), staged.original)
+}
+
+func TestStageChecklistRequiresDirectoryWriteAccessForNewOutput(t *testing.T) {
+	outputPath := filepath.Join(t.TempDir(), "output.cklb")
+	checklist := &generatedChecklist{
+		stigID:          stig.ASDSTIGProfileKey,
+		outputPath:      outputPath,
+		destinationPath: outputPath,
+		data:            []byte("new checklist"),
+	}
+	createTemp := func(string, string) (*os.File, error) {
+		return nil, os.ErrPermission
+	}
+
+	_, err := stageChecklistWithTempCreator(checklist, createTemp)
+	require.ErrorIs(t, err, os.ErrPermission)
 }

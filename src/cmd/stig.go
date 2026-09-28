@@ -326,15 +326,6 @@ func writeChecklistsWithWriter(cmd *cobra.Command, checklists []*generatedCheckl
 
 	for _, entry := range staged {
 		if entry.existed {
-			if err := os.Remove(entry.tempPath); err != nil {
-				return cleanupAfterError(staged, fmt.Errorf("writing checklist for STIG %q: removing staged output: %w", entry.checklist.stigID, err))
-			}
-			entry.tempPath = ""
-		}
-	}
-
-	for _, entry := range staged {
-		if entry.existed {
 			entry.touched = true
 			if err := writeFile(entry.checklist.destinationPath, entry.checklist.data, entry.originalMode); err != nil {
 				return rollbackStagedChecklists(staged, writeFile, fmt.Errorf("writing checklist for STIG %q: %w", entry.checklist.stigID, err))
@@ -347,6 +338,9 @@ func writeChecklistsWithWriter(cmd *cobra.Command, checklists []*generatedCheckl
 			entry.touched = true
 		}
 	}
+	if err := cleanupStagedTemps(staged); err != nil {
+		return fmt.Errorf("cleaning staged outputs: %w", err)
+	}
 	for _, entry := range staged {
 		printChecklist(cmd, entry.checklist)
 	}
@@ -354,6 +348,10 @@ func writeChecklistsWithWriter(cmd *cobra.Command, checklists []*generatedCheckl
 }
 
 func stageChecklist(checklist *generatedChecklist) (*stagedChecklist, error) {
+	return stageChecklistWithTempCreator(checklist, os.CreateTemp)
+}
+
+func stageChecklistWithTempCreator(checklist *generatedChecklist, createTemp func(string, string) (*os.File, error)) (*stagedChecklist, error) {
 	mode := os.FileMode(0o644)
 	entry := &stagedChecklist{checklist: checklist}
 	info, err := os.Stat(checklist.destinationPath)
@@ -372,8 +370,11 @@ func stageChecklist(checklist *generatedChecklist) (*stagedChecklist, error) {
 		return nil, fmt.Errorf("stating output path %q: %w", checklist.outputPath, err)
 	}
 
-	temp, err := os.CreateTemp(filepath.Dir(checklist.destinationPath), "."+filepath.Base(checklist.destinationPath)+"-*")
+	temp, err := createTemp(filepath.Dir(checklist.destinationPath), "."+filepath.Base(checklist.destinationPath)+"-*")
 	if err != nil {
+		if entry.existed && errors.Is(err, os.ErrPermission) {
+			return entry, nil
+		}
 		return nil, fmt.Errorf("creating temporary output: %w", err)
 	}
 	tempPath := temp.Name()
@@ -401,19 +402,22 @@ func stageChecklist(checklist *generatedChecklist) (*stagedChecklist, error) {
 
 func rollbackStagedChecklists(staged []*stagedChecklist, writeFile func(string, []byte, os.FileMode) error, originalErr error) error {
 	var rollbackErr error
+	cleanupErr := cleanupStagedTemps(staged)
 	for _, entry := range staged {
-		if !entry.touched {
-			continue
-		}
-		if entry.existed {
-			if err := writeFile(entry.checklist.destinationPath, entry.original, entry.originalMode); err != nil && rollbackErr == nil {
+		if entry.touched && !entry.existed {
+			if err := os.Remove(entry.checklist.destinationPath); err != nil && !errors.Is(err, os.ErrNotExist) && rollbackErr == nil {
 				rollbackErr = err
 			}
-		} else if err := os.Remove(entry.checklist.destinationPath); err != nil && !errors.Is(err, os.ErrNotExist) && rollbackErr == nil {
+		}
+	}
+	for _, entry := range staged {
+		if !entry.touched || !entry.existed {
+			continue
+		}
+		if err := writeFile(entry.checklist.destinationPath, entry.original, entry.originalMode); err != nil && rollbackErr == nil {
 			rollbackErr = err
 		}
 	}
-	cleanupErr := cleanupStagedTemps(staged)
 	if rollbackErr != nil && cleanupErr != nil {
 		return fmt.Errorf("%w (restoring previous outputs: %v; cleaning staged outputs: %v)", originalErr, rollbackErr, cleanupErr)
 	}
