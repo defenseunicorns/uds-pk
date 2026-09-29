@@ -41,7 +41,7 @@ func TestStigGenerateChecklist(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify top-level checklist fields
-	assert.Equal(t, "e2e-test-app-asd-v6r1", checklist["title"])
+	require.Equal(t, "e2e-test-app-asd-v6r1", checklist["title"])
 	assert.Equal(t, "1.0", checklist["cklb_version"])
 	assert.Equal(t, false, checklist["active"])
 	assert.Equal(t, float64(1), checklist["mode"])
@@ -450,7 +450,7 @@ func TestStigGenerateChecklistRejectsMismatchedBenchmark(t *testing.T) {
 		"--output", outputPath,
 	)
 	require.Error(t, err)
-	assert.Contains(t, stderr, `XCCDF benchmark "RHEL_9_STIG" does not match STIG "asd_v6r4"`)
+	require.Contains(t, stderr, `XCCDF benchmark "RHEL_9_STIG" does not match STIG "asd_v6r4"`)
 	_, err = os.Stat(outputPath)
 	require.True(t, os.IsNotExist(err))
 }
