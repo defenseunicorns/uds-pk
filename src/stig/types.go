@@ -3,8 +3,6 @@
 
 package stig
 
-const STIGRevision = "v6r4"
-
 func ChecklistTitle(appName string, definition STIGDefinition, revision string) string {
 	return appName + "-" + definition.ChecklistSlug + "-" + revision
 }
@@ -254,7 +252,6 @@ type CheckContentRef struct {
 
 type STIGDefinition struct {
 	ID             string
-	Revision       string
 	ChecklistSlug  string
 	TargetRole     string
 	TechnologyArea string

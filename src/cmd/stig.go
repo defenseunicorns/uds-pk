@@ -69,6 +69,16 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 	if err := validatePathCount("output", o.OutputPaths, len(profiles)); err != nil {
 		return err
 	}
+	var outputPaths []string
+	if len(o.OutputPaths) > 0 {
+		outputPaths, err = resolveOutputPaths(profile.AppName, profiles, nil, o.OutputPaths)
+		if err != nil {
+			return err
+		}
+		if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
+			return err
+		}
+	}
 	checklists := make([]*generatedChecklist, 0, len(profiles))
 	revisions := make([]string, 0, len(profiles))
 	for i, stigProfile := range profiles {
@@ -82,12 +92,14 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 		revisions = append(revisions, checklist.revision)
 	}
 
-	outputPaths, err := resolveOutputPaths(profile.AppName, profiles, revisions, o.OutputPaths)
-	if err != nil {
-		return err
-	}
-	if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
-		return err
+	if len(o.OutputPaths) == 0 {
+		outputPaths, err = resolveOutputPaths(profile.AppName, profiles, revisions, nil)
+		if err != nil {
+			return err
+		}
+		if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
+			return err
+		}
 	}
 	for i, checklist := range checklists {
 		checklist.outputPath = outputPaths[i]

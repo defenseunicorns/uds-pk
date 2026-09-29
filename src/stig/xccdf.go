@@ -69,7 +69,7 @@ type xccdfRef struct {
 	Identifier string `xml:"identifier"`
 }
 
-var releaseNumberPattern = regexp.MustCompile(`(?i)\bRelease:\s*([0-9]+)\b`)
+var releaseNumberPattern = regexp.MustCompile(`(?i)\bRelease:\s*([0-9]+)(?:\s|$)`)
 
 func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 	data, err := os.ReadFile(path)

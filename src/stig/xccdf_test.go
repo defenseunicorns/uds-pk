@@ -289,6 +289,16 @@ func TestParseXCCDF_RejectsMissingRevisionMetadata(t *testing.T) {
 			xml:      strings.Replace(minimalXCCDF, `<plain-text id="release-info">Release: 1 Benchmark Date: 01 Jan 2025</plain-text>`, "", 1),
 			expected: `XCCDF benchmark has no valid release in release-info ""`,
 		},
+		{
+			name:     "fractional release",
+			xml:      strings.Replace(minimalXCCDF, "Release: 1 Benchmark", "Release: 1.5 Benchmark", 1),
+			expected: `XCCDF benchmark has no valid release in release-info "Release: 1.5 Benchmark Date: 01 Jan 2025"`,
+		},
+		{
+			name:     "alphanumeric release",
+			xml:      strings.Replace(minimalXCCDF, "Release: 1 Benchmark", "Release: 1a Benchmark", 1),
+			expected: `XCCDF benchmark has no valid release in release-info "Release: 1a Benchmark Date: 01 Jan 2025"`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
