@@ -374,18 +374,18 @@ func TestStigGenerateChecklistRealBenchmarkMetadata(t *testing.T) {
 	require.NoError(t, err, stdout, stderr)
 
 	const filename = "e2e-test-app-asd-v6r4.cklb"
-	assert.Contains(t, stdout, "Generated "+filename)
+	require.Contains(t, stdout, "Generated "+filename)
 	data, err := os.ReadFile(filepath.Join(outputDir, filename))
 	require.NoError(t, err)
 	var checklist map[string]interface{}
 	require.NoError(t, json.Unmarshal(data, &checklist))
-	assert.Equal(t, "e2e-test-app-asd-v6r4", checklist["title"])
+	require.Equal(t, "e2e-test-app-asd-v6r4", checklist["title"])
 	stigs, ok := checklist["stigs"].([]interface{})
 	require.True(t, ok)
 	require.Len(t, stigs, 1)
 	stig, ok := stigs[0].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, "Release: 4 Benchmark Date: 01 Oct 2025", stig["release_info"])
+	require.Equal(t, "Release: 4 Benchmark Date: 01 Oct 2025", stig["release_info"])
 }
 
 func TestStigGenerateChecklistRejectsUnsupportedSTIG(t *testing.T) {
@@ -436,10 +436,10 @@ func TestStigGenerateChecklistChecksOutputCollisionBeforeParsing(t *testing.T) {
 		"--output", xccdfPath,
 	)
 	require.Error(t, err)
-	assert.Contains(t, stderr, "conflicts with XCCDF input path")
+	require.Contains(t, stderr, "conflicts with XCCDF input path")
 	data, err := os.ReadFile(xccdfPath)
 	require.NoError(t, err)
-	assert.Equal(t, "not xml", string(data))
+	require.Equal(t, "not xml", string(data))
 }
 
 func TestStigGenerateChecklistRejectsMismatchedBenchmark(t *testing.T) {
