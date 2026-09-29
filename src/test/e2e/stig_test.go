@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/defenseunicorns/uds-pk/src/stig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,9 +41,7 @@ func TestStigGenerateChecklist(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify top-level checklist fields
-	definition, err := stig.LookupSTIGDefinition(stig.ASDSTIGProfileKey)
-	require.NoError(t, err)
-	assert.Equal(t, stig.ChecklistTitle("e2e-test-app", definition), checklist["title"])
+	assert.Equal(t, "e2e-test-app-asd-v6r1", checklist["title"])
 	assert.Equal(t, "1.0", checklist["cklb_version"])
 	assert.Equal(t, false, checklist["active"])
 	assert.Equal(t, float64(1), checklist["mode"])
@@ -96,7 +93,7 @@ func TestStigGenerateMultipleChecklists(t *testing.T) {
 	assert.Contains(t, stdout, "Generated "+rhelOutput)
 
 	expectedTitles := map[string]string{
-		asdOutput:  "e2e-multi-stig-asd-v6r4",
+		asdOutput:  "e2e-multi-stig-asd-v6r1",
 		rhelOutput: "e2e-multi-stig-rhel9-v2r7",
 	}
 	for outputPath, expectedTitle := range expectedTitles {
@@ -354,9 +351,7 @@ func TestStigGenerateChecklistDefaultOutput(t *testing.T) {
 	)
 	require.NoError(t, err, stdout, stderr)
 
-	definition, err := stig.LookupSTIGDefinition(stig.ASDSTIGProfileKey)
-	require.NoError(t, err)
-	defaultOutput := stig.DefaultChecklistFilename("e2e-test-app", definition)
+	defaultOutput := "e2e-test-app-asd-v6r1.cklb"
 	defer e2e.CleanFiles(defaultOutput)
 
 	assert.Contains(t, stdout, "Generated "+defaultOutput)
@@ -401,6 +396,19 @@ func TestStigGenerateChecklistInvalidXCCDF(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Contains(t, stderr, "failed to parse XCCDF")
+}
+
+func TestStigGenerateChecklistRejectsMismatchedBenchmark(t *testing.T) {
+	outputPath := filepath.Join(t.TempDir(), "output.cklb")
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-profile.yaml",
+		"--xccdf", "src/test/stig/test-rhel9-xccdf.xml",
+		"--output", outputPath,
+	)
+	require.Error(t, err)
+	assert.Contains(t, stderr, `XCCDF benchmark "RHEL_9_STIG" does not match STIG "asd_v6r4"`)
+	_, err = os.Stat(outputPath)
+	require.True(t, os.IsNotExist(err))
 }
 
 func TestStigGenerateChecklistWithRealSTIG(t *testing.T) {

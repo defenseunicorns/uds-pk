@@ -30,7 +30,7 @@ func TestResolveOutputPathsRejectsDuplicates(t *testing.T) {
 		{ID: stig.RHEL9STIGProfileKey},
 	}
 
-	_, err := resolveOutputPaths("test-app", profiles, []string{outputPath, outputPath})
+	_, err := resolveOutputPaths("test-app", profiles, nil, []string{outputPath, outputPath})
 	require.EqualError(t, err, `output paths must be unique: "`+outputPath+`" is used more than once`)
 }
 
@@ -50,7 +50,7 @@ func TestResolveOutputPathsRejectsSymlinkAliasDuplicates(t *testing.T) {
 	realOutput := filepath.Join(realDir, "output.cklb")
 	symlinkOutput := filepath.Join(linkDir, "output.cklb")
 
-	_, err := resolveOutputPaths("test-app", profiles, []string{realOutput, symlinkOutput})
+	_, err := resolveOutputPaths("test-app", profiles, nil, []string{realOutput, symlinkOutput})
 	require.EqualError(t, err, `output paths must be unique: "`+symlinkOutput+`" is used more than once`)
 }
 
@@ -68,7 +68,7 @@ func TestResolveOutputPathsRejectsHardLinkDuplicates(t *testing.T) {
 		{ID: stig.RHEL9STIGProfileKey},
 	}
 
-	_, err := resolveOutputPaths("test-app", profiles, []string{firstOutput, secondOutput})
+	_, err := resolveOutputPaths("test-app", profiles, nil, []string{firstOutput, secondOutput})
 	require.EqualError(t, err, `output paths must be unique: "`+secondOutput+`" is used more than once`)
 }
 
@@ -89,7 +89,7 @@ func TestResolveOutputPathsRejectsDanglingSymlinkAliasDuplicates(t *testing.T) {
 		{ID: stig.RHEL9STIGProfileKey},
 	}
 
-	_, err := resolveOutputPaths("test-app", profiles, []string{firstOutput, secondOutput})
+	_, err := resolveOutputPaths("test-app", profiles, nil, []string{firstOutput, secondOutput})
 	require.EqualError(t, err, `output paths must be unique: "`+secondOutput+`" is used more than once`)
 }
 

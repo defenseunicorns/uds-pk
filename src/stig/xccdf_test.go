@@ -6,6 +6,7 @@ package stig
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -106,6 +107,7 @@ func TestParseXCCDF_Success(t *testing.T) {
 	require.Equal(t, "Application Security and Development Security Technical Implementation Guide", s.STIGName)
 	require.Equal(t, "Application_Security_Development_STIG", s.STIGID)
 	require.Equal(t, "Release: 1 Benchmark Date: 01 Jan 2025", s.ReleaseInfo)
+	require.Equal(t, "v1r1", s.Revision)
 	require.NotEmpty(t, s.UUID)
 	require.Equal(t, 2, s.Size)
 	require.Len(t, s.Rules, 2)
@@ -224,6 +226,7 @@ func TestParseXCCDF_InvalidXML(t *testing.T) {
 
 func TestBuildChecklist(t *testing.T) {
 	s := &STIG{
+		Revision: "v3r2",
 		STIGName: "Test STIG",
 		STIGID:   "Test_STIG",
 		UUID:     "stig-uuid",
@@ -235,9 +238,7 @@ func TestBuildChecklist(t *testing.T) {
 
 	checklist := BuildChecklist(testProfile, s)
 
-	definition, err := LookupSTIGDefinition(ASDSTIGProfileKey)
-	require.NoError(t, err)
-	require.Equal(t, ChecklistTitle("test-app", definition), checklist.Title)
+	require.Equal(t, "test-app-asd-v3r2", checklist.Title)
 	require.NotEmpty(t, checklist.ID)
 	require.Equal(t, "1.0", checklist.CKLBVersion)
 	require.False(t, checklist.Active)
@@ -272,12 +273,40 @@ func TestParseXCCDF_RejectsMismatchedBenchmark(t *testing.T) {
 	require.EqualError(t, err, `XCCDF benchmark "Application_Security_Development_STIG" does not match STIG "rhel9_v2r7" (expected "RHEL_9_STIG")`)
 }
 
+func TestParseXCCDF_RejectsMissingRevisionMetadata(t *testing.T) {
+	tests := []struct {
+		name     string
+		xml      string
+		expected string
+	}{
+		{
+			name:     "missing version",
+			xml:      strings.Replace(minimalXCCDF, "<version>1</version>", "", 1),
+			expected: `XCCDF benchmark has invalid version ""`,
+		},
+		{
+			name:     "missing release",
+			xml:      strings.Replace(minimalXCCDF, `<plain-text id="release-info">Release: 1 Benchmark Date: 01 Jan 2025</plain-text>`, "", 1),
+			expected: `XCCDF benchmark has no valid release in release-info ""`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "benchmark.xml")
+			require.NoError(t, os.WriteFile(path, []byte(tt.xml), 0o644))
+			_, err := ParseXCCDF(path, testProfile)
+			require.EqualError(t, err, tt.expected)
+		})
+	}
+}
+
 func TestParseXCCDF_RHEL9UsesBenchmarkMetadata(t *testing.T) {
 	dir := t.TempDir()
 	xccdfPath := filepath.Join(dir, "rhel9-xccdf.xml")
 	xml := `<?xml version="1.0" encoding="utf-8"?>
 <Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="RHEL_9_STIG" xml:lang="en">
   <title>Red Hat Enterprise Linux 9 STIG</title>
+  <version>2</version>
   <plain-text id="release-info">Release: 7 Benchmark Date: 01 Apr 2026</plain-text>
   <Group id="V-1">
     <title>SRG-OS-000001</title>
@@ -315,12 +344,11 @@ func TestParseXCCDF_RHEL9UsesBenchmarkMetadata(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Red Hat Enterprise Linux 9 STIG", s.STIGName)
 	require.Equal(t, "RHEL_9_STIG", s.STIGID)
+	require.Equal(t, "v2r7", s.Revision)
 	require.Equal(t, "not_applicable", s.Rules[0].Status)
 
 	checklist := BuildChecklist(profile, s)
-	definition, err := LookupSTIGDefinition(RHEL9STIGProfileKey)
-	require.NoError(t, err)
-	require.Equal(t, ChecklistTitle("rhel9-node01", definition), checklist.Title)
+	require.Equal(t, "rhel9-node01-rhel9-v2r7", checklist.Title)
 	require.Equal(t, "Standalone Kubernetes server", checklist.TargetData.Role)
 	require.Equal(t, "Operating System Review", checklist.TargetData.TechnologyArea)
 }
@@ -397,6 +425,7 @@ func TestParseXCCDF_EmptyNilSlices(t *testing.T) {
 	xml := `<?xml version="1.0" encoding="utf-8"?>
 <Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="Application_Security_Development_STIG" xml:lang="en">
   <version>1</version>
+  <plain-text id="release-info">Release: 1 Benchmark Date: 01 Jan 2025</plain-text>
   <Group id="V-999999">
     <title>SRG-TEST</title>
     <description></description>

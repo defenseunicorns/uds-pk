@@ -6,6 +6,7 @@
 
 <Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="RHEL_9_STIG" xml:lang="en">
   <title>Red Hat Enterprise Linux 9 STIG</title>
+  <version>2</version>
   <plain-text id="release-info">Release: 7 Benchmark Date: 01 Apr 2026</plain-text>
   <Group id="V-1">
     <title>SRG-OS-000001</title>

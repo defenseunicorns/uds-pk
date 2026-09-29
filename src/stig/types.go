@@ -5,12 +5,12 @@ package stig
 
 const STIGRevision = "v6r4"
 
-func ChecklistTitle(appName string, definition STIGDefinition) string {
-	return appName + "-" + definition.ChecklistSlug + "-" + definition.Revision
+func ChecklistTitle(appName string, definition STIGDefinition, revision string) string {
+	return appName + "-" + definition.ChecklistSlug + "-" + revision
 }
 
-func DefaultChecklistFilename(appName string, definition STIGDefinition) string {
-	return ChecklistTitle(appName, definition) + ".cklb"
+func DefaultChecklistFilename(appName string, definition STIGDefinition, revision string) string {
+	return ChecklistTitle(appName, definition, revision) + ".cklb"
 }
 
 // Profile represents the stig-profile.yaml configuration.
@@ -193,6 +193,7 @@ type TargetData struct {
 }
 
 type STIG struct {
+	Revision            string  `json:"-"`
 	STIGName            string  `json:"stig_name"`
 	DisplayName         string  `json:"display_name"`
 	STIGID              string  `json:"stig_id"`

@@ -7,6 +7,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -18,6 +20,7 @@ type xccdfBenchmark struct {
 	XMLName   xml.Name     `xml:"Benchmark"`
 	ID        string       `xml:"id,attr"`
 	Title     string       `xml:"title"`
+	Version   string       `xml:"version"`
 	PlainText []xccdfPlain `xml:"plain-text"`
 	Groups    []xccdfGroup `xml:"Group"`
 }
@@ -66,6 +69,8 @@ type xccdfRef struct {
 	Identifier string `xml:"identifier"`
 }
 
+var releaseNumberPattern = regexp.MustCompile(`(?i)\bRelease:\s*([0-9]+)\b`)
+
 func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -91,6 +96,10 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 			releaseInfo = pt.Text
 			break
 		}
+	}
+	revision, err := benchmarkRevision(bench.Version, releaseInfo)
+	if err != nil {
+		return nil, err
 	}
 
 	stigUUID := uuid.New().String()
@@ -224,6 +233,7 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 	stigName, displayName, stigID := stigMetadata(definition, &bench)
 
 	return &STIG{
+		Revision:            revision,
 		STIGName:            stigName,
 		DisplayName:         displayName,
 		STIGID:              stigID,
@@ -242,7 +252,7 @@ func BuildChecklist(profile *Profile, stig *STIG) *Checklist {
 	}
 
 	return &Checklist{
-		Title:       ChecklistTitle(profile.AppName, definition),
+		Title:       ChecklistTitle(profile.AppName, definition, stig.Revision),
 		ID:          uuid.New().String(),
 		CKLBVersion: "1.0",
 		Active:      false,
@@ -263,6 +273,22 @@ func BuildChecklist(profile *Profile, stig *STIG) *Checklist {
 		},
 		STIGs: []STIG{*stig},
 	}
+}
+
+func benchmarkRevision(version, releaseInfo string) (string, error) {
+	versionNumber, err := strconv.Atoi(strings.TrimSpace(version))
+	if err != nil || versionNumber < 1 {
+		return "", fmt.Errorf("XCCDF benchmark has invalid version %q", strings.TrimSpace(version))
+	}
+	match := releaseNumberPattern.FindStringSubmatch(releaseInfo)
+	if match == nil {
+		return "", fmt.Errorf("XCCDF benchmark has no valid release in release-info %q", releaseInfo)
+	}
+	releaseNumber, err := strconv.Atoi(match[1])
+	if err != nil || releaseNumber < 1 {
+		return "", fmt.Errorf("XCCDF benchmark has invalid release %q", match[1])
+	}
+	return fmt.Sprintf("v%dr%d", versionNumber, releaseNumber), nil
 }
 
 func definitionForProfile(profile *Profile) (STIGDefinition, error) {
