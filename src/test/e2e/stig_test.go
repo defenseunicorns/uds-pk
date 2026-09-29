@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/defenseunicorns/uds-pk/src/stig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,9 +41,7 @@ func TestStigGenerateChecklist(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify top-level checklist fields
-	definition, err := stig.LookupSTIGDefinition(stig.ASDSTIGProfileKey)
-	require.NoError(t, err)
-	assert.Equal(t, stig.ChecklistTitle("e2e-test-app", definition), checklist["title"])
+	require.Equal(t, "e2e-test-app-asd-v6r1", checklist["title"])
 	assert.Equal(t, "1.0", checklist["cklb_version"])
 	assert.Equal(t, false, checklist["active"])
 	assert.Equal(t, float64(1), checklist["mode"])
@@ -96,7 +93,7 @@ func TestStigGenerateMultipleChecklists(t *testing.T) {
 	assert.Contains(t, stdout, "Generated "+rhelOutput)
 
 	expectedTitles := map[string]string{
-		asdOutput:  "e2e-multi-stig-asd-v6r4",
+		asdOutput:  "e2e-multi-stig-asd-v6r1",
 		rhelOutput: "e2e-multi-stig-rhel9-v2r7",
 	}
 	for outputPath, expectedTitle := range expectedTitles {
@@ -354,15 +351,41 @@ func TestStigGenerateChecklistDefaultOutput(t *testing.T) {
 	)
 	require.NoError(t, err, stdout, stderr)
 
-	definition, err := stig.LookupSTIGDefinition(stig.ASDSTIGProfileKey)
-	require.NoError(t, err)
-	defaultOutput := stig.DefaultChecklistFilename("e2e-test-app", definition)
+	defaultOutput := "e2e-test-app-asd-v6r1.cklb"
 	defer e2e.CleanFiles(defaultOutput)
 
 	assert.Contains(t, stdout, "Generated "+defaultOutput)
 
 	_, err = os.Stat(defaultOutput)
 	require.NoError(t, err, "default output file should exist")
+}
+
+func TestStigGenerateChecklistRealBenchmarkMetadata(t *testing.T) {
+	profilePath, err := filepath.Abs("src/test/stig/test-profile.yaml")
+	require.NoError(t, err)
+	xccdfPath, err := filepath.Abs("src/test/stig/test-asd-v6r4-metadata-xccdf.xml")
+	require.NoError(t, err)
+	outputDir := t.TempDir()
+
+	stdout, stderr, err := e2e.UDSPKDir(outputDir, "stig", "generate-checklist",
+		"--profile", profilePath,
+		"--xccdf", xccdfPath,
+	)
+	require.NoError(t, err, stdout, stderr)
+
+	const filename = "e2e-test-app-asd-v6r4.cklb"
+	require.Contains(t, stdout, "Generated "+filename)
+	data, err := os.ReadFile(filepath.Join(outputDir, filename))
+	require.NoError(t, err)
+	var checklist map[string]interface{}
+	require.NoError(t, json.Unmarshal(data, &checklist))
+	require.Equal(t, "e2e-test-app-asd-v6r4", checklist["title"])
+	stigs, ok := checklist["stigs"].([]interface{})
+	require.True(t, ok)
+	require.Len(t, stigs, 1)
+	stig, ok := stigs[0].(map[string]interface{})
+	require.True(t, ok)
+	require.Equal(t, "Release: 4 Benchmark Date: 01 Oct 2025", stig["release_info"])
 }
 
 func TestStigGenerateChecklistRejectsUnsupportedSTIG(t *testing.T) {
@@ -401,6 +424,35 @@ func TestStigGenerateChecklistInvalidXCCDF(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.Contains(t, stderr, "failed to parse XCCDF")
+}
+
+func TestStigGenerateChecklistChecksOutputCollisionBeforeParsing(t *testing.T) {
+	xccdfPath := filepath.Join(t.TempDir(), "malformed.xml")
+	require.NoError(t, os.WriteFile(xccdfPath, []byte("not xml"), 0o644))
+
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-profile.yaml",
+		"--xccdf", xccdfPath,
+		"--output", xccdfPath,
+	)
+	require.Error(t, err)
+	require.Contains(t, stderr, "conflicts with XCCDF input path")
+	data, err := os.ReadFile(xccdfPath)
+	require.NoError(t, err)
+	require.Equal(t, "not xml", string(data))
+}
+
+func TestStigGenerateChecklistRejectsMismatchedBenchmark(t *testing.T) {
+	outputPath := filepath.Join(t.TempDir(), "output.cklb")
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-profile.yaml",
+		"--xccdf", "src/test/stig/test-rhel9-xccdf.xml",
+		"--output", outputPath,
+	)
+	require.Error(t, err)
+	require.Contains(t, stderr, `XCCDF benchmark "RHEL_9_STIG" does not match STIG "asd_v6r4"`)
+	_, err = os.Stat(outputPath)
+	require.True(t, os.IsNotExist(err))
 }
 
 func TestStigGenerateChecklistWithRealSTIG(t *testing.T) {

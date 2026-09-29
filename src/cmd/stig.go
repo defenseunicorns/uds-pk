@@ -69,24 +69,44 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 	if err := validatePathCount("output", o.OutputPaths, len(profiles)); err != nil {
 		return err
 	}
-	outputPaths, err := resolveOutputPaths(profile.AppName, profiles, o.OutputPaths)
-	if err != nil {
-		return err
+	var outputPaths []string
+	if len(o.OutputPaths) > 0 {
+		outputPaths, err = resolveOutputPaths(profile.AppName, profiles, nil, o.OutputPaths)
+		if err != nil {
+			return err
+		}
+		if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
+			return err
+		}
 	}
-	if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
-		return err
-	}
-
 	checklists := make([]*generatedChecklist, 0, len(profiles))
+	revisions := make([]string, 0, len(profiles))
 	for i, stigProfile := range profiles {
 		profile.ActivateSTIG(stigProfile)
 		xccdfPath := pathAt(o.XCCDFPaths, i)
-		outputPath := outputPaths[i]
-		checklist, err := prepareChecklist(ctx, log, profile, xccdfPath, outputPath)
+		checklist, err := prepareChecklist(ctx, log, profile, xccdfPath)
 		if err != nil {
 			return fmt.Errorf("generating checklist for STIG %q: %w", stigProfile.ID, err)
 		}
 		checklists = append(checklists, checklist)
+		revisions = append(revisions, checklist.revision)
+	}
+
+	if len(o.OutputPaths) == 0 {
+		outputPaths, err = resolveOutputPaths(profile.AppName, profiles, revisions, nil)
+		if err != nil {
+			return err
+		}
+		if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
+			return err
+		}
+	}
+	for i, checklist := range checklists {
+		checklist.outputPath = outputPaths[i]
+		checklist.destinationPath, err = resolveOutputPath(outputPaths[i])
+		if err != nil {
+			return err
+		}
 	}
 
 	if err := writeChecklists(cmd, checklists); err != nil {
@@ -175,7 +195,7 @@ type existingPath struct {
 	info os.FileInfo
 }
 
-func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPaths []string) ([]string, error) {
+func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, revisions, explicitPaths []string) ([]string, error) {
 	paths := explicitPaths
 	if len(paths) == 0 {
 		paths = make([]string, len(profiles))
@@ -184,7 +204,7 @@ func resolveOutputPaths(appName string, profiles []*stig.STIGProfile, explicitPa
 			if err != nil {
 				return nil, fmt.Errorf("determining output path for STIG %q: %w", profile.ID, err)
 			}
-			paths[i] = stig.DefaultChecklistFilename(appName, definition)
+			paths[i] = stig.DefaultChecklistFilename(appName, definition, revisions[i])
 		}
 	}
 
@@ -258,6 +278,7 @@ func resolveOutputPath(path string) (string, error) {
 
 type generatedChecklist struct {
 	stigID          string
+	revision        string
 	outputPath      string
 	destinationPath string
 	data            []byte
@@ -265,7 +286,7 @@ type generatedChecklist struct {
 	statusCounts    map[string]int
 }
 
-func prepareChecklist(ctx context.Context, log *slog.Logger, profile *stig.Profile, explicitXCCDFPath, outputPath string) (*generatedChecklist, error) {
+func prepareChecklist(ctx context.Context, log *slog.Logger, profile *stig.Profile, explicitXCCDFPath string) (*generatedChecklist, error) {
 	xccdfPath, cleanup, err := stig.ResolveXCCDFPath(ctx, profile, explicitXCCDFPath)
 	if err != nil {
 		return nil, fmt.Errorf("resolving XCCDF: %w", err)
@@ -282,22 +303,16 @@ func prepareChecklist(ctx context.Context, log *slog.Logger, profile *stig.Profi
 	if err != nil {
 		return nil, fmt.Errorf("marshalling JSON: %w", err)
 	}
-	destinationPath, err := resolveOutputPath(outputPath)
-	if err != nil {
-		return nil, err
-	}
-
 	counts := map[string]int{}
 	for _, rule := range parsedSTIG.Rules {
 		counts[rule.Status]++
 	}
 	return &generatedChecklist{
-		stigID:          profile.SelectedSTIG.ID,
-		outputPath:      outputPath,
-		destinationPath: destinationPath,
-		data:            data,
-		ruleCount:       len(parsedSTIG.Rules),
-		statusCounts:    counts,
+		stigID:       profile.SelectedSTIG.ID,
+		revision:     parsedSTIG.Revision,
+		data:         data,
+		ruleCount:    len(parsedSTIG.Rules),
+		statusCounts: counts,
 	}, nil
 }
 

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2026 Defense Unicorns
+     SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+     Benchmark ID, title, version, and release-info from U_ASD_V6R4_STIG.zip.
+     The single rule below is a minimal test rule, not the full DISA benchmark. -->
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="Application_Security_Development_STIG" xml:lang="en">
+  <title>Application Security and Development Security Technical Implementation Guide</title>
+  <version>6</version>
+  <plain-text id="release-info">Release: 4 Benchmark Date: 01 Oct 2025</plain-text>
+  <Group id="V-222400">
+    <title>SRG-APP-000014</title>
+    <Rule id="SV-222400r1_rule" severity="high" weight="10.0">
+      <version>APSC-DV-000160</version>
+      <title>The application must protect remote access sessions.</title>
+      <description>&lt;VulnDiscussion&gt;Remote sessions require protection.&lt;/VulnDiscussion&gt;</description>
+      <fixtext>Configure session protection.</fixtext>
+      <check><check-content>Verify remote sessions are protected.</check-content></check>
+    </Rule>
+  </Group>
+</Benchmark>

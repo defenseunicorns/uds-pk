@@ -8,7 +8,6 @@ import "fmt"
 var stigDefinitions = map[string]STIGDefinition{
 	ASDSTIGProfileKey: {
 		ID:             ASDSTIGProfileKey,
-		Revision:       "v6r4",
 		ChecklistSlug:  "asd",
 		TargetRole:     "Application Server",
 		TechnologyArea: "Application Review",
@@ -20,7 +19,6 @@ var stigDefinitions = map[string]STIGDefinition{
 	},
 	RHEL9STIGProfileKey: {
 		ID:             RHEL9STIGProfileKey,
-		Revision:       "v2r7",
 		ChecklistSlug:  "rhel9",
 		TargetRole:     "Operating System",
 		TechnologyArea: "Operating System Review",
