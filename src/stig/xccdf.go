@@ -72,6 +72,11 @@ type xccdfRef struct {
 var releaseNumberPattern = regexp.MustCompile(`(?i)\bRelease:\s*([0-9]+)(?:\s|$)`)
 
 func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
+	return ParseXCCDFWithEvidence(path, profile, nil)
+}
+
+// ParseXCCDFWithEvidence applies mapped scan results between profile heuristics and human overrides.
+func ParseXCCDFWithEvidence(path string, profile *Profile, evidence *ScanEvidence) (*STIG, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", path, err)
@@ -161,11 +166,24 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 
 		// Evaluate the rule
 		status, findingDetails, comments := evaluateRule(definition, profile, g.ID, r.Version, r.Title, r.Check.Content, discussion)
+		scanStatus, scanUsed, scanReason := evidence.DispositionFor(r.Version, r.ID)
+		dispositionSource := "scan result"
+		if !scanUsed {
+			dispositionSource = "profile heuristic (scan not used: " + scanReason + ")"
+			if status == "not_reviewed" {
+				dispositionSource = "not_reviewed (scan not used: " + scanReason + ")"
+			}
+		}
+		if scanUsed {
+			status = scanStatus
+			findingDetails = ""
+		}
 
 		// Apply per-rule overrides from profile
 		if ov, ok := profile.Overrides[r.Version]; ok {
 			if ov.Status != "" {
 				status = ov.Status
+				dispositionSource = "human profile override"
 			}
 			if ov.FindingDetails != "" {
 				findingDetails = ov.FindingDetails
@@ -173,6 +191,12 @@ func ParseXCCDF(path string, profile *Profile) (*STIG, error) {
 			if ov.Comments != "" {
 				comments = ov.Comments
 			}
+		}
+		if scanDetails := evidence.FindingDetailsFor(r.Version, dispositionSource); scanDetails != "" {
+			if findingDetails != "" {
+				findingDetails += "\n\n"
+			}
+			findingDetails += scanDetails
 		}
 
 		// Pretty IDs

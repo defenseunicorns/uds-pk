@@ -251,6 +251,12 @@ uds-pk stig generate-checklist --profile stig-profile.yaml
 # Provide your own XCCDF file
 uds-pk stig generate-checklist --profile stig-profile.yaml --xccdf /path/to/stig.xml
 
+# Enrich DISA checklist findings with results from the matching SSG data stream
+uds-pk stig generate-checklist --profile stig-profile.yaml \
+  --xccdf /path/to/disa-manual-xccdf.xml \
+  --results /path/to/final-results.xml \
+  --results-datastream /path/to/ssg-rhel9-ds.xml
+
 # Provide XCCDF and output paths for two STIG entries
 uds-pk stig generate-checklist --profile stig-profile.yaml \
   --xccdf /path/to/asd.xml,/path/to/rhel9.xml \
@@ -258,6 +264,10 @@ uds-pk stig generate-checklist --profile stig-profile.yaml \
 ```
 
 For multiple supported entries, pass comma-separated paths to `--xccdf` or `--output`. Values are matched to supported `stigs` entries in profile order; omit `--xccdf` to auto-download sources or `--output` to use the default filenames.
+
+`--results` and `--results-datastream` must be supplied together. The scan profile ID is read from the results and checked against the data stream. The results must be an XCCDF 1.1 or 1.2 Benchmark with one TestResult; its embedded STIG rule references and selected profile settings must match the active checklist benchmark in the SSG data stream. The benchmark IDs and versions must also match. Scan dispositions apply only when both the DISA rule version ID and SV rule revision match the SSG references; mismatched revisions retain the profile disposition. Supply results from the system being assessed; the command cannot establish image identity from the scan target.
+
+For each finding, a profile override takes precedence over an unambiguous scan result, then a profile characteristic heuristic, then `not_reviewed`. `pass`, `fail`, and `notapplicable` map to `not_a_finding`, `open`, and `not_applicable` only when every SSG rule mapped to that DISA rule has a result and the statuses agree. Other or conflicting results leave the heuristic disposition in place. Mapped SSG rule IDs, raw results, and the source of the final disposition are appended to `finding_details`, including when a human override supplies the disposition.
 
 If `--output` is omitted, the default filename is:
 

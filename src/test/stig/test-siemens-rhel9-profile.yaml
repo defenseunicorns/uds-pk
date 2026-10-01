@@ -1,0 +1,17 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+# Reduced from uds-packages/siemens-license-server stig-profile.yaml at
+# compliance run 36096874359 (commit 5e67397c97ae70a7abee03005349023cd3b8d8a7).
+# The app name, FQDN, STIG key, and relevant characteristics match the source.
+# Version is "dev" for the test binary; the source profile uses 5.0.0-uds.5.
+# Unrelated characteristics, descriptions, and human overrides are omitted.
+kind: UDS STIG Profile
+metadata:
+  name: siemens-license-server
+  fqdn: siemens-license-server.siemens-license-server.svc.cluster.local
+  version: dev
+stigs:
+  - id: rhel9_v2r7
+    characteristics:
+      uses_aide: false
+      usb_storage_disabled: true
