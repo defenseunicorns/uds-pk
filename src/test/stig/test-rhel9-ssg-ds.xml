@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2026 Defense Unicorns
+     SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+     Reduced from ssg-rhel9-ds.xml in the scanner image used for the Siemens
+     License Server scan: ghcr.io/defenseunicorns/zarf-scan/zarf-scan-oscap:4.8.0.
+     That image carries ComplianceAsCode Content v0.1.82:
+     https://github.com/ComplianceAsCode/content/releases/tag/v0.1.82
+     Benchmark metadata, Group/Rule IDs, and STIG references match the full file.
+     The group hierarchy is flattened and profile selections are omitted; the
+     surrounding data stream and unrelated rule are synthetic test scaffolding. -->
+<data-stream-collection xmlns="http://scap.nist.gov/schema/scap/source/1.2" xmlns:xlink="http://www.w3.org/1999/xlink" id="scap_test_collection_rhel9" schematron-version="1.2">
+  <data-stream id="scap_test_datastream_rhel9" use-case="CONFIGURATION" scap-version="1.2">
+    <checklists><component-ref id="scap_test_cref_rhel9_checklist" xlink:href="#scap_test_comp_rhel9"/></checklists>
+    <checks><component-ref id="scap_test_cref_rhel9_checks" xlink:href="#scap_test_comp_rhel9"/></checks>
+  </data-stream>
+  <component id="scap_test_comp_rhel9" timestamp="2026-09-30T10:00:00Z">
+    <Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="xccdf_org.ssgproject.content_benchmark_RHEL-9">
+      <status date="2026-09-01">draft</status>
+      <title>Guide to the Secure Configuration of Red Hat Enterprise Linux 9</title>
+      <version update="https://github.com/ComplianceAsCode/content/releases/latest">0.1.82</version>
+      <Profile id="xccdf_org.ssgproject.content_profile_stig"><title>DISA STIG for Red Hat Enterprise Linux 9</title></Profile>
+      <Group id="xccdf_org.ssgproject.content_group_aide">
+        <Rule id="xccdf_org.ssgproject.content_rule_package_aide_installed">
+          <reference href="https://www.cyber.mil/stigs/downloads/?_dl_facet_stigs=operating-systems%2Cunix-linux">RHEL-09-651010</reference>
+          <reference href="https://www.cyber.mil/stigs/srg-stig-tools/">SV-258134r1155620_rule</reference>
+        </Rule>
+        <Rule id="xccdf_org.ssgproject.content_rule_aide_build_database">
+          <reference href="https://www.cyber.mil/stigs/downloads/?_dl_facet_stigs=operating-systems%2Cunix-linux">RHEL-09-651010</reference>
+          <reference href="https://www.cyber.mil/stigs/srg-stig-tools/">SV-258134r1155620_rule</reference>
+        </Rule>
+        <Rule id="xccdf_org.ssgproject.content_rule_aide_check_audit_tools">
+          <reference href="https://www.cyber.mil/stigs/downloads/?_dl_facet_stigs=operating-systems%2Cunix-linux">RHEL-09-651025</reference>
+          <reference href="https://www.cyber.mil/stigs/srg-stig-tools/">SV-258137r1102081_rule</reference>
+        </Rule>
+      </Group>
+      <Group id="xccdf_org.ssgproject.content_group_mounting">
+        <Rule id="xccdf_org.ssgproject.content_rule_kernel_module_usb-storage_disabled">
+          <reference href="https://www.cyber.mil/stigs/downloads/?_dl_facet_stigs=operating-systems%2Cunix-linux">RHEL-09-291010</reference>
+          <reference href="https://www.cyber.mil/stigs/srg-stig-tools/">SV-258034r1051267_rule</reference>
+        </Rule>
+      </Group>
+      <!-- Synthetic negative control: a STIG-looking ID with an unrelated URL. -->
+      <Group id="xccdf_test_group_unrelated">
+        <Rule id="xccdf_org.ssgproject.content_rule_unrelated_reference">
+          <reference href="https://example.com/not-a-stig-reference">RHEL-09-999999</reference>
+        </Rule>
+      </Group>
+    </Benchmark>
+  </component>
+</data-stream-collection>

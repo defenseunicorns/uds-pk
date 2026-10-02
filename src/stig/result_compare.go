@@ -59,6 +59,7 @@ type XCCDFResultSet struct {
 // XCCDFRuleResult is one uniquely identifiable XCCDF rule-result record.
 type XCCDFRuleResult struct {
 	Identity string
+	RuleID   string
 	Status   ResultStatus
 }
 
@@ -233,7 +234,7 @@ func LoadXCCDFResults(path string) (*XCCDFResultSet, error) {
 		if _, exists := set.RuleResults[identity]; exists {
 			return nil, fmt.Errorf("%s contains ambiguous duplicate rule-result identity %q", path, identity)
 		}
-		set.RuleResults[identity] = XCCDFRuleResult{Identity: identity, Status: status}
+		set.RuleResults[identity] = XCCDFRuleResult{Identity: identity, RuleID: ruleID, Status: status}
 	}
 	return set, nil
 }
