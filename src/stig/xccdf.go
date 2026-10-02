@@ -175,8 +175,10 @@ func ParseXCCDFWithEvidence(path string, profile *Profile, evidence *ScanEvidenc
 			}
 		}
 		if scanUsed {
+			if status != scanStatus {
+				findingDetails = ""
+			}
 			status = scanStatus
-			findingDetails = ""
 		}
 
 		// Apply per-rule overrides from profile

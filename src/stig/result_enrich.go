@@ -119,8 +119,19 @@ func (e *ScanEvidence) DispositionFor(stigID, disaRuleID string) (string, bool, 
 		return "", false, "no mapped scan results"
 	}
 	for ruleID := range e.expectedRuleIDs[stigID] {
-		if !containsSTIGID(e.ruleReferences[ruleID], disaRuleID) {
+		references := e.ruleReferences[ruleID]
+		if !containsSTIGID(references, disaRuleID) {
 			return "", false, "mapped SSG rule revision does not match the DISA rule"
+		}
+		// Flat SSG references do not pair rule versions with revisions. If a
+		// rule cites more than one of either, its scan cannot identify this
+		// particular DISA rule revision unambiguously.
+		for _, reference := range references {
+			if reference != stigID && reference != disaRuleID &&
+				(strings.HasPrefix(reference, "RHEL-") || strings.HasPrefix(reference, "APSC-DV-") ||
+					strings.HasPrefix(reference, "SV-") && strings.HasSuffix(reference, "_rule")) {
+				return "", false, "mapped SSG rule has ambiguous DISA references"
+			}
 		}
 	}
 	observed := make(map[string]struct{}, len(results))

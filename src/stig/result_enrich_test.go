@@ -51,6 +51,28 @@ func TestLoadScanEvidenceMapsRealSSGReferences(t *testing.T) {
 	require.Equal(t, "not_applicable", status)
 }
 
+func TestScanDispositionRejectsAmbiguousDISAReferences(t *testing.T) {
+	for _, test := range []struct {
+		name, extraReference string
+	}{
+		{name: "another rule version", extraReference: "RHEL-09-291010"},
+		{name: "another rule revision", extraReference: "SV-258034r1106302_rule"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			evidence, err := LoadScanEvidence(
+				enrichmentFixture("test-rhel9-ssg-results.xml"),
+				enrichmentFixture("test-rhel9-ssg-ds.xml"),
+			)
+			require.NoError(t, err)
+			const ruleID = "xccdf_org.ssgproject.content_rule_package_aide_installed"
+			evidence.ruleReferences[ruleID] = append(evidence.ruleReferences[ruleID], test.extraReference)
+			_, ok, reason := evidence.DispositionFor("RHEL-09-651010", "SV-258134r1155620_rule")
+			require.False(t, ok)
+			require.Equal(t, "mapped SSG rule has ambiguous DISA references", reason)
+		})
+	}
+}
+
 func TestLoadScanEvidenceRequiresResultProfile(t *testing.T) {
 	data, err := os.ReadFile(enrichmentFixture("test-rhel9-ssg-results.xml"))
 	require.NoError(t, err)
@@ -129,6 +151,7 @@ func TestParseXCCDFWithEvidenceHonorsPrecedence(t *testing.T) {
 	require.Equal(t, "open", rules["RHEL-09-291010"].Status) // scan overrides USB-disabled heuristic
 	require.Contains(t, rules["RHEL-09-291010"].FindingDetails, "kernel_module_usb-storage_disabled: fail")
 	require.Contains(t, rules["RHEL-09-291010"].FindingDetails, "Disposition source: scan result")
+	require.NotContains(t, rules["RHEL-09-291010"].FindingDetails, "does not permit removable media")
 	require.Equal(t, "not_a_finding", rules["RHEL-09-651025"].Status)
 	require.Equal(t, "not_reviewed", rules["RHEL-09-999999"].Status)
 	require.NotContains(t, rules["RHEL-09-999999"].FindingDetails, "OpenSCAP results:")
@@ -294,6 +317,7 @@ func TestParseXCCDFWithEvidenceHandlesOtherScanStatuses(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, test.wantStatus, stig.Rules[1].Status)
 			require.Contains(t, stig.Rules[1].FindingDetails, "kernel_module_usb-storage_disabled: "+test.scanStatus)
+			require.Contains(t, stig.Rules[1].FindingDetails, "does not permit removable media in normal operation")
 		})
 	}
 }
