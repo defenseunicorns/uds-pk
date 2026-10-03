@@ -584,8 +584,8 @@ func parseZarfYaml(options *CommonScanOptions) (v1alpha1.ZarfPackage, error) {
 func getImages(pkg *v1alpha1.ZarfPackage) map[string][]string {
 	flavorToImages := make(map[string][]string)
 	for _, component := range pkg.Components {
-		if component.Only.Flavor != "" {
-			flavorToImages[component.Only.Flavor] = component.Images
+		if flavor := component.Only.Flavor; flavor != "" {
+			flavorToImages[flavor] = append(flavorToImages[flavor], component.GetImages()...)
 		}
 	}
 
