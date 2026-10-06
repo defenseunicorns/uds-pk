@@ -19,9 +19,11 @@ import (
 
 // GenerateChecklistOptions holds flags for the generate-checklist subcommand.
 type GenerateChecklistOptions struct {
-	ProfilePath string
-	XCCDFPaths  []string
-	OutputPaths []string
+	ProfilePath           string
+	XCCDFPaths            []string
+	OutputPaths           []string
+	ResultsPath           string
+	ResultsDataStreamPath string
 }
 
 func generateChecklistCmd() *cobra.Command {
@@ -34,6 +36,8 @@ func generateChecklistCmd() *cobra.Command {
 	cmd.Flags().StringVar(&options.ProfilePath, "profile", "stig-profile.yaml", "Path to stig-profile.yaml")
 	cmd.Flags().StringSliceVar(&options.XCCDFPaths, "xccdf", nil, "Comma-separated XCCDF XML paths in profile order (optional when the profile identifies supported DISA STIGs)")
 	cmd.Flags().StringSliceVar(&options.OutputPaths, "output", nil, "Comma-separated output .cklb paths in profile order (default: <app_name>-<stig>-<revision>.cklb)")
+	cmd.Flags().StringVar(&options.ResultsPath, "results", "", "OpenSCAP XCCDF scan results to enrich mapped checklist findings")
+	cmd.Flags().StringVar(&options.ResultsDataStreamPath, "results-datastream", "", "SSG source data stream used for --results")
 	return cmd
 }
 
@@ -69,6 +73,13 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 	if err := validatePathCount("output", o.OutputPaths, len(profiles)); err != nil {
 		return err
 	}
+	if (o.ResultsPath == "") != (o.ResultsDataStreamPath == "") {
+		return fmt.Errorf("--results and --results-datastream must be supplied together")
+	}
+	scanInputs := []string{}
+	if o.ResultsPath != "" {
+		scanInputs = []string{o.ResultsPath, o.ResultsDataStreamPath}
+	}
 	var outputPaths []string
 	if len(o.OutputPaths) > 0 {
 		outputPaths, err = resolveOutputPaths(profile.AppName, profiles, nil, o.OutputPaths)
@@ -78,13 +89,23 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 		if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
 			return err
 		}
+		if err := validateOutputPathsDoNotOverwriteInputs(outputPaths, scanInputs, "scan"); err != nil {
+			return err
+		}
+	}
+	var evidence *stig.ScanEvidence
+	if o.ResultsPath != "" {
+		evidence, err = stig.LoadScanEvidence(o.ResultsPath, o.ResultsDataStreamPath)
+		if err != nil {
+			return fmt.Errorf("loading OpenSCAP evidence: %w", err)
+		}
 	}
 	checklists := make([]*generatedChecklist, 0, len(profiles))
 	revisions := make([]string, 0, len(profiles))
 	for i, stigProfile := range profiles {
 		profile.ActivateSTIG(stigProfile)
 		xccdfPath := pathAt(o.XCCDFPaths, i)
-		checklist, err := prepareChecklist(ctx, log, profile, xccdfPath)
+		checklist, err := prepareChecklist(ctx, log, profile, xccdfPath, evidence)
 		if err != nil {
 			return fmt.Errorf("generating checklist for STIG %q: %w", stigProfile.ID, err)
 		}
@@ -98,6 +119,9 @@ func (o *GenerateChecklistOptions) run(cmd *cobra.Command, _ []string) error {
 			return err
 		}
 		if err := validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, o.XCCDFPaths); err != nil {
+			return err
+		}
+		if err := validateOutputPathsDoNotOverwriteInputs(outputPaths, scanInputs, "scan"); err != nil {
 			return err
 		}
 	}
@@ -146,23 +170,27 @@ func pathAt(paths []string, index int) string {
 }
 
 func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) error {
-	xccdfPathSet := make(map[string]string, len(xccdfPaths))
-	existingXCCDFs := []existingPath{}
-	for _, path := range xccdfPaths {
+	return validateOutputPathsDoNotOverwriteInputs(outputPaths, xccdfPaths, "XCCDF")
+}
+
+func validateOutputPathsDoNotOverwriteInputs(outputPaths, inputPaths []string, inputName string) error {
+	inputPathSet := make(map[string]string, len(inputPaths))
+	existingInputs := []existingPath{}
+	for _, path := range inputPaths {
 		resolved, err := resolveOutputPath(path)
 		if err != nil {
-			return fmt.Errorf("resolving XCCDF path %q: %w", path, err)
+			return fmt.Errorf("resolving %s path %q: %w", inputName, path, err)
 		}
-		xccdfPathSet[resolved] = path
+		inputPathSet[resolved] = path
 
 		info, err := os.Stat(path)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
 		if err != nil {
-			return fmt.Errorf("stating XCCDF path %q: %w", path, err)
+			return fmt.Errorf("stating %s path %q: %w", inputName, path, err)
 		}
-		existingXCCDFs = append(existingXCCDFs, existingPath{path: path, info: info})
+		existingInputs = append(existingInputs, existingPath{path: path, info: info})
 	}
 
 	for _, path := range outputPaths {
@@ -170,8 +198,8 @@ func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) e
 		if err != nil {
 			return err
 		}
-		if xccdfPath, exists := xccdfPathSet[resolved]; exists {
-			return fmt.Errorf("output path %q conflicts with XCCDF input path %q", path, xccdfPath)
+		if inputPath, exists := inputPathSet[resolved]; exists {
+			return fmt.Errorf("output path %q conflicts with %s input path %q", path, inputName, inputPath)
 		}
 
 		info, err := os.Stat(path)
@@ -181,9 +209,9 @@ func validateOutputPathsDoNotOverwriteXCCDFs(outputPaths, xccdfPaths []string) e
 		if err != nil {
 			return fmt.Errorf("stating output path %q: %w", path, err)
 		}
-		for _, xccdf := range existingXCCDFs {
-			if os.SameFile(info, xccdf.info) {
-				return fmt.Errorf("output path %q conflicts with XCCDF input path %q", path, xccdf.path)
+		for _, input := range existingInputs {
+			if os.SameFile(info, input.info) {
+				return fmt.Errorf("output path %q conflicts with %s input path %q", path, inputName, input.path)
 			}
 		}
 	}
@@ -286,7 +314,7 @@ type generatedChecklist struct {
 	statusCounts    map[string]int
 }
 
-func prepareChecklist(ctx context.Context, log *slog.Logger, profile *stig.Profile, explicitXCCDFPath string) (*generatedChecklist, error) {
+func prepareChecklist(ctx context.Context, log *slog.Logger, profile *stig.Profile, explicitXCCDFPath string, evidence *stig.ScanEvidence) (*generatedChecklist, error) {
 	xccdfPath, cleanup, err := stig.ResolveXCCDFPath(ctx, profile, explicitXCCDFPath)
 	if err != nil {
 		return nil, fmt.Errorf("resolving XCCDF: %w", err)
@@ -294,7 +322,7 @@ func prepareChecklist(ctx context.Context, log *slog.Logger, profile *stig.Profi
 	defer cleanup()
 
 	log.Info("Parsing XCCDF", slog.String("path", xccdfPath), slog.String("stig", profile.SelectedSTIG.ID))
-	parsedSTIG, err := stig.ParseXCCDF(xccdfPath, profile)
+	parsedSTIG, err := stig.ParseXCCDFWithEvidence(xccdfPath, profile, evidence)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse XCCDF: %w", err)
 	}

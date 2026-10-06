@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2026 Defense Unicorns
+     SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+     Reduced from the DISA V2R8 manual XCCDF fetched by the Siemens task:
+     https://dl.dod.cyber.mil/wp-content/uploads/stigs/zip/U_RHEL_9_V2R8_STIG.zip
+     Benchmark metadata, Group/Rule IDs, rule versions, and titles match DISA.
+     Descriptions, fix text, and checks are shortened test data. The final rule is synthetic. -->
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.1" id="RHEL_9_STIG">
+  <status date="2026-02-05">accepted</status>
+  <title>Red Hat Enterprise Linux 9 Security Technical Implementation Guide</title>
+  <plain-text id="release-info">Release: 8 Benchmark Date: 01 Apr 2026</plain-text>
+  <version>2</version>
+  <Group id="V-258134"><title>SRG-OS-000363-GPOS-00150</title><Rule id="SV-258134r1155620_rule" severity="medium" weight="10.0">
+    <version>RHEL-09-651010</version><title>RHEL 9 must have the AIDE package installed.</title>
+    <description>&lt;VulnDiscussion&gt;File integrity monitoring is required.&lt;/VulnDiscussion&gt;</description>
+    <fixtext>Install and configure AIDE.</fixtext><check system="C-61875r1155619_chk"><check-content>Verify AIDE is configured.</check-content></check>
+  </Rule></Group>
+  <Group id="V-258034"><title>SRG-OS-000114-GPOS-00059</title><Rule id="SV-258034r1051267_rule" severity="medium" weight="10.0">
+    <version>RHEL-09-291010</version><title>RHEL 9 must be configured to disable USB mass storage.</title>
+    <description>&lt;VulnDiscussion&gt;Removable media requires control.&lt;/VulnDiscussion&gt;</description>
+    <fixtext>Disable USB storage.</fixtext><check system="C-61775r1051266_chk"><check-content>Verify USB storage is disabled.</check-content></check>
+  </Rule></Group>
+  <Group id="V-258137"><title>SRG-OS-000256-GPOS-00097</title><Rule id="SV-258137r1102081_rule" severity="medium" weight="10.0">
+    <version>RHEL-09-651025</version><title>RHEL 9 must use cryptographic mechanisms to protect the integrity of audit tools.</title>
+    <description>&lt;VulnDiscussion&gt;Protect audit tools.&lt;/VulnDiscussion&gt;</description>
+    <fixtext>Protect audit tools.</fixtext><check system="C-61878r1102080_chk"><check-content>Verify audit tools are protected.</check-content></check>
+  </Rule></Group>
+  <!-- Synthetic negative control: no SSG rule maps to this rule version. -->
+  <Group id="V-999999"><title>SRG-OS-999999</title><Rule id="SV-999999_rule" severity="medium" weight="10.0">
+    <version>RHEL-09-999999</version><title>Unmapped requirement.</title>
+    <description>&lt;VulnDiscussion&gt;Review manually.&lt;/VulnDiscussion&gt;</description>
+    <fixtext>Review manually.</fixtext><check system="https://example.com/checks"><check-content>Review manually.</check-content></check>
+  </Rule></Group>
+</Benchmark>
