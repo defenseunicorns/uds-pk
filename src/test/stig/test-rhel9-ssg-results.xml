@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2026 Defense Unicorns
+     SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+     Reduced from the Siemens License Server amd64 compliance artifact's
+     final-results.xml (run 36096874359) and its matching SSG v0.1.82 data stream.
+     Benchmark metadata, scan profile, target, scanner version, times, score,
+     and four selected rule IDs/statuses match the real scan. Runtime rootfs
+     facts, untested rules, and profile selections are omitted. The unrelated
+     rule and abbreviated benchmark/rule content are synthetic test scaffolding;
+     tests create altered statuses and targets only for edge cases. -->
+<Benchmark xmlns="http://checklists.nist.gov/xccdf/1.2" id="xccdf_org.ssgproject.content_benchmark_RHEL-9">
+  <status date="2026-09-01">draft</status>
+  <title xml:lang="en-US">Guide to the Secure Configuration of Red Hat Enterprise Linux 9</title>
+  <version update="https://github.com/ComplianceAsCode/content/releases/latest">0.1.82</version>
+  <Profile id="xccdf_org.ssgproject.content_profile_stig"><title>DISA STIG for Red Hat Enterprise Linux 9</title></Profile>
+  <Group id="xccdf_org.ssgproject.content_group_aide">
+    <Rule id="xccdf_org.ssgproject.content_rule_package_aide_installed">
+      <reference href="https://www.cyber.mil/stigs/downloads/?_dl_facet_stigs=operating-systems%2Cunix-linux">RHEL-09-651010</reference>
+      <reference href="https://www.cyber.mil/stigs/srg-stig-tools/">SV-258134r1155620_rule</reference>
+    </Rule>
+    <Rule id="xccdf_org.ssgproject.content_rule_aide_build_database">
+      <reference href="https://www.cyber.mil/stigs/downloads/?_dl_facet_stigs=operating-systems%2Cunix-linux">RHEL-09-651010</reference>
+      <reference href="https://www.cyber.mil/stigs/srg-stig-tools/">SV-258134r1155620_rule</reference>
+    </Rule>
+    <Rule id="xccdf_org.ssgproject.content_rule_aide_check_audit_tools">
+      <reference href="https://www.cyber.mil/stigs/downloads/?_dl_facet_stigs=operating-systems%2Cunix-linux">RHEL-09-651025</reference>
+      <reference href="https://www.cyber.mil/stigs/srg-stig-tools/">SV-258137r1102081_rule</reference>
+    </Rule>
+  </Group>
+  <Group id="xccdf_org.ssgproject.content_group_mounting">
+    <Rule id="xccdf_org.ssgproject.content_rule_kernel_module_usb-storage_disabled">
+      <reference href="https://www.cyber.mil/stigs/downloads/?_dl_facet_stigs=operating-systems%2Cunix-linux">RHEL-09-291010</reference>
+      <reference href="https://www.cyber.mil/stigs/srg-stig-tools/">SV-258034r1051267_rule</reference>
+    </Rule>
+  </Group>
+  <Group id="xccdf_test_group_unrelated">
+    <Rule id="xccdf_org.ssgproject.content_rule_unrelated_reference">
+      <reference href="https://example.com/not-a-stig-reference">RHEL-09-999999</reference>
+    </Rule>
+  </Group>
+  <TestResult id="xccdf_org.open-scap_testresult_xccdf_org.ssgproject.content_profile_stig" start-time="2026-09-25T05:06:51+00:00" end-time="2026-09-25T05:06:51+00:00" version="0.1.82" test-system="cpe:/a:redhat:openscap:1.3.14">
+    <benchmark href="ssg-content/ssg-rhel9-ds.xml" id="xccdf_org.ssgproject.content_benchmark_RHEL-9"/>
+    <title>OSCAP Scan Result</title>
+    <profile idref="xccdf_org.ssgproject.content_profile_stig"/>
+    <target>unknown</target>
+    <target-facts>
+      <fact name="urn:xccdf:fact:scanner:name" type="string">OpenSCAP</fact>
+      <fact name="urn:xccdf:fact:scanner:version" type="string">1.3.14</fact>
+    </target-facts>
+    <rule-result idref="xccdf_org.ssgproject.content_rule_package_aide_installed"><result>notapplicable</result></rule-result>
+    <rule-result idref="xccdf_org.ssgproject.content_rule_aide_build_database"><result>notapplicable</result></rule-result>
+    <rule-result idref="xccdf_org.ssgproject.content_rule_kernel_module_usb-storage_disabled"><result>notapplicable</result></rule-result>
+    <rule-result idref="xccdf_org.ssgproject.content_rule_aide_check_audit_tools"><result>notapplicable</result></rule-result>
+    <rule-result idref="xccdf_org.ssgproject.content_rule_unrelated_reference"><result>pass</result></rule-result>
+    <score system="urn:xccdf:scoring:default" maximum="100.000000">81.718750</score>
+  </TestResult>
+</Benchmark>

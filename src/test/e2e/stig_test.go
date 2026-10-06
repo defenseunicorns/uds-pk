@@ -388,6 +388,109 @@ func TestStigGenerateChecklistRealBenchmarkMetadata(t *testing.T) {
 	require.Equal(t, "Release: 4 Benchmark Date: 01 Oct 2025", stig["release_info"])
 }
 
+func TestStigGenerateChecklistEnrichesFromOpenSCAP(t *testing.T) {
+	dir := t.TempDir()
+	outputPath := filepath.Join(dir, "enriched.cklb")
+	stdout, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-siemens-rhel9-profile.yaml",
+		"--xccdf", "src/test/stig/test-rhel9-enrichment-xccdf.xml",
+		"--results", "src/test/stig/test-rhel9-ssg-results.xml",
+		"--results-datastream", "src/test/stig/test-rhel9-ssg-ds.xml",
+		"--output", outputPath,
+	)
+	require.NoError(t, err, stdout, stderr)
+	data, err := os.ReadFile(outputPath)
+	require.NoError(t, err)
+	var checklist struct {
+		STIGs []struct {
+			Rules []struct {
+				Version        string `json:"rule_version"`
+				Status         string `json:"status"`
+				FindingDetails string `json:"finding_details"`
+			} `json:"rules"`
+		} `json:"stigs"`
+	}
+	require.NoError(t, json.Unmarshal(data, &checklist))
+	require.Len(t, checklist.STIGs, 1)
+	rules := make(map[string]struct{ Status, FindingDetails string })
+	for _, rule := range checklist.STIGs[0].Rules {
+		rules[rule.Version] = struct{ Status, FindingDetails string }{rule.Status, rule.FindingDetails}
+	}
+	require.Equal(t, "not_applicable", rules["RHEL-09-651010"].Status)
+	require.Contains(t, rules["RHEL-09-651010"].FindingDetails, "aide_build_database: notapplicable")
+	require.Equal(t, "not_applicable", rules["RHEL-09-291010"].Status)
+	require.Contains(t, rules["RHEL-09-291010"].FindingDetails, "kernel_module_usb-storage_disabled: notapplicable")
+	require.Equal(t, "not_applicable", rules["RHEL-09-651025"].Status)
+	require.Contains(t, rules["RHEL-09-651025"].FindingDetails, "aide_check_audit_tools: notapplicable")
+	require.Equal(t, "not_reviewed", rules["RHEL-09-999999"].Status)
+}
+
+func TestStigGenerateChecklistIgnoresUnmappedScan(t *testing.T) {
+	outputPath := filepath.Join(t.TempDir(), "output.cklb")
+	stdout, _, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-profile.yaml",
+		"--xccdf", "src/test/stig/test-xccdf.xml",
+		"--results", "src/test/stig/test-rhel9-ssg-results.xml",
+		"--results-datastream", "src/test/stig/test-rhel9-ssg-ds.xml",
+		"--output", outputPath,
+	)
+	require.NoError(t, err, stdout)
+	data, err := os.ReadFile(outputPath)
+	require.NoError(t, err)
+	require.NotContains(t, string(data), "OpenSCAP results:")
+}
+
+func TestStigGenerateChecklistRequiresResultsPair(t *testing.T) {
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-profile.yaml",
+		"--results", "src/test/stig/test-rhel9-ssg-results.xml",
+	)
+	require.Error(t, err)
+	require.Contains(t, stderr, "--results and --results-datastream must be supplied together")
+}
+
+func TestStigGenerateChecklistProtectsScanInputs(t *testing.T) {
+	resultsPath := filepath.Join(t.TempDir(), "results.xml")
+	require.NoError(t, os.WriteFile(resultsPath, []byte("scan evidence"), 0o644))
+	_, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-multi-profile.yaml",
+		"--xccdf", "src/test/stig/test-xccdf.xml,src/test/stig/test-rhel9-enrichment-xccdf.xml",
+		"--results", resultsPath,
+		"--results-datastream", "src/test/stig/test-rhel9-ssg-ds.xml",
+		"--output", resultsPath+","+filepath.Join(t.TempDir(), "rhel.cklb"),
+	)
+	require.Error(t, err)
+	require.Contains(t, stderr, "conflicts with scan input path")
+	data, err := os.ReadFile(resultsPath)
+	require.NoError(t, err)
+	require.Equal(t, "scan evidence", string(data))
+}
+
+func TestStigGenerateMultipleChecklistsEnrichesMatchingSTIGOnly(t *testing.T) {
+	dir := t.TempDir()
+	asdOutput := filepath.Join(dir, "asd.cklb")
+	rhelOutput := filepath.Join(dir, "rhel.cklb")
+	stdout, stderr, err := e2e.UDSPK("stig", "generate-checklist",
+		"--profile", "src/test/stig/test-multi-profile.yaml",
+		"--xccdf", "src/test/stig/test-xccdf.xml,src/test/stig/test-rhel9-enrichment-xccdf.xml",
+		"--results", "src/test/stig/test-rhel9-ssg-results.xml",
+		"--results-datastream", "src/test/stig/test-rhel9-ssg-ds.xml",
+		"--output", asdOutput+","+rhelOutput,
+	)
+	require.NoError(t, err, stdout, stderr)
+	for _, output := range []string{asdOutput, rhelOutput} {
+		_, err := os.Stat(output)
+		require.NoError(t, err)
+	}
+	data, err := os.ReadFile(asdOutput)
+	require.NoError(t, err)
+	require.NotContains(t, string(data), "OpenSCAP results:")
+	data, err = os.ReadFile(rhelOutput)
+	require.NoError(t, err)
+	require.Contains(t, string(data), "OpenSCAP results:")
+	require.Contains(t, string(data), "xccdf_org.ssgproject.content_rule_kernel_module_usb-storage_disabled")
+}
+
 func TestStigGenerateChecklistRejectsUnsupportedSTIG(t *testing.T) {
 	profilePath := filepath.Join(t.TempDir(), "profile-with-unsupported-stig.yaml")
 	err := os.WriteFile(profilePath, []byte(`
