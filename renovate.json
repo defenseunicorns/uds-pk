@@ -20,7 +20,6 @@
       "groupName": "UDS Package Kit Support Dependencies",
       "labels": ["support-deps"],
       "commitMessageTopic": "support-deps",
-      "postUpdateOptions": ["gomodTidy"],
       "matchPackageNames": [
         "*"
       ]
