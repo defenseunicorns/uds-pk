@@ -7,7 +7,6 @@ require (
 	github.com/defenseunicorns/uds-cli v0.39.0
 	github.com/go-git/go-git/v5 v5.19.2
 	github.com/goccy/go-yaml v1.19.2
-	github.com/google/go-github/v90 v90.0.0
 	github.com/google/go-github/v92 v92.0.0
 	github.com/google/uuid v1.6.0
 	github.com/mikefarah/yq/v4 v4.54.1
@@ -16,7 +15,6 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/xeipuuv/gojsonschema v1.2.0
 	github.com/zarf-dev/zarf v0.87.0
-	gitlab.com/gitlab-org/api/client-go/v2 v2.64.0
 	gitlab.com/gitlab-org/api/client-go/v3 v3.15.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473

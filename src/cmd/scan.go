@@ -1,4 +1,4 @@
-// Copyright 2025 Defense Unicorns
+// Copyright 2025-2026 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 package cmd
@@ -18,7 +18,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/compare"
 	"github.com/defenseunicorns/uds-pk/src/scan"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	"github.com/google/go-github/v90/github"
+	"github.com/google/go-github/v92/github"
 	"github.com/spf13/cobra"
 	"github.com/zarf-dev/zarf/src/api/v1alpha1"
 	"go.yaml.in/yaml/v4"
