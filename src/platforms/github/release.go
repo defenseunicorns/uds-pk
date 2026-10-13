@@ -13,7 +13,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	github "github.com/google/go-github/v90/github"
+	github "github.com/google/go-github/v92/github"
 )
 
 type Platform struct{}
@@ -44,13 +44,15 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 
 	tagName := utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)
 	releaseName := fmt.Sprintf("%s %s", zarfPackageName, tagName)
+	body := releaseName
+	generateReleaseNotes := true
 
 	// Create the release
 	release := github.CreateReleaseRequest{
 		TagName:              tagName,
-		Name:                 github.Ptr(releaseName),
-		Body:                 github.Ptr(releaseName), //TODO @corang release notes
-		GenerateReleaseNotes: github.Ptr(true),
+		Name:                 &releaseName,
+		Body:                 &body, //TODO @corang release notes
+		GenerateReleaseNotes: &generateReleaseNotes,
 	}
 
 	fmt.Printf("Creating release %s\n", releaseName)
@@ -85,13 +87,15 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 	// Create the tag
 	tagName := utils.GetFormattedVersion(bundle.Name, bundle.Version, "")
 	releaseName := fmt.Sprintf("%s %s", bundle.Name, tagName)
+	body := releaseName
+	generateReleaseNotes := true
 
 	// Create the release
 	release := github.CreateReleaseRequest{
 		TagName:              tagName,
-		Name:                 github.Ptr(releaseName),
-		Body:                 github.Ptr(releaseName), //TODO @corang release notes
-		GenerateReleaseNotes: github.Ptr(true),
+		Name:                 &releaseName,
+		Body:                 &body, //TODO @corang release notes
+		GenerateReleaseNotes: &generateReleaseNotes,
 	}
 
 	fmt.Printf("Creating release %s\n", releaseName)
@@ -106,16 +110,20 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 }
 
 func createGitHubTag(tagName string, releaseName string, hash string) *github.Tag {
+	objectType := "commit"
+	actorName := os.Getenv("GITHUB_ACTOR")
+	actorEmail := os.Getenv("GITHUB_ACTOR") + "@users.noreply.github.com"
+
 	tag := &github.Tag{
-		Tag:     github.Ptr(tagName),
-		Message: github.Ptr(releaseName),
+		Tag:     &tagName,
+		Message: &releaseName,
 		Object: &github.GitObject{
-			SHA:  github.Ptr(hash),
-			Type: github.Ptr("commit"),
+			SHA:  &hash,
+			Type: &objectType,
 		},
 		Tagger: &github.CommitAuthor{
-			Name:  github.Ptr(os.Getenv("GITHUB_ACTOR")),
-			Email: github.Ptr(os.Getenv("GITHUB_ACTOR") + "@users.noreply.github.com"),
+			Name:  &actorName,
+			Email: &actorEmail,
 			Date:  &github.Timestamp{Time: time.Now()},
 		},
 	}

@@ -1,4 +1,4 @@
-// Copyright 2024 Defense Unicorns
+// Copyright 2024-2026 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 package gitlab
@@ -13,7 +13,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/platforms"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
-	gitlab "gitlab.com/gitlab-org/api/client-go/v2"
+	gitlab "gitlab.com/gitlab-org/api/client-go/v3"
 )
 
 type Platform struct{}
@@ -102,20 +102,28 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 
 
 func createReleaseOptions(zarfPackageName string, flavor types.Flavor, branchRef string, packageNameFlag string) *gitlab.CreateReleaseOptions {
+	name := fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))
+	description := name
+	tagName := utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)
+
 	return &gitlab.CreateReleaseOptions{
-		Name:        gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
-		TagName:     gitlab.Ptr(utils.GetFormattedVersion(packageNameFlag, flavor.Version, flavor.Name)),
-		Description: gitlab.Ptr(fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))),
-		Ref:         gitlab.Ptr(branchRef),
+		Name:        &name,
+		TagName:     &tagName,
+		Description: &description,
+		Ref:         &branchRef,
 	}
 }
 
 func createBundleReleaseOptions(bundle types.Bundle, branchRef string) *gitlab.CreateReleaseOptions {
+	name := fmt.Sprintf("%s %s", bundle.Name, bundle.Version)
+	description := name
+	tagName := utils.GetFormattedVersion(bundle.Name, bundle.Version, "")
+
 	return &gitlab.CreateReleaseOptions{
-		Name:        gitlab.Ptr(fmt.Sprintf("%s %s", bundle.Name, bundle.Version)),
-		TagName:     gitlab.Ptr(utils.GetFormattedVersion(bundle.Name, bundle.Version, "")),
-		Description: gitlab.Ptr(fmt.Sprintf("%s %s", bundle.Name, bundle.Version)),
-		Ref:         gitlab.Ptr(branchRef),
+		Name:        &name,
+		TagName:     &tagName,
+		Description: &description,
+		Ref:         &branchRef,
 	}
 }
 
