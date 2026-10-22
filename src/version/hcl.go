@@ -15,6 +15,7 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string) (*fileUpdate, error) {
@@ -35,6 +36,11 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 	var source string
 	var sourceArch string
 	prefix := "zarf-package-" + packageName + "-"
+	evalContext := &hcl.EvalContext{Variables: map[string]cty.Value{
+		"sys": cty.ObjectVal(map[string]cty.Value{
+			"arch": cty.StringVal("${sys.arch}"),
+		}),
+	}}
 	for _, block := range body.Blocks {
 		if block.Type == "metadata" {
 			metadata = block
@@ -51,17 +57,27 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 		if len(literal) < 2 || literal[0] != '"' {
 			continue
 		}
-		candidate, err := strconv.Unquote(literal)
-		if err != nil {
-			return nil, fmt.Errorf("decode package source in %s: %w", bundlePath, err)
+		value, diags := attr.Expr.Value(evalContext)
+		if diags.HasErrors() || !value.IsKnown() || value.IsNull() || value.Type() != cty.String {
+			continue
 		}
+		candidate := value.AsString()
 		filename := path.Base(candidate)
 		if strings.Contains(candidate, "://") || !strings.HasPrefix(filename, prefix) || !strings.HasSuffix(filename, ".tar.zst") {
 			continue
 		}
-		archAndVersion := strings.TrimSuffix(strings.TrimPrefix(filename, prefix), ".tar.zst")
-		arch, oldVersion, found := strings.Cut(archAndVersion, "-")
-		if !found || oldVersion == "" || (arch != "${sys.arch}" && arch != "amd64" && arch != "arm64") {
+		nameAndVersion := strings.TrimSuffix(strings.TrimPrefix(filename, "zarf-package-"), ".tar.zst")
+		best := -1
+		var arch, oldVersion string
+		for _, candidateArch := range []string{"${sys.arch}", "amd64", "arm64"} {
+			marker := "-" + candidateArch + "-"
+			if i := strings.LastIndex(nameAndVersion, marker); i > best {
+				best = i
+				arch = candidateArch
+				oldVersion = nameAndVersion[i+len(marker):]
+			}
+		}
+		if best < 0 || nameAndVersion[:best] != packageName || oldVersion == "" {
 			continue
 		}
 		if sourceAttr != nil {

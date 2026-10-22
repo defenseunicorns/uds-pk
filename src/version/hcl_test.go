@@ -42,6 +42,10 @@ package "application" {
   signature_verification { verify = false }
 }
 
+package "remote" {
+  source = "oci://registry/app:${sys.arch == "amd64" ? "x86" : "arm"}"
+}
+
 package "podinfo" {
   source = "../zarf-package-podinfo-${sys.arch}-dev.tar.zst"
   signature_verification { verify = false }
@@ -49,6 +53,11 @@ package "podinfo" {
 
 package "test-package-resources" {
   source = "../zarf-package-test-package-resources-${sys.arch}-dev.tar.zst"
+  signature_verification { verify = false }
+}
+
+package "test-package-arm64" {
+  source = "../zarf-package-test-package-arm64-amd64-dev.tar.zst"
   signature_verification { verify = false }
 }
 `,
@@ -80,7 +89,7 @@ package "app" {
 			expectedVersion: "2.0.0",
 		},
 		{
-			name:   "matching local source is missing",
+			name:   "similarly named package is not a match",
 			flavor: types.Flavor{Version: "1.2.3"},
 			initialHCL: `uds {
   bundle_api_version = "uds.dev/v1alpha1"
@@ -91,8 +100,8 @@ metadata {
   version = "dev"
 }
 
-package "other" {
-  source = "../zarf-package-other-amd64-dev.tar.zst"
+package "test-package-arm64" {
+  source = "../zarf-package-test-package-arm64-amd64-dev.tar.zst"
   signature_verification { verify = false }
 }
 `,
