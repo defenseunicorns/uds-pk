@@ -8,8 +8,8 @@ require (
 	github.com/go-git/go-git/v5 v5.19.3
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v92 v92.0.0
-	github.com/google/go-github/v93 v93.0.0
 	github.com/google/uuid v1.6.0
+	github.com/hashicorp/hcl/v2 v2.25.0
 	github.com/mikefarah/yq/v4 v4.54.1
 	github.com/olekukonko/tablewriter v1.1.5
 	github.com/spf13/cobra v1.10.2
@@ -32,8 +32,6 @@ require (
 	github.com/go-test/deep v1.1.1 // indirect
 	github.com/golang-cz/devslog v0.0.17 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/hashicorp/hcl/v2 v2.25.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
 	github.com/mikelolasagasti/xz v1.0.1 // indirect
 	github.com/minio/minlz v1.0.1 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect

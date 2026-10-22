@@ -308,7 +308,7 @@ func updateYamlCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update-yaml [flavor]",
 		Aliases: []string{"u"},
-		Short:   "Update the version fields in zarf.yaml, any managed custom Helm charts, and the default uds-bundle.yaml when applicable",
+		Short:   "Update versions in zarf.yaml, managed Helm charts, and the default YAML or Next bundle",
 		Args:    cobra.MaximumNArgs(1),
 		RunE:    options.run,
 	}

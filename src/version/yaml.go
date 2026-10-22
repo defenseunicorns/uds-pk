@@ -179,7 +179,7 @@ func prepareZarfYamlUpdate(flavor types.Flavor, releaseDir, path string) (fileUp
 	}, zarfPackage.Metadata.Name, nil
 }
 
-func prepareBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
+func prepareLegacyBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
 	var bundle uds.UDSBundle
 	bundlePath := filepath.Join(releaseDir, "bundle", "uds-bundle.yaml")
 	data, mode, err := readFileWithMode(bundlePath)
@@ -217,4 +217,24 @@ func prepareBundleUpdate(flavor types.Flavor, releaseDir, packageName string, al
 		content: data,
 		mode:    mode,
 	}, nil
+}
+
+func prepareBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
+	nextPath := filepath.Join(releaseDir, "bundle", "bundle.uds.hcl")
+	if _, err := os.Stat(nextPath); err == nil {
+		return prepareNextBundleUpdate(flavor, releaseDir, packageName)
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("read bundle %s: %w", nextPath, err)
+	}
+	legacyPath := filepath.Join(releaseDir, "bundle", "uds-bundle.yaml")
+	if _, err := os.Stat(legacyPath); err == nil {
+		return prepareLegacyBundleUpdate(flavor, releaseDir, packageName, allowMissingBundle)
+	} else if !os.IsNotExist(err) {
+		return nil, fmt.Errorf("read bundle %s: %w", legacyPath, err)
+	}
+
+	if allowMissingBundle {
+		return nil, nil
+	}
+	return nil, fmt.Errorf("read bundle: neither %s nor %s exists", legacyPath, nextPath)
 }
