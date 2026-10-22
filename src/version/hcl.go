@@ -63,22 +63,18 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 		}
 		candidate := value.AsString()
 		filename := path.Base(candidate)
-		if strings.Contains(candidate, "://") || !strings.HasPrefix(filename, prefix) || !strings.HasSuffix(filename, ".tar.zst") {
+		if strings.Contains(candidate, "://") {
 			continue
 		}
-		nameAndVersion := strings.TrimSuffix(strings.TrimPrefix(filename, "zarf-package-"), ".tar.zst")
-		best := -1
-		var arch, oldVersion string
-		for _, candidateArch := range []string{"${sys.arch}", "amd64", "arm64"} {
-			marker := "-" + candidateArch + "-"
-			if i := strings.LastIndex(nameAndVersion, marker); i > best {
-				best = i
-				arch = candidateArch
-				oldVersion = nameAndVersion[i+len(marker):]
+		arch, ok := sourceArchitecture(filename, packageName)
+		if !ok {
+			continue
+		}
+		// A longer package name can also begin with packageName and an architecture word.
+		if len(block.Labels) == 1 && block.Labels[0] != packageName {
+			if _, belongsToLabel := sourceArchitecture(filename, block.Labels[0]); belongsToLabel {
+				continue
 			}
-		}
-		if best < 0 || nameAndVersion[:best] != packageName || oldVersion == "" {
-			continue
 		}
 		if sourceAttr != nil {
 			return nil, fmt.Errorf("bundle %s has multiple sources for Zarf package %q", bundlePath, packageName)
@@ -130,4 +126,20 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 		content: []byte(updated),
 		mode:    mode,
 	}, nil
+}
+
+func sourceArchitecture(filename, packageName string) (arch string, ok bool) {
+	if !strings.HasSuffix(filename, ".tar.zst") {
+		return "", false
+	}
+	rest, ok := strings.CutPrefix(strings.TrimSuffix(filename, ".tar.zst"), "zarf-package-"+packageName+"-")
+	if !ok {
+		return "", false
+	}
+	for _, arch := range []string{"${sys.arch}", "amd64", "arm64"} {
+		if version, ok := strings.CutPrefix(rest, arch+"-"); ok && version != "" {
+			return arch, true
+		}
+	}
+	return "", false
 }

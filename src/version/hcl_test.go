@@ -89,6 +89,28 @@ package "app" {
 			expectedVersion: "2.0.0",
 		},
 		{
+			name:   "architecture word in old version",
+			flavor: types.Flavor{Version: "2.0.0"},
+			initialHCL: `uds {
+  bundle_api_version = "uds.dev/v1alpha1"
+}
+
+metadata {
+  name = "test"
+  version = "dev"
+}
+
+package "application" {
+  source = "../zarf-package-test-package-amd64-1.2.3-arm64-debug.tar.zst"
+  signature_verification { verify = false }
+}
+`,
+			createFile:      true,
+			oldSource:       "../zarf-package-test-package-amd64-1.2.3-arm64-debug.tar.zst",
+			newSource:       "../zarf-package-test-package-amd64-2.0.0.tar.zst",
+			expectedVersion: "2.0.0",
+		},
+		{
 			name:   "similarly named package is not a match",
 			flavor: types.Flavor{Version: "1.2.3"},
 			initialHCL: `uds {
