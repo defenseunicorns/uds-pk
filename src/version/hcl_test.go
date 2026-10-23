@@ -9,7 +9,9 @@ import (
 	"strings"
 	"testing"
 
+	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	"github.com/defenseunicorns/uds-pk/src/types"
+	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -53,11 +55,6 @@ package "podinfo" {
 
 package "test-package-resources" {
   source = "../zarf-package-test-package-resources-${sys.arch}-dev.tar.zst"
-  signature_verification { verify = false }
-}
-
-package "test-package-arm64" {
-  source = "../zarf-package-test-package-arm64-amd64-dev.tar.zst"
   signature_verification { verify = false }
 }
 `,
@@ -105,13 +102,11 @@ package "application" {
   signature_verification { verify = false }
 }
 `,
-			createFile:      true,
-			oldSource:       "../zarf-package-test-package-amd64-1.2.3-arm64-debug.tar.zst",
-			newSource:       "../zarf-package-test-package-amd64-2.0.0.tar.zst",
-			expectedVersion: "2.0.0",
+			createFile:    true,
+			expectedError: "ambiguous Zarf archive",
 		},
 		{
-			name:   "similarly named package is not a match",
+			name:   "ambiguous similarly named package is rejected",
 			flavor: types.Flavor{Version: "1.2.3"},
 			initialHCL: `uds {
   bundle_api_version = "uds.dev/v1alpha1"
@@ -128,7 +123,7 @@ package "test-package-arm64" {
 }
 `,
 			createFile:    true,
-			expectedError: "no local source",
+			expectedError: "ambiguous Zarf archive",
 		},
 		{
 			name:          "invalid HCL",
@@ -154,7 +149,7 @@ package "test-package-arm64" {
 				require.NoError(t, os.WriteFile(bundlePath, []byte(tt.initialHCL), 0o640))
 			}
 
-			update, err := prepareNextBundleUpdate(tt.flavor, releaseDir, "test-package")
+			update, err := prepareNextBundleUpdate(tt.flavor, releaseDir, "test-package", false)
 			if tt.expectedError != "" {
 				require.ErrorContains(t, err, tt.expectedError)
 				require.Nil(t, update)
@@ -178,7 +173,108 @@ package "test-package-arm64" {
 	}
 }
 
-func TestUpdateYamlsPrefersNextBundle(t *testing.T) {
+func TestPrepareNextBundleUpdateLocals(t *testing.T) {
+	tests := []struct {
+		name          string
+		locals        string
+		expectedError string
+	}{
+		{
+			name: "source references local version",
+			locals: `locals {
+  version = "dev"
+}`,
+		},
+		{
+			name: "chained locals across blocks",
+			locals: `locals {
+  version = local.release
+}
+
+locals {
+  release = local.base
+  base = "dev"
+}`,
+		},
+		{
+			name: "missing local reference",
+			locals: `locals {
+  version = local.missing
+}`,
+			expectedError: "cannot resolve locals: version",
+		},
+		{
+			name: "circular local references",
+			locals: `locals {
+  version = local.release
+  release = local.version
+}`,
+			expectedError: "cannot resolve locals: release, version",
+		},
+		{
+			name: "duplicate local definitions",
+			locals: `locals {
+  version = "dev"
+}
+
+locals {
+  version = "other"
+}`,
+			expectedError: `duplicate local "version"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			releaseDir := t.TempDir()
+			bundleDir := filepath.Join(releaseDir, "bundle")
+			require.NoError(t, os.MkdirAll(bundleDir, 0o755))
+			bundlePath := filepath.Join(bundleDir, "bundle.uds.hcl")
+			original := `uds {
+  bundle_api_version = "uds.dev/v1alpha1"
+}
+
+metadata {
+  name = "test-bundle"
+  version = "old-bundle"
+}
+
+` + tt.locals + `
+
+package "application" {
+  source = "../zarf-package-test-package-${sys.arch}-${local.version}.tar.zst"
+  signature_verification { verify = false }
+}
+`
+			require.NoError(t, os.WriteFile(bundlePath, []byte(original), 0o640))
+
+			update, err := prepareNextBundleUpdate(
+				types.Flavor{Name: "upstream", Version: "1.2.3"}, releaseDir, "test-package", false,
+			)
+			if tt.expectedError != "" {
+				require.ErrorContains(t, err, tt.expectedError)
+				require.Nil(t, update)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, update)
+				want := strings.Replace(original, `version = "old-bundle"`, `version = "1.2.3-upstream"`, 1)
+				want = strings.Replace(want,
+					"zarf-package-test-package-${sys.arch}-${local.version}.tar.zst",
+					"zarf-package-test-package-${sys.arch}-1.2.3-upstream.tar.zst", 1)
+				require.Equal(t, want, string(update.content))
+				require.Equal(t, "1.2.3-upstream", update.version)
+				require.Equal(t, os.FileMode(0o640), update.mode)
+			}
+
+			// Preparing an update must leave the original file untouched.
+			unchanged, err := os.ReadFile(bundlePath)
+			require.NoError(t, err)
+			require.Equal(t, original, string(unchanged))
+		})
+	}
+}
+
+func TestUpdateYamlsUpdatesBothBundleFormats(t *testing.T) {
 	releaseDir := t.TempDir()
 	bundleDir := filepath.Join(releaseDir, "bundle")
 	require.NoError(t, os.MkdirAll(bundleDir, 0o755))
@@ -192,6 +288,8 @@ func TestUpdateYamlsPrefersNextBundle(t *testing.T) {
 packages:
   - name: test-package
     ref: dev
+  - name: other-package
+    ref: unchanged
 `
 	require.NoError(t, os.WriteFile(legacyPath, []byte(legacy), 0o644))
 	nextPath := filepath.Join(bundleDir, "bundle.uds.hcl")
@@ -214,9 +312,12 @@ package "application" {
 	err := UpdateYamls(types.Flavor{Name: "upstream", Version: "1.2.3"}, "", releaseDir, nil, false)
 	require.NoError(t, err)
 
-	legacyAfter, err := os.ReadFile(legacyPath)
-	require.NoError(t, err)
-	require.Equal(t, legacy, string(legacyAfter))
+	var legacyAfter uds.UDSBundle
+	require.NoError(t, utils.LoadYaml(legacyPath, &legacyAfter))
+	require.Equal(t, "1.2.3-upstream", legacyAfter.Metadata.Version)
+	require.Len(t, legacyAfter.Packages, 2)
+	require.Equal(t, "1.2.3-upstream", legacyAfter.Packages[0].Ref)
+	require.Equal(t, "unchanged", legacyAfter.Packages[1].Ref)
 	nextAfter, err := os.ReadFile(nextPath)
 	require.NoError(t, err)
 	want := strings.Replace(next, `version = "dev"`, `version = "1.2.3-upstream"`, 1)
@@ -224,6 +325,94 @@ package "application" {
 		"zarf-package-test-package-${sys.arch}-dev.tar.zst",
 		"zarf-package-test-package-${sys.arch}-1.2.3-upstream.tar.zst", 1)
 	require.Equal(t, want, string(nextAfter))
+}
+
+func TestUpdateYamlsPackageScopedNextBundle(t *testing.T) {
+	const unrelatedBundle = `uds {
+  bundle_api_version = "uds.dev/v1alpha1"
+}
+
+metadata {
+  name = "root-bundle"
+  version = "dev"
+}
+
+package "other" {
+  source = "../zarf-package-other-${sys.arch}-dev.tar.zst"
+}
+`
+	tests := []struct {
+		name               string
+		bundle             string
+		allowMissingBundle bool
+		expectedError      string
+	}{
+		{
+			name:               "optional unrelated bundle is unchanged",
+			bundle:             unrelatedBundle,
+			allowMissingBundle: true,
+		},
+		{
+			name:          "required bundle still needs a matching source",
+			bundle:        unrelatedBundle,
+			expectedError: "no local source",
+		},
+		{
+			name:               "optional bundle still reports malformed HCL",
+			bundle:             "invalid = [",
+			allowMissingBundle: true,
+			expectedError:      "parse bundle",
+		},
+		{
+			name:               "optional bundle still requires metadata",
+			bundle:             `package "other" { source = "../zarf-package-other-amd64-dev.tar.zst" }`,
+			allowMissingBundle: true,
+			expectedError:      "no metadata block",
+		},
+		{
+			name:               "optional bundle still requires metadata version",
+			bundle:             strings.Replace(unrelatedBundle, "  version = \"dev\"\n", "", 1),
+			allowMissingBundle: true,
+			expectedError:      "no metadata.version",
+		},
+		{
+			name:               "optional bundle still reports unresolved locals",
+			bundle:             unrelatedBundle + "\nlocals { version = local.missing }\n",
+			allowMissingBundle: true,
+			expectedError:      "cannot resolve locals: version",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			releaseDir := t.TempDir()
+			require.NoError(t, os.MkdirAll(filepath.Join(releaseDir, "bundle"), 0o755))
+			require.NoError(t, os.MkdirAll(filepath.Join(releaseDir, "child"), 0o755))
+			bundlePath := filepath.Join(releaseDir, "bundle", "bundle.uds.hcl")
+			zarfPath := filepath.Join(releaseDir, "child", "zarf.yaml")
+			originalZarf := "metadata:\n  name: child\n  version: dev\n"
+			require.NoError(t, os.WriteFile(bundlePath, []byte(tt.bundle), 0o644))
+			require.NoError(t, os.WriteFile(zarfPath, []byte(originalZarf), 0o644))
+
+			err := UpdateYamls(types.Flavor{Version: "1.2.3"}, "child", releaseDir, nil, tt.allowMissingBundle)
+			if tt.expectedError != "" {
+				require.ErrorContains(t, err, tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+
+			bundleAfter, err := os.ReadFile(bundlePath)
+			require.NoError(t, err)
+			require.Equal(t, tt.bundle, string(bundleAfter))
+			zarfAfter, err := os.ReadFile(zarfPath)
+			require.NoError(t, err)
+			if tt.expectedError != "" {
+				require.Equal(t, originalZarf, string(zarfAfter))
+			} else {
+				require.Contains(t, string(zarfAfter), "version: 1.2.3")
+			}
+		})
+	}
 }
 
 func TestUpdateYamlsDoesNotModifyZarfWhenNextBundleIsInvalid(t *testing.T) {

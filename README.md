@@ -106,7 +106,9 @@ bundles:
 
 ### Custom Helm Chart Versions
 
-`uds-pk release update-yaml` updates the `version` field in each configured custom chart's `Chart.yaml`, in addition to `zarf.yaml`. It updates the version and matching local package source in `bundle/bundle.uds.hcl` when present. Otherwise, it updates `bundle/uds-bundle.yaml`. Package-scoped updates with `--package` do not require a root bundle file. Define `charts` at the top level for charts owned by the root package or within a `packages` entry for charts owned by that package. Chart paths are relative to the release directory passed with `--dir`.
+`uds-pk release update-yaml` updates the `version` field in each configured custom chart's `Chart.yaml`, in addition to `zarf.yaml`. It updates the version and matching local package source in `bundle/bundle.uds.hcl`, and the version and matching package ref in `bundle/uds-bundle.yaml`, when those files exist. If both formats are present during migration, both are updated regardless of release mode. Errors preparing either bundle prevent changes to all files. Package-scoped updates with `--package` do not require a root bundle file and skip HCL bundles without a matching local package source. Define `charts` at the top level for charts owned by the root package or within a `packages` entry for charts owned by that package. Chart paths are relative to the release directory passed with `--dir`.
+
+HCL package labels may be aliases, so local archive matching uses the filename. An archive with multiple possible package/architecture/version boundaries, such as `zarf-package-foo-arm64-amd64-dev.tar.zst`, is rejected as ambiguous. This also applies when architecture words in a version create another possible interpretation of the package name.
 
 Each chart requires `path` and exactly one version source:
 

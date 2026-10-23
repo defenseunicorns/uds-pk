@@ -42,16 +42,14 @@ func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Ch
 		return err
 	}
 
-	bundleUpdate, err := prepareBundleUpdate(flavor, releaseDir, packageName, allowMissingBundle)
+	bundleUpdates, err := prepareBundleUpdates(flavor, releaseDir, packageName, allowMissingBundle)
 	if err != nil {
 		return err
 	}
 
-	updates := make([]fileUpdate, 0, len(chartUpdates)+2)
+	updates := make([]fileUpdate, 0, len(chartUpdates)+len(bundleUpdates)+1)
 	updates = append(updates, zarfUpdate)
-	if bundleUpdate != nil {
-		updates = append(updates, *bundleUpdate)
-	}
+	updates = append(updates, bundleUpdates...)
 	updates = append(updates, chartUpdates...)
 
 	err = writeUpdatesWithRollback(updates)
@@ -219,22 +217,38 @@ func prepareLegacyBundleUpdate(flavor types.Flavor, releaseDir, packageName stri
 	}, nil
 }
 
-func prepareBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
+func prepareBundleUpdates(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) ([]fileUpdate, error) {
+	var updates []fileUpdate
+	found := false
 	nextPath := filepath.Join(releaseDir, "bundle", "bundle.uds.hcl")
 	if _, err := os.Stat(nextPath); err == nil {
-		return prepareNextBundleUpdate(flavor, releaseDir, packageName)
+		found = true
+		update, err := prepareNextBundleUpdate(flavor, releaseDir, packageName, allowMissingBundle)
+		if err != nil {
+			return nil, err
+		}
+		if update != nil {
+			updates = append(updates, *update)
+		}
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("read bundle %s: %w", nextPath, err)
 	}
 	legacyPath := filepath.Join(releaseDir, "bundle", "uds-bundle.yaml")
 	if _, err := os.Stat(legacyPath); err == nil {
-		return prepareLegacyBundleUpdate(flavor, releaseDir, packageName, allowMissingBundle)
+		found = true
+		update, err := prepareLegacyBundleUpdate(flavor, releaseDir, packageName, allowMissingBundle)
+		if err != nil {
+			return nil, err
+		}
+		if update != nil {
+			updates = append(updates, *update)
+		}
 	} else if !os.IsNotExist(err) {
 		return nil, fmt.Errorf("read bundle %s: %w", legacyPath, err)
 	}
 
-	if allowMissingBundle {
-		return nil, nil
+	if found || allowMissingBundle {
+		return updates, nil
 	}
 	return nil, fmt.Errorf("read bundle: neither %s nor %s exists", legacyPath, nextPath)
 }
