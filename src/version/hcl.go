@@ -15,7 +15,9 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 )
 
 func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
@@ -97,12 +99,15 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 	}
 	sourceRange := sourceAttr.Expr.Range()
 
-	// Keep the directory and architecture placeholder; replace only the version.
+	// Use the evaluated filename only to locate the version. Preserve the original
+	// template so architecture-dependent locals and directories stay dynamic.
 	filename := path.Base(source)
-
 	tag := utils.JoinNonEmpty("-", flavor.Version, flavor.Name)
-	newFilename := prefix + sourceArch + "-" + tag + ".tar.zst"
-	newSource := strings.TrimSuffix(source, filename) + newFilename
+	versionStart := len(source) - len(filename) + len(prefix) + len(sourceArch) + 1
+	newSource, err := replaceSourceVersion(data, sourceAttr.Expr, evalContext, versionStart, tag)
+	if err != nil {
+		return nil, fmt.Errorf("bundle %s: %w", bundlePath, err)
+	}
 
 	type replacement struct {
 		start, end int
@@ -111,7 +116,7 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 	versionRange := versionAttr.Expr.Range()
 	replacements := []replacement{
 		{versionRange.Start.Byte, versionRange.End.Byte, strconv.Quote(tag)},
-		{sourceRange.Start.Byte, sourceRange.End.Byte, strconv.Quote(newSource)},
+		{sourceRange.Start.Byte, sourceRange.End.Byte, newSource},
 	}
 	sort.Slice(replacements, func(i, j int) bool {
 		return replacements[i].start > replacements[j].start
@@ -129,6 +134,36 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 		content: []byte(updated),
 		mode:    mode,
 	}, nil
+}
+
+func replaceSourceVersion(data []byte, expr hclsyntax.Expression, ctx *hcl.EvalContext, versionStart int, tag string) (string, error) {
+	template, ok := expr.(*hclsyntax.TemplateExpr)
+	if ok {
+		offset := 0
+		for _, part := range template.Parts {
+			value, diags := part.Value(ctx)
+			if diags.HasErrors() {
+				break
+			}
+			value, err := convert.Convert(value, cty.String)
+			if err != nil || !value.IsKnown() || value.IsNull() {
+				break
+			}
+			text := value.AsString()
+			if versionStart >= offset && versionStart <= offset+len(text) {
+				if _, literal := part.(*hclsyntax.LiteralValueExpr); !literal {
+					break
+				}
+				// Keep earlier expressions verbatim and encode the remaining literal
+				// as HCL, including escapes for literal ${ and %{ sequences.
+				prefix := data[expr.Range().Start.Byte:part.Range().Start.Byte]
+				suffix := hclwrite.TokensForValue(cty.StringVal(text[:versionStart-offset] + tag + ".tar.zst")).Bytes()
+				return string(prefix) + string(suffix[1:]), nil
+			}
+			offset += len(text)
+		}
+	}
+	return "", fmt.Errorf("cannot safely replace source version at %s: version must start in a literal template segment", expr.Range())
 }
 
 func resolveLocals(body *hclsyntax.Body, ctx *hcl.EvalContext) error {

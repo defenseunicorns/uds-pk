@@ -110,6 +110,8 @@ bundles:
 
 HCL package labels may be aliases, so local archive matching uses the filename. An archive with multiple possible package/architecture/version boundaries, such as `zarf-package-foo-arm64-amd64-dev.tar.zst`, is rejected as ambiguous. This also applies when architecture words in a version create another possible interpretation of the package name.
 
+Version updates preserve architecture and directory expressions in quoted HCL source templates. If the version boundary falls inside an expression that cannot be safely split, the update fails before changing any files.
+
 Each chart requires `path` and exactly one version source:
 
 - **`version`** sets an explicit chart version that does not change with the selected flavor.

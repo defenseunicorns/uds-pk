@@ -4,13 +4,14 @@
 package version
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	"github.com/defenseunicorns/uds-pk/src/types"
+	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -89,60 +90,55 @@ packages:
 	}
 }
 
-func TestPrepareNextBundleUpdateRejectsAmbiguousAliases(t *testing.T) {
-	for _, label := range []string{"application", "foo", "foo-arm64"} {
-		for _, optional := range []bool{false, true} {
-			t.Run(fmt.Sprintf("%s/optional=%t", label, optional), func(t *testing.T) {
-				releaseDir := t.TempDir()
-				require.NoError(t, os.MkdirAll(filepath.Join(releaseDir, "bundle"), 0o755))
-				bundle := fmt.Sprintf(`metadata {
+func TestUpdateYamlsUpdatesBothBundleFormats(t *testing.T) {
+	releaseDir := t.TempDir()
+	bundleDir := filepath.Join(releaseDir, "bundle")
+	require.NoError(t, os.MkdirAll(bundleDir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(releaseDir, "zarf.yaml"),
+		[]byte("metadata:\n  name: test-package\n  version: dev\n"), 0o644))
+
+	legacyPath := filepath.Join(bundleDir, "uds-bundle.yaml")
+	legacy := `metadata:
+  name: test-bundle
+  version: dev
+packages:
+  - name: test-package
+    ref: dev
+  - name: other-package
+    ref: unchanged
+`
+	require.NoError(t, os.WriteFile(legacyPath, []byte(legacy), 0o644))
+	nextPath := filepath.Join(bundleDir, "bundle.uds.hcl")
+	next := `uds {
+  bundle_api_version = "uds.dev/v1alpha1"
+}
+
+metadata {
   name = "test-bundle"
   version = "dev"
 }
 
-package %q {
-  source = "../zarf-package-foo-arm64-amd64-dev.tar.zst"
+package "application" {
+  source = "../zarf-package-test-package-${sys.arch}-dev.tar.zst"
+  signature_verification { verify = false }
 }
-`, label)
-				require.NoError(t, os.WriteFile(filepath.Join(releaseDir, "bundle", "bundle.uds.hcl"), []byte(bundle), 0o644))
-				update, err := prepareNextBundleUpdate(types.Flavor{Version: "1.2.3"}, releaseDir, "foo", optional)
-				require.ErrorContains(t, err, "ambiguous Zarf archive")
-				require.Nil(t, update)
-			})
-		}
-	}
-}
+`
+	require.NoError(t, os.WriteFile(nextPath, []byte(next), 0o644))
 
-func TestSourceArchitecture(t *testing.T) {
-	tests := []struct {
-		filename    string
-		packageName string
-		arch        string
-		matched     bool
-		ambiguous   bool
-	}{
-		{"zarf-package-foo-amd64-dev.tar.zst", "foo", "amd64", true, false},
-		{"zarf-package-foo-arm64-dev.tar.zst", "foo", "arm64", true, false},
-		{"zarf-package-foo-${sys.arch}-dev.tar.zst", "foo", "${sys.arch}", true, false},
-		{"zarf-package-foo-resources-amd64-dev.tar.zst", "foo", "", false, false},
-		{"zarf-package-foo-resources-amd64-dev.tar.zst", "foo-resources", "amd64", true, false},
-		{"zarf-package-foo-arm64-amd64-dev.tar.zst", "foo", "", false, true},
-		{"zarf-package-foo-arm64-amd64-dev.tar.zst", "foo-arm64", "", false, true},
-		{"zarf-package-foo-${sys.arch}-arm64-dev.tar.zst", "foo", "", false, true},
-		{"zarf-package-foo-amd64-1.2.3-arm64-debug.tar.zst", "foo", "", false, true},
-		{"zarf-package-foo-amd64-.tar.zst", "foo", "", false, false},
-		{"zarf-package-foo-amd64-dev.zip", "foo", "", false, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.filename+"/"+tt.packageName, func(t *testing.T) {
-			arch, matched, err := sourceArchitecture(tt.filename, tt.packageName)
-			if tt.ambiguous {
-				require.ErrorContains(t, err, "ambiguous Zarf archive")
-			} else {
-				require.NoError(t, err)
-			}
-			require.Equal(t, tt.arch, arch)
-			require.Equal(t, tt.matched, matched)
-		})
-	}
+	err := UpdateYamls(types.Flavor{Name: "upstream", Version: "1.2.3"}, "", releaseDir, nil, false)
+	require.NoError(t, err)
+
+	var legacyAfter uds.UDSBundle
+	require.NoError(t, utils.LoadYaml(legacyPath, &legacyAfter))
+	require.Equal(t, "1.2.3-upstream", legacyAfter.Metadata.Version)
+	require.Len(t, legacyAfter.Packages, 2)
+	require.Equal(t, "1.2.3-upstream", legacyAfter.Packages[0].Ref)
+	require.Equal(t, "unchanged", legacyAfter.Packages[1].Ref)
+	nextAfter, err := os.ReadFile(nextPath)
+	require.NoError(t, err)
+	want := strings.Replace(next, `version = "dev"`, `version = "1.2.3-upstream"`, 1)
+	want = strings.Replace(want,
+		"zarf-package-test-package-${sys.arch}-dev.tar.zst",
+		"zarf-package-test-package-${sys.arch}-1.2.3-upstream.tar.zst", 1)
+	require.Equal(t, want, string(nextAfter))
 }
