@@ -58,6 +58,9 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 	fmt.Printf("Creating release %s\n", releaseName)
 
 	_, response, err := githubClient.Repositories.CreateRelease(context.Background(), owner, repoName, release)
+	if err != nil && response == nil {
+		return fmt.Errorf("creating GitHub release %q: %w", tagName, err)
+	}
 
 	err = platforms.ReleaseExists(422, response.StatusCode, err, `already_exists`, zarfPackageName, flavor)
 	if err != nil {
@@ -101,6 +104,9 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 	fmt.Printf("Creating release %s\n", releaseName)
 
 	_, response, err := githubClient.Repositories.CreateRelease(context.Background(), owner, repoName, release)
+	if err != nil && response == nil {
+		return fmt.Errorf("creating GitHub release %q: %w", tagName, err)
+	}
 
 	err = platforms.ReleaseExists(422, response.StatusCode, err, `already_exists`, bundle.Name, types.Flavor{Version: bundle.Version})
 	if err != nil {
