@@ -6,6 +6,7 @@ package test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
@@ -40,6 +41,63 @@ func TestUpdateYamlCommand(t *testing.T) {
 
 	require.Equal(t, "1.0.0-uds.0-base", bundle.Metadata.Version)
 	require.Equal(t, "1.0.0-uds.0-base", bundle.Packages[0].Ref)
+}
+
+func TestUpdateYamlCommandWithNextBundleOnly(t *testing.T) {
+	e2e.CreateSandboxDir(t, "bundle")
+	defer e2e.CleanupSandboxDir(t)
+
+	e2e.CreateZarfYaml(t, "src/test/sandbox")
+	e2e.CreateFlavorReleaseConfig(t, "src/test/sandbox",
+		releaseTypes.Flavor{Name: "upstream", Version: "1.2.3-uds.0"},
+	)
+
+	const originalBundle = `locals {
+  notes = file("notes.txt")
+}
+
+uds {
+  bundle_api_version = "uds.dev/v1alpha1"
+}
+
+metadata {
+  name = "testing-bundle"
+  version = "dev"
+  description = local.notes
+}
+
+package "application" {
+  source = "../zarf-package-testing-package-${sys.arch}-dev.tar.zst"
+  signature_verification { verify = false }
+}
+
+package "testing-package-resources" {
+  source = "../zarf-package-testing-package-resources-${sys.arch}-dev.tar.zst"
+  depends_on = [package.application]
+  signature_verification { verify = false }
+}
+`
+	bundlePath := "src/test/sandbox/bundle/bundle.uds.hcl"
+	legacyBundlePath := "src/test/sandbox/bundle/uds-bundle.yaml"
+	require.NoError(t, os.WriteFile("src/test/sandbox/bundle/notes.txt", []byte("Release notes"), 0o644))
+	require.NoError(t, os.WriteFile(bundlePath, []byte(originalBundle), 0o644))
+	require.NoFileExists(t, legacyBundlePath)
+
+	stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "update-yaml", "upstream", "-d", "sandbox")
+	require.NoError(t, err, stdout, stderr)
+
+	var zarfPackage zarf.ZarfPackage
+	require.NoError(t, e2e.LoadYaml("src/test/sandbox/zarf.yaml", &zarfPackage))
+	require.Equal(t, "1.2.3-uds.0", zarfPackage.Metadata.Version)
+
+	bundle, err := os.ReadFile(bundlePath)
+	require.NoError(t, err)
+	want := strings.Replace(originalBundle, `version = "dev"`, `version = "1.2.3-uds.0-upstream"`, 1)
+	want = strings.Replace(want,
+		"zarf-package-testing-package-${sys.arch}-dev.tar.zst",
+		"zarf-package-testing-package-${sys.arch}-1.2.3-uds.0-upstream.tar.zst", 1)
+	require.Equal(t, want, string(bundle))
+	require.NoFileExists(t, legacyBundlePath)
 }
 
 func TestUpdateYamlCommandPackageOnlyRepoWithoutBundle(t *testing.T) {

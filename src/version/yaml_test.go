@@ -161,7 +161,7 @@ func TestPrepareChartUpdatesErrors(t *testing.T) {
 	require.Contains(t, err.Error(), "missing-chart")
 }
 
-func TestPrepareBundleUpdate(t *testing.T) {
+func TestPrepareBundleUpdates(t *testing.T) {
 	tests := []struct {
 		name               string
 		flavor             types.Flavor
@@ -250,7 +250,7 @@ packages:
 				require.NoError(t, err)
 			}
 
-			update, err := prepareBundleUpdate(tt.flavor, tmpDir, tt.packageName, tt.allowMissingBundle)
+			updates, err := prepareBundleUpdates(tt.flavor, tmpDir, tt.packageName, tt.allowMissingBundle)
 			if tt.expectedError != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), tt.expectedError)
@@ -258,11 +258,12 @@ packages:
 			}
 			require.NoError(t, err)
 			if tt.expectNil {
-				require.Nil(t, update)
+				require.Empty(t, updates)
 				return
 			}
 
-			require.NotNil(t, update)
+			require.Len(t, updates, 1)
+			update := updates[0]
 			require.Equal(t, bundlePath, update.path)
 			require.NoError(t, os.WriteFile(update.path, update.content, update.mode))
 

@@ -106,7 +106,7 @@ bundles:
 
 ### Custom Helm Chart Versions
 
-`uds-pk release update-yaml` updates the `version` field in each configured custom chart's `Chart.yaml`, in addition to `zarf.yaml`. When the default root `bundle/uds-bundle.yaml` is present, `update-yaml` updates that bundle as well. Package-scoped updates with `--package` do not require a root bundle file. Define `charts` at the top level for charts owned by the root package or within a `packages` entry for charts owned by that package. Chart paths are relative to the release directory passed with `--dir`.
+`uds-pk release update-yaml` updates the `version` field in each configured custom chart's `Chart.yaml`, in addition to `zarf.yaml`. It updates the version and matching local package source in `bundle/bundle.uds.hcl`, and the version and matching package ref in `bundle/uds-bundle.yaml`, when those files exist. If both formats are present, both are updated regardless of release mode. Errors preparing either bundle prevent changes to all files. Package-scoped updates with `--package` do not require a root bundle file and skip HCL bundles without a matching local package source. Define `charts` at the top level for charts owned by the root package or within a `packages` entry for charts owned by that package. Chart paths are relative to the release directory passed with `--dir`.
 
 Each chart requires `path` and exactly one version source:
 
