@@ -52,13 +52,18 @@ func TestUpdateYamlCommandWithNextBundleOnly(t *testing.T) {
 		releaseTypes.Flavor{Name: "upstream", Version: "1.2.3-uds.0"},
 	)
 
-	const originalBundle = `uds {
+	const originalBundle = `locals {
+  notes = file("notes.txt")
+}
+
+uds {
   bundle_api_version = "uds.dev/v1alpha1"
 }
 
 metadata {
   name = "testing-bundle"
   version = "dev"
+  description = local.notes
 }
 
 package "application" {
@@ -74,6 +79,7 @@ package "testing-package-resources" {
 `
 	bundlePath := "src/test/sandbox/bundle/bundle.uds.hcl"
 	legacyBundlePath := "src/test/sandbox/bundle/uds-bundle.yaml"
+	require.NoError(t, os.WriteFile("src/test/sandbox/bundle/notes.txt", []byte("Release notes"), 0o644))
 	require.NoError(t, os.WriteFile(bundlePath, []byte(originalBundle), 0o644))
 	require.NoFileExists(t, legacyBundlePath)
 

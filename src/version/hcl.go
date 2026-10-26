@@ -167,16 +167,57 @@ func replaceSourceVersion(data []byte, expr hclsyntax.Expression, ctx *hcl.EvalC
 }
 
 func resolveLocals(body *hclsyntax.Body, ctx *hcl.EvalContext) error {
-	pending := map[string]*hclsyntax.Attribute{}
+	locals := map[string]*hclsyntax.Attribute{}
 	for _, block := range body.Blocks {
 		if block.Type != "locals" {
 			continue
 		}
 		for name, attr := range block.Body.Attributes {
-			if _, exists := pending[name]; exists {
+			if _, exists := locals[name]; exists {
 				return fmt.Errorf("duplicate local %q", name)
 			}
+			locals[name] = attr
+		}
+	}
+
+	// Resolve only source dependencies. Other locals may use UDS CLI functions
+	// such as file(), which this version updater does not need to evaluate.
+	var needed []string
+	addReferences := func(expr hclsyntax.Expression) {
+		for _, traversal := range expr.Variables() {
+			if traversal.RootName() != "local" {
+				continue
+			}
+			if len(traversal) > 1 {
+				if attr, ok := traversal[1].(hcl.TraverseAttr); ok {
+					needed = append(needed, attr.Name)
+					continue
+				}
+				if index, ok := traversal[1].(hcl.TraverseIndex); ok && index.Key.Type() == cty.String {
+					needed = append(needed, index.Key.AsString())
+					continue
+				}
+			}
+			// A reference to the whole local object can select any local.
+			for name := range locals {
+				needed = append(needed, name)
+			}
+		}
+	}
+	for _, block := range body.Blocks {
+		if block.Type == "package" {
+			if source := block.Body.Attributes["source"]; source != nil {
+				addReferences(source.Expr)
+			}
+		}
+	}
+	pending := map[string]*hclsyntax.Attribute{}
+	for len(needed) > 0 {
+		name := needed[0]
+		needed = needed[1:]
+		if attr, exists := locals[name]; exists && pending[name] == nil {
 			pending[name] = attr
+			addReferences(attr.Expr)
 		}
 	}
 	values := map[string]cty.Value{}

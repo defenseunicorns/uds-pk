@@ -199,6 +199,29 @@ locals {
 }`,
 		},
 		{
+			name: "unrelated file local does not block chained source locals",
+			locals: `locals {
+  notes = file("notes.txt")
+  version = local.release
+  release = "dev"
+}`,
+		},
+		{
+			name: "indexed local dependency",
+			locals: `locals {
+  version = local["release"]
+  release = "dev"
+  notes = file("notes.txt")
+}`,
+		},
+		{
+			name: "required file local reports an error",
+			locals: `locals {
+  version = file("version.txt")
+}`,
+			expectedError: "cannot resolve locals: version",
+		},
+		{
 			name: "missing local reference",
 			locals: `locals {
   version = local.missing
@@ -325,10 +348,9 @@ package "other" {
 			expectedError:      "no metadata.version",
 		},
 		{
-			name:               "optional bundle still reports unresolved locals",
+			name:               "optional bundle ignores unrelated unresolved locals",
 			bundle:             unrelatedBundle + "\nlocals { version = local.missing }\n",
 			allowMissingBundle: true,
-			expectedError:      "cannot resolve locals: version",
 		},
 	}
 

@@ -112,6 +112,8 @@ HCL package labels may be aliases, so local archive matching uses the filename. 
 
 Version updates preserve architecture and directory expressions in quoted HCL source templates. If the version boundary falls inside an expression that cannot be safely split, the update fails before changing any files.
 
+Only locals referenced by package sources, including their dependencies, are evaluated for version updates. Unrelated locals may use functions such as `file()` without blocking the update; source dependencies that cannot be evaluated still cause an error before any files change.
+
 Each chart requires `path` and exactly one version source:
 
 - **`version`** sets an explicit chart version that does not change with the selected flavor.

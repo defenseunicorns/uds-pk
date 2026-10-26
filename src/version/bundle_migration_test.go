@@ -49,6 +49,13 @@ packages:
 			expectedError: "parse bundle",
 		},
 		{
+			name: "required source local uses an unsupported function",
+			next: "locals { version = file(\"version.txt\") }\n" + strings.Replace(next,
+				"${sys.arch}-dev.tar.zst", "${sys.arch}-${local.version}.tar.zst", 1),
+			legacy:        legacy,
+			expectedError: "cannot resolve locals: version",
+		},
+		{
 			name:          "malformed legacy YAML after preparing HCL",
 			next:          next,
 			legacy:        "invalid: [",
