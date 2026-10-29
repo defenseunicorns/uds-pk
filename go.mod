@@ -15,6 +15,7 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
+	github.com/yuin/goldmark v1.8.6
 	github.com/zarf-dev/zarf v0.89.0
 	github.com/zclconf/go-cty v1.20.0
 	gitlab.com/gitlab-org/api/client-go/v3 v3.44.0

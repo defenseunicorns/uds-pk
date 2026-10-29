@@ -117,6 +117,15 @@ func markdownInline(text string) string {
 		"[", `\[`, "]", `\]`, "(", `\(`, ")", `\)`,
 		"#", `\#`, "!", `\!`, "|", `\|`, "~", `\~`,
 	).Replace(text)
+	// Inline escaping also needs to be safe at the beginning of a list item or
+	// continuation line, where literal text could open a list or underline.
+	if strings.HasPrefix(text, "- ") || strings.HasPrefix(text, "+ ") ||
+		(text != "" && strings.Trim(text, "- ") == "") ||
+		(text != "" && strings.Trim(text, "=") == "") {
+		text = `\` + text
+	} else if index := strings.Index(text, ". "); index > 0 && index <= 9 && strings.Trim(text[:index], "0123456789") == "" {
+		text = text[:index] + `\` + text[index:]
+	}
 	return html.EscapeString(text)
 }
 
