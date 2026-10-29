@@ -48,13 +48,11 @@ func TestMaintenanceTypes(t *testing.T) {
 
 func TestGroupCommits(t *testing.T) {
 	fixture := newHistoryFixture(t)
-	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
 	require.NoError(t, err)
-	selected, err := FilterCommits(t.Context(), history, fixture.directory, Target{}, nil)
+	selected, err := filterCommits(t.Context(), history, fixture.directory, Target{}, nil)
 	require.NoError(t, err)
-	// Deliberately repeat a commit to verify one entry per hash.
-	commits := append(append([]*object.Commit(nil), selected...), selected[0])
-	sections := GroupCommits(commits)
+	sections := groupCommits(selected)
 	var categories []Category
 	var hashes []string
 	for _, section := range sections {
@@ -65,10 +63,10 @@ func TestGroupCommits(t *testing.T) {
 		}
 	}
 	require.Equal(t, []Category{Features, BugFixes, Dependencies, Maintenance}, categories)
-	require.ElementsMatch(t, commitHashes(History{Commits: selected}), hashes)
+	require.ElementsMatch(t, commitHashes(commitHistory{Commits: selected}), hashes)
 	require.Equal(t, fixture.hashes["base"].String(), sections[0].Changes[0].Hash)
 	require.Equal(t, fixture.hashes["feature"].String(), sections[0].Changes[1].Hash)
-	require.Empty(t, GroupCommits(nil))
+	require.Empty(t, groupCommits(nil))
 }
 
 func TestGroupCommitsCategoryOrder(t *testing.T) {
@@ -80,7 +78,7 @@ func TestGroupCommitsCategoryOrder(t *testing.T) {
 		commits = append(commits, &object.Commit{Hash: plumbing.ComputeHash(plumbing.CommitObject, []byte{byte(index)}), Message: subject})
 	}
 	var categories []Category
-	for _, section := range GroupCommits(commits) {
+	for _, section := range groupCommits(commits) {
 		categories = append(categories, section.Category)
 	}
 	require.Equal(t, []Category{BreakingChanges, Features, BugFixes, Performance, Dependencies, Documentation, Maintenance, OtherChanges}, categories)

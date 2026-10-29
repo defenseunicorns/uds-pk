@@ -12,10 +12,10 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// FilterCommits selects commits touching the target's paths or explicit shared
+// filterCommits selects commits touching the target's paths or explicit shared
 // paths. Root targets cover the whole repository. Paths are relative to the
-// release directory; returned commits retain the history's order.
-func FilterCommits(ctx context.Context, history History, directory string, target Target, includePaths []string) ([]*object.Commit, error) {
+// release directory; returned commits retain the history's unique order.
+func filterCommits(ctx context.Context, history commitHistory, directory string, target Target, includePaths []string) ([]*object.Commit, error) {
 	paths := append(append([]string(nil), target.Paths...), includePaths...)
 	scopes, err := resolveScopes(history.Root, directory, paths)
 	if err != nil {
@@ -27,16 +27,11 @@ func FilterCommits(ctx context.Context, history History, directory string, targe
 	}
 	repositoryWide := len(scopes) == 1 && scopes[0] == "."
 	var selected []*object.Commit
-	seen := make(map[string]bool)
 	for _, commit := range history.Commits {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
 		hash := commit.Hash.String()
-		if seen[hash] {
-			continue
-		}
-		seen[hash] = true
 		if repositoryWide && commit.NumParents() <= 1 {
 			selected = append(selected, commit)
 			continue

@@ -6,7 +6,6 @@ package changelog
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"sort"
 
 	"github.com/go-git/go-git/v5"
@@ -22,9 +21,9 @@ type RevisionRange struct {
 	Initial bool
 }
 
-// History holds resolved revisions and commits in stable order.
+// commitHistory holds resolved revisions and unique commits in stable order.
 // Commit objects retain access to their trees for subsequent path filtering.
-type History struct {
+type commitHistory struct {
 	Root    string
 	Origin  string
 	From    *object.Commit
@@ -39,47 +38,47 @@ func (set commitSet) contains(hash plumbing.Hash) bool {
 	return found
 }
 
-// ReadHistory reads local objects without changing refs, the index, or files.
+// readHistory reads local objects without changing refs, the index, or files.
 // Repository discovery is anchored to directory rather than the process cwd.
-func ReadHistory(ctx context.Context, directory string, revisions RevisionRange) (History, error) {
+func readHistory(ctx context.Context, directory string, revisions RevisionRange) (commitHistory, error) {
 	if (revisions.From != "") == revisions.Initial {
-		return History{}, fmt.Errorf("specify exactly one of --from or --initial")
+		return commitHistory{}, fmt.Errorf("specify exactly one of --from or --initial")
 	}
 	if revisions.To == "" {
 		revisions.To = "HEAD"
 	}
-	directory, err := filepath.Abs(directory)
+	directory, err := canonicalDirectory(directory)
 	if err != nil {
-		return History{}, fmt.Errorf("resolve release directory: %w", err)
+		return commitHistory{}, fmt.Errorf("resolve release directory: %w", err)
 	}
 	repository, err := git.PlainOpenWithOptions(directory, &git.PlainOpenOptions{
 		DetectDotGit: true, EnableDotGitCommonDir: true,
 	})
 	if err != nil {
-		return History{}, fmt.Errorf("open repository from %q: %w", directory, err)
+		return commitHistory{}, fmt.Errorf("open repository from %q: %w", directory, err)
 	}
 	worktree, err := repository.Worktree()
 	if err != nil {
-		return History{}, fmt.Errorf("open repository worktree: %w", err)
+		return commitHistory{}, fmt.Errorf("open repository worktree: %w", err)
 	}
 	endpoint, err := resolveCommit(repository, revisions.To)
 	if err != nil {
-		return History{}, err
+		return commitHistory{}, err
 	}
-	history := History{Root: worktree.Filesystem.Root(), To: endpoint}
+	history := commitHistory{Root: worktree.Filesystem.Root(), To: endpoint}
 	if origin, err := repository.Remote("origin"); err == nil && len(origin.Config().URLs) > 0 {
 		history.Origin = origin.Config().URLs[0]
 	}
 	if !revisions.Initial {
 		history.From, err = resolveCommit(repository, revisions.From)
 		if err != nil {
-			return History{}, err
+			return commitHistory{}, err
 		}
 	}
 
 	shallow, err := repository.Storer.Shallow()
 	if err != nil {
-		return History{}, fmt.Errorf("read shallow boundaries: %w", err)
+		return commitHistory{}, fmt.Errorf("read shallow boundaries: %w", err)
 	}
 	boundaries := make(commitSet, len(shallow))
 	for _, hash := range shallow {
@@ -89,7 +88,7 @@ func ReadHistory(ctx context.Context, directory string, revisions RevisionRange)
 	if history.From != nil {
 		excluded, err = reachableCommits(ctx, repository, history.From.Hash, nil, boundaries, nil)
 		if err != nil {
-			return History{}, fmt.Errorf("establish baseline ancestry for %q: %w", revisions.From, err)
+			return commitHistory{}, fmt.Errorf("establish baseline ancestry for %q: %w", revisions.From, err)
 		}
 	}
 	var included []*object.Commit
@@ -97,7 +96,7 @@ func ReadHistory(ctx context.Context, directory string, revisions RevisionRange)
 		included = append(included, commit)
 	})
 	if err != nil {
-		return History{}, err
+		return commitHistory{}, err
 	}
 	if history.From != nil && history.From.Hash != endpoint.Hash {
 		// The traversal stops at excluded commits, so the baseline is reachable
@@ -111,7 +110,7 @@ func ReadHistory(ctx context.Context, directory string, revisions RevisionRange)
 			}
 		}
 		if !ancestor {
-			return History{}, fmt.Errorf("baseline %q is not an ancestor of %q", revisions.From, revisions.To)
+			return commitHistory{}, fmt.Errorf("baseline %q is not an ancestor of %q", revisions.From, revisions.To)
 		}
 	}
 	history.Commits = included

@@ -121,17 +121,12 @@ type Section struct {
 	Changes  []Change
 }
 
-// GroupCommits emits categories in a fixed order, preserving commit order
-// within each category and listing each hash once.
-func GroupCommits(commits []*object.Commit) []Section {
+// groupCommits emits categories in a fixed order, preserving commit order
+// within each category. Input commits come from the unique history traversal.
+func groupCommits(commits []*object.Commit) []Section {
 	groups := make(map[Category][]Change)
-	seen := make(map[string]bool)
 	for _, commit := range commits {
 		hash := commit.Hash.String()
-		if seen[hash] {
-			continue
-		}
-		seen[hash] = true
 		message := ParseMessage(commit.Message)
 		category := message.Category()
 		groups[category] = append(groups[category], Change{Hash: hash, Message: message})
