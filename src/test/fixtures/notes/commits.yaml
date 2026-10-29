@@ -1,0 +1,30 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+---
+- message: 'chore: initial fixture'
+  files:
+    packages/api/values.yaml: initial API
+    packages/worker/values.yaml: initial worker
+    bundles/platform/uds-bundle.yaml: initial bundle
+    bundles/platform-test/uds-bundle.yaml: initial test bundle
+    shared/runtime.txt: initial runtime
+- message: 'feat(api): expose the health endpoint'
+  files:
+    packages/api/values.yaml: API with health endpoint
+- message: 'fix(worker): retry failed jobs'
+  files:
+    packages/worker/values.yaml: worker with retries
+- message: 'fix(chart): configure API replicas'
+  files:
+    charts/api/values.yaml: API replicas
+- message: 'fix(shared): initialize the shared runtime'
+  files:
+    shared/runtime.txt: initialized runtime
+- message: 'chore(bundle): refresh platform references'
+  files:
+    bundles/platform/uds-bundle.yaml: updated bundle
+- message: 'fix(api): reject malformed requests'
+  files:
+    packages/api/values.yaml: API request validation
+    charts/api/values.yaml: API validation defaults

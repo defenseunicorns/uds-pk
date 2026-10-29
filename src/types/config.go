@@ -1,4 +1,4 @@
-// Copyright 2024 Defense Unicorns
+// Copyright 2024-2026 Defense Unicorns
 // SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
 
 package types
@@ -46,6 +46,30 @@ type Bundle struct {
 }
 
 func (config ReleaseConfig) VerifyReleaseConfig() error {
+	if err := config.Validate(); err != nil {
+		return err
+	}
+	// Preserve the legacy publishing warning for existing release commands.
+	for _, flavor := range config.Flavors {
+		if flavor.PublishBundle {
+			fmt.Println("Warning: publishBundle is not implemented yet.")
+			break
+		}
+	}
+	for _, pkg := range config.Packages {
+		for _, flavor := range pkg.Flavors {
+			if flavor.PublishBundle {
+				fmt.Println("Warning: publishBundle is not implemented yet.")
+				break
+			}
+		}
+	}
+	return nil
+}
+
+// Validate checks release configuration without writing to stdout. Generation
+// commands use it so legacy publishing warnings cannot enter Markdown output.
+func (config ReleaseConfig) Validate() error {
 	// There must be at least one flavor or package defined
 	if len(config.Flavors) == 0 && len(config.Packages) == 0 && len(config.Bundles) == 0 {
 		return errors.New("releaser.yaml must define at least one flavor, package, or bundle")
@@ -92,22 +116,6 @@ func (config ReleaseConfig) VerifyReleaseConfig() error {
 				return errors.New("flavor names must be unique within a package")
 			}
 			flavorNames[flavor.Name] = true
-		}
-	}
-
-	// If publishBundle is true anywhere print a not implemented warning
-	for _, flavor := range config.Flavors {
-		if flavor.PublishBundle {
-			fmt.Println("Warning: publishBundle is not implemented yet.")
-			break
-		}
-	}
-	for _, pkg := range config.Packages {
-		for _, flavor := range pkg.Flavors {
-			if flavor.PublishBundle {
-				fmt.Println("Warning: publishBundle is not implemented yet.")
-				break
-			}
 		}
 	}
 
