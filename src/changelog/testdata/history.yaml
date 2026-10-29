@@ -1,0 +1,31 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+# Both branches have a commit at the same timestamp to exercise tie ordering.
+commits:
+  - name: root
+    message: 'chore: initial repository'
+    timestamp: 1
+  - name: base
+    message: 'feat: previous release'
+    parents: [root]
+    timestamp: 2
+  - name: feature
+    message: 'feat(api): add an endpoint'
+    parents: [base]
+    timestamp: 3
+  - name: maintenance
+    message: 'chore(deps): update a dependency'
+    parents: [base]
+    timestamp: 3
+  - name: merge
+    message: 'Merge feature branch'
+    parents: [maintenance, feature]
+    timestamp: 4
+  - name: endpoint
+    message: 'fix(api): handle empty requests'
+    parents: [merge]
+    timestamp: 5
+  - name: unrelated
+    message: 'feat: unrelated history'
+    timestamp: 6
