@@ -26,6 +26,7 @@ type RevisionRange struct {
 // Commit objects retain access to their trees for subsequent path filtering.
 type History struct {
 	Root    string
+	Origin  string
 	From    *object.Commit
 	To      *object.Commit
 	Commits []*object.Commit
@@ -59,6 +60,9 @@ func ReadHistory(ctx context.Context, directory string, revisions RevisionRange)
 		return History{}, err
 	}
 	history := History{Root: worktree.Filesystem.Root(), To: endpoint}
+	if origin, err := repository.Remote("origin"); err == nil && len(origin.Config().URLs) > 0 {
+		history.Origin = origin.Config().URLs[0]
+	}
 	if !revisions.Initial {
 		history.From, err = resolveCommit(repository, revisions.From)
 		if err != nil {
