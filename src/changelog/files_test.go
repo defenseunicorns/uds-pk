@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/defenseunicorns/uds-pk/src/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,12 +23,7 @@ func TestWriteArtifacts(t *testing.T) {
 		Artifact{Path: notes, Content: []byte("release notes")},
 		Artifact{Path: history, Content: []byte("updated history")},
 	))
-	content, err := os.ReadFile(notes)
-	require.NoError(t, err)
-	require.Equal(t, "release notes", string(content))
-	content, err = os.ReadFile(history)
-	require.NoError(t, err)
-	require.Equal(t, "updated history", string(content))
+	test.RequireFileContents(t, map[string]string{notes: "release notes", history: "updated history"})
 	info, err := os.Stat(history)
 	require.NoError(t, err)
 	require.Equal(t, os.FileMode(0o640), info.Mode().Perm())
@@ -50,9 +46,7 @@ func TestWriteArtifactsValidatesBeforeWriting(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			err := WriteArtifacts(Artifact{Path: existing, Content: []byte("replaced")}, Artifact{Path: path, Content: []byte("other")})
 			require.Error(t, err)
-			content, err := os.ReadFile(existing)
-			require.NoError(t, err)
-			require.Equal(t, "original", string(content))
+			test.RequireFileContents(t, map[string]string{existing: "original"})
 		})
 	}
 	newPath := filepath.Join(directory, "not-created", "notes.md")
@@ -75,14 +69,10 @@ func TestWriteArtifactsSymlinks(t *testing.T) {
 	info, err := os.Lstat(link)
 	require.NoError(t, err)
 	require.NotZero(t, info.Mode()&os.ModeSymlink)
-	content, err := os.ReadFile(target)
-	require.NoError(t, err)
-	require.Equal(t, "updated", string(content))
+	test.RequireFileContents(t, map[string]string{target: "updated"})
 	err = WriteArtifacts(Artifact{Path: link, Content: []byte("first")}, Artifact{Path: target, Content: []byte("second")})
 	require.ErrorContains(t, err, "same file")
-	content, err = os.ReadFile(target)
-	require.NoError(t, err)
-	require.Equal(t, "updated", string(content))
+	test.RequireFileContents(t, map[string]string{target: "updated"})
 
 	parentLink := filepath.Join(directory, "parent-link")
 	require.NoError(t, os.Symlink(directory, parentLink))
@@ -113,9 +103,7 @@ func TestWriteArtifactsStagesAllBeforeReplacing(t *testing.T) {
 	// Both destinations validate, but the second cannot be staged.
 	err := WriteArtifacts(Artifact{Path: existing, Content: []byte("changed")}, Artifact{Path: filepath.Join(locked, "other.md")})
 	require.ErrorContains(t, err, "stage artifact")
-	content, err := os.ReadFile(existing)
-	require.NoError(t, err)
-	require.Equal(t, "original", string(content))
+	test.RequireFileContents(t, map[string]string{existing: "original"})
 	matches, err := filepath.Glob(filepath.Join(directory, ".uds-pk-*"))
 	require.NoError(t, err)
 	require.Empty(t, matches)
@@ -138,12 +126,7 @@ func TestWriteArtifactsExistingFileAliases(t *testing.T) {
 			}
 			err := WriteArtifacts(Artifact{Path: original, Content: []byte("notes")}, Artifact{Path: alternate, Content: []byte("changelog")})
 			require.ErrorContains(t, err, "same file")
-			content, err := os.ReadFile(original)
-			require.NoError(t, err)
-			require.Equal(t, "original", string(content))
-			content, err = os.ReadFile(alternate)
-			require.NoError(t, err)
-			require.Equal(t, "original", string(content))
+			test.RequireFileContents(t, map[string]string{original: "original", alternate: "original"})
 		})
 	}
 }
@@ -181,12 +164,7 @@ func TestWriteArtifactsNewFileAliases(t *testing.T) {
 				require.ErrorIs(t, err, os.ErrNotExist)
 			} else {
 				require.NoError(t, err)
-				content, err := os.ReadFile(first)
-				require.NoError(t, err)
-				require.Equal(t, "notes", string(content))
-				content, err = os.ReadFile(second)
-				require.NoError(t, err)
-				require.Equal(t, "changelog", string(content))
+				test.RequireFileContents(t, map[string]string{first: "notes", second: "changelog"})
 			}
 			matches, err := filepath.Glob(filepath.Join(directory, ".uds-pk-*"))
 			require.NoError(t, err)

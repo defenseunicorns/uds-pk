@@ -4,11 +4,11 @@
 package changelog
 
 import (
-	"os"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/defenseunicorns/uds-pk/src/test"
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -18,10 +18,10 @@ import (
 	markdowntext "github.com/yuin/goldmark/text"
 )
 
-func renderFixture(t *testing.T) Release {
+func renderFixture(t *testing.T) releaseData {
 	t.Helper()
 	var fixture struct {
-		Target       Target
+		Target       releaseTarget
 		From         string
 		To           string
 		RevisionDate string `yaml:"revisionDate"`
@@ -34,24 +34,23 @@ func renderFixture(t *testing.T) Release {
 	for _, commit := range fixture.Commits {
 		commits = append(commits, &object.Commit{Hash: plumbing.NewHash(commit.Hash), Message: commit.Message})
 	}
-	return Release{Target: fixture.Target, From: fixture.From, To: fixture.To, RevisionDate: date, Sections: groupCommits(commits)}
+	return releaseData{Target: fixture.Target, From: fixture.From, To: fixture.To, RevisionDate: date, Sections: groupCommits(commits)}
 }
 
 func TestRenderNotesGolden(t *testing.T) {
 	release := renderFixture(t)
-	expected, err := os.ReadFile("testdata/notes.golden.md")
-	require.NoError(t, err)
-	actual := RenderNotes(release, "git@github.com:example/project.git")
+	expected := test.ReadFile(t, "testdata/notes.golden.md")
+	actual := renderNotes(release, "git@github.com:example/project.git")
 	require.Equal(t, string(expected), string(actual))
-	require.Equal(t, actual, RenderNotes(release, "https://username:secret@github.com/example/project.git?token=secret#secret"))
+	require.Equal(t, actual, renderNotes(release, "https://username:secret@github.com/example/project.git?token=secret#secret"))
 }
 
 func TestRenderNotesInitialAndEmpty(t *testing.T) {
 	release := renderFixture(t)
 	release.From = ""
-	release.Target = Target{Kind: "bundle", Name: "platform", Version: "testing", Tag: "platform-testing"}
+	release.Target = releaseTarget{Kind: "bundle", Name: "platform", Version: "testing", Tag: "platform-testing"}
 	release.Sections = nil
-	notes := string(RenderNotes(release, "ssh://git@gitlab.example.test/group/subgroup/project.git"))
+	notes := string(renderNotes(release, "ssh://git@gitlab.example.test/group/subgroup/project.git"))
 	require.Contains(t, notes, "- **Target:** bundle platform\n")
 	require.Contains(t, notes, "Initial release (all reachable history)")
 	require.Contains(t, notes, "[Commit history](https://gitlab.example.test/group/subgroup/project/-/commits/"+release.To+")")
@@ -63,7 +62,7 @@ func TestRenderNotesInitialAndEmpty(t *testing.T) {
 
 func TestRenderNotesUnknownRemote(t *testing.T) {
 	release := renderFixture(t)
-	notes := string(RenderNotes(release, "https://user:secret@unsupported.test/project?token=secret"))
+	notes := string(renderNotes(release, "https://user:secret@unsupported.test/project?token=secret"))
 	require.Contains(t, notes, "Web links omitted: origin is missing or unsupported.")
 	require.Contains(t, notes, "- **Revision:** "+release.To+"\n")
 	require.Contains(t, notes, "(bbbbbbb)")
@@ -74,12 +73,12 @@ func TestRenderNotesUnknownRemote(t *testing.T) {
 func TestRenderNotesEscapesText(t *testing.T) {
 	release := renderFixture(t)
 	release.Target.Tag = "tag\n\n# injected heading"
-	release.Sections = []Section{
-		{Category: Features, Changes: []Change{{Hash: "abc", Message: ParseMessage("feat!: remove the old endpoint")}}},
-		{Category: OtherChanges, Changes: []Change{{Hash: "def", Message: ParseMessage("")}}},
-		{Category: Documentation},
+	release.Sections = []section{
+		{Category: features, Changes: []change{{Hash: "abc", Message: parseMessage("feat!: remove the old endpoint")}}},
+		{Category: otherChanges, Changes: []change{{Hash: "def", Message: parseMessage("")}}},
+		{Category: documentation},
 	}
-	notes := string(RenderNotes(release, ""))
+	notes := string(renderNotes(release, ""))
 	require.Contains(t, notes, "## tag \\# injected heading\n")
 	require.NotContains(t, notes, "\n# injected heading")
 	require.Equal(t, 1, strings.Count(notes, "remove the old endpoint"))
@@ -89,12 +88,12 @@ func TestRenderNotesEscapesText(t *testing.T) {
 
 func TestRenderNotesKeepsLiteralBlockSyntax(t *testing.T) {
 	release := renderFixture(t)
-	var changes []Change
+	var changes []change
 	for _, subject := range []string{"- literal bullet", "+ literal bullet", "1. literal item", "123456789. literal item", "1) literal item", "---", "---- ----", "==="} {
-		changes = append(changes, Change{Hash: "abc", Message: ParseMessage(subject + "\n\nBREAKING CHANGE: first line\n---\n\n1. literal item\n+ literal bullet\n===\n- - -")})
+		changes = append(changes, change{Hash: "abc", Message: parseMessage(subject + "\n\nBREAKING CHANGE: first line\n---\n\n1. literal item\n+ literal bullet\n===\n- - -")})
 	}
-	release.Sections = []Section{{Category: BreakingChanges, Changes: changes}}
-	notes := RenderNotes(release, "")
+	release.Sections = []section{{Category: breakingChanges, Changes: changes}}
+	notes := renderNotes(release, "")
 	document := goldmark.New().Parser().Parse(markdowntext.NewReader(notes))
 	headings, items, lists := 0, 0, 0
 	require.NoError(t, ast.Walk(document, func(node ast.Node, entering bool) (ast.WalkStatus, error) {

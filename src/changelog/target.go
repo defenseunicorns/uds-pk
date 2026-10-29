@@ -17,8 +17,8 @@ type Selection struct {
 	Flavor  string
 }
 
-// Target describes a configured release without creating or updating it.
-type Target struct {
+// releaseTarget describes a configured release without creating or updating it.
+type releaseTarget struct {
 	Kind    string
 	Name    string
 	Flavor  string
@@ -29,18 +29,18 @@ type Target struct {
 	Paths []string
 }
 
-// ResolveTarget reuses release configuration selection and tag conventions.
+// resolveTarget reuses release configuration selection and tag conventions.
 // The caller loads and validates config before selecting a target.
-func ResolveTarget(config types.ReleaseConfig, selection Selection) (Target, error) {
+func resolveTarget(config types.ReleaseConfig, selection Selection) (releaseTarget, error) {
 	if selection.Bundle != "" {
 		if selection.Package != "" || selection.Flavor != "" {
-			return Target{}, fmt.Errorf("bundle selection cannot be combined with a package or flavor")
+			return releaseTarget{}, fmt.Errorf("bundle selection cannot be combined with a package or flavor")
 		}
 		bundle, err := utils.GetBundleConfig(config, selection.Bundle)
 		if err != nil {
-			return Target{}, err
+			return releaseTarget{}, err
 		}
-		return Target{
+		return releaseTarget{
 			Kind: "bundle", Name: bundle.Name, Version: bundle.Version,
 			Tag:   utils.GetFormattedVersion(bundle.Name, bundle.Version, ""),
 			Paths: []string{bundle.Path},
@@ -49,9 +49,9 @@ func ResolveTarget(config types.ReleaseConfig, selection Selection) (Target, err
 
 	packagePath, flavor, err := utils.GetFlavorConfig(selection.Flavor, config, selection.Package)
 	if err != nil {
-		return Target{}, fmt.Errorf("select release target: %w", err)
+		return releaseTarget{}, fmt.Errorf("select release target: %w", err)
 	}
-	target := Target{
+	target := releaseTarget{
 		Kind: "root", Name: selection.Package, Flavor: flavor.Name, Version: flavor.Version,
 		Tag: utils.GetFormattedVersion(selection.Package, flavor.Version, flavor.Name),
 	}
@@ -63,7 +63,7 @@ func ResolveTarget(config types.ReleaseConfig, selection Selection) (Target, err
 	target.Paths = []string{packagePath}
 	charts, err := utils.GetCharts(config, selection.Package)
 	if err != nil {
-		return Target{}, err
+		return releaseTarget{}, err
 	}
 	for _, chart := range charts {
 		target.Paths = append(target.Paths, chart.Path)

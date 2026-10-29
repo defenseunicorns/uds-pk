@@ -10,23 +10,23 @@ import (
 	"time"
 )
 
-// Release is the common model for standalone notes and a changelog section.
+// releaseData is the common model for standalone notes and a changelog section.
 // From and To are resolved commit hashes; an empty From is an initial release.
-type Release struct {
-	Target       Target
+type releaseData struct {
+	Target       releaseTarget
 	From         string
 	To           string
 	RevisionDate time.Time
-	Sections     []Section
+	Sections     []section
 }
 
-// RenderNotes generates a standalone Markdown document without hosted API calls.
+// renderNotes generates a standalone Markdown document without hosted API calls.
 // Unsupported or absent remotes produce plain commit references instead of URLs.
-func RenderNotes(release Release, remote string) []byte {
+func renderNotes(release releaseData, remote string) []byte {
 	return []byte("# Release notes\n\n" + renderRelease(release, parseRepositoryLinks(remote)))
 }
 
-func renderRelease(release Release, links repositoryLinks) string {
+func renderRelease(release releaseData, links repositoryLinks) string {
 	var output strings.Builder
 	fmt.Fprintf(&output, "## %s\n\n", markdownInline(release.Target.Tag))
 	target := release.Target.Kind
@@ -72,7 +72,7 @@ func renderRelease(release Release, links repositoryLinks) string {
 	return strings.TrimRight(output.String(), "\n") + "\n"
 }
 
-func renderChange(output *strings.Builder, change Change, links repositoryLinks) {
+func renderChange(output *strings.Builder, change change, links repositoryLinks) {
 	message := change.Message
 	label := message.Type
 	if message.Scope != "" {

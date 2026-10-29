@@ -8,10 +8,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
 	"testing"
 	"time"
 
+	"github.com/defenseunicorns/uds-pk/src/test"
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -89,8 +89,7 @@ func TestReadHistoryRange(t *testing.T) {
 	require.NoError(t, os.MkdirAll(directory, 0o755))
 	beforeHead, err := fixture.repository.Head()
 	require.NoError(t, err)
-	beforeHeadFile, err := os.ReadFile(filepath.Join(fixture.directory, ".git", "HEAD"))
-	require.NoError(t, err)
+	beforeHeadFile := test.ReadFile(t, filepath.Join(fixture.directory, ".git", "HEAD"))
 
 	for _, baseline := range []string{"base", "api-1.0.0-upstream", "api-annotated", fixture.hashes["base"].String()} {
 		t.Run(baseline, func(t *testing.T) {
@@ -99,18 +98,15 @@ func TestReadHistoryRange(t *testing.T) {
 			require.Equal(t, fixture.directory, history.Root)
 			require.Equal(t, fixture.hashes["base"], history.From.Hash)
 			require.Equal(t, fixture.hashes["endpoint"], history.To.Hash)
-			// Reach both branches and the merge; order timestamp ties by hash.
+			// Traversal reaches both branches and the merge exactly once.
 			branches := []string{fixture.hashes["feature"].String(), fixture.hashes["maintenance"].String()}
-			sort.Strings(branches)
-			require.Equal(t, append(branches, fixture.hashes["merge"].String(), fixture.hashes["endpoint"].String()), commitHashes(history))
+			require.ElementsMatch(t, append(branches, fixture.hashes["merge"].String(), fixture.hashes["endpoint"].String()), commitHashes(history))
 		})
 	}
 	afterHead, err := fixture.repository.Head()
 	require.NoError(t, err)
 	require.Equal(t, beforeHead, afterHead)
-	afterHeadFile, err := os.ReadFile(filepath.Join(fixture.directory, ".git", "HEAD"))
-	require.NoError(t, err)
-	require.Equal(t, beforeHeadFile, afterHeadFile)
+	require.Equal(t, beforeHeadFile, test.ReadFile(t, filepath.Join(fixture.directory, ".git", "HEAD")))
 	status, err := fixture.repository.Worktree()
 	require.NoError(t, err)
 	changes, err := status.Status()
@@ -123,7 +119,7 @@ func TestReadHistoryInitialAndEndpoints(t *testing.T) {
 	history, err := readHistory(context.Background(), fixture.directory, RevisionRange{Initial: true, To: "feature"})
 	require.NoError(t, err)
 	require.Nil(t, history.From)
-	require.Equal(t, []string{fixture.hashes["root"].String(), fixture.hashes["base"].String(), fixture.hashes["feature"].String()}, commitHashes(history))
+	require.ElementsMatch(t, []string{fixture.hashes["root"].String(), fixture.hashes["base"].String(), fixture.hashes["feature"].String()}, commitHashes(history))
 
 	history, err = readHistory(context.Background(), fixture.directory, RevisionRange{From: "api-annotated", To: "base"})
 	require.NoError(t, err)

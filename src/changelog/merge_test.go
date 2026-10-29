@@ -88,7 +88,7 @@ func TestFilterMergeCommits(t *testing.T) {
 			history, err := readHistory(t.Context(), directory, RevisionRange{From: baseline.String()})
 			require.NoError(t, err)
 			require.Contains(t, commitHashes(history), merged.String())
-			target := Target{Paths: []string{"api"}}
+			target := releaseTarget{Paths: []string{"api"}}
 			if test.root {
 				target.Paths = nil
 			} else if test.dot {
@@ -108,8 +108,8 @@ func TestFilterMergeCommits(t *testing.T) {
 			if test.name == "merge-only breaking change" {
 				require.Equal(t, []string{merged.String()}, hashes)
 				sections := groupCommits(selected)
-				require.Equal(t, BreakingChanges, sections[0].Category)
-				notes := RenderNotes(Release{Target: Target{Tag: "2.0.0"}, Sections: sections}, "")
+				require.Equal(t, breakingChanges, sections[0].Category)
+				notes := renderNotes(releaseData{Target: releaseTarget{Tag: "2.0.0"}, Sections: sections}, "")
 				require.Contains(t, string(notes), "require authentication")
 				require.NotContains(t, string(notes), "No changes matched")
 			}

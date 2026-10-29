@@ -22,10 +22,10 @@ type preparedArtifact struct {
 	existing bool
 }
 
-// ReadArtifact reads an existing regular destination, following valid symlinks.
+// readArtifact reads an existing regular destination, following valid symlinks.
 // A new destination returns no content. Validate the type before opening it so
 // special files such as FIFOs cannot block changelog generation.
-func ReadArtifact(path string) ([]byte, error) {
+func readArtifact(path string) ([]byte, error) {
 	destination, err := resolveDestination(path)
 	if err != nil {
 		return nil, err

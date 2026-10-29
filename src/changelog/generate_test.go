@@ -17,7 +17,7 @@ import (
 func TestGeneratePreparesArtifactsWithoutWriting(t *testing.T) {
 	fixture := test.CreateNotesFixture(t)
 	path := filepath.Join(fixture.Directory, "CHANGELOG.md")
-	existing := []byte("# Changelog\n\nHandwritten introduction.\n")
+	existing := requireStableChangelog(t, nil, releaseData{Target: releaseTarget{Kind: "package", Name: "api", Tag: "api-1.0.0"}})
 	require.NoError(t, os.WriteFile(path, existing, 0o644))
 	generated, err := Generate(t.Context(), GenerateOptions{
 		Directory: fixture.Directory, Selection: Selection{Package: "api", Flavor: "upstream"},
@@ -34,9 +34,8 @@ func TestGeneratePreparesArtifactsWithoutWriting(t *testing.T) {
 	require.Equal(t, generated.Notes, generated.Artifacts[0].Content)
 	require.Equal(t, path, generated.Artifacts[1].Path)
 	require.Contains(t, string(generated.Artifacts[1].Content), "<!-- uds-pk:release ")
-	unchanged, err := os.ReadFile(path)
-	require.NoError(t, err)
-	require.Equal(t, existing, unchanged)
+	require.Contains(t, string(generated.Artifacts[1].Content), "## api-1.0.0\n")
+	require.Equal(t, existing, test.ReadFile(t, path))
 	_, err = os.Stat(filepath.Join(fixture.Directory, "notes"))
 	require.ErrorIs(t, err, os.ErrNotExist)
 }

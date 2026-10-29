@@ -7,6 +7,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"testing"
 	"time"
@@ -87,7 +88,7 @@ func TestFilterCommits(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			target, err := ResolveTarget(config, test.selection)
+			target, err := resolveTarget(config, test.selection)
 			require.NoError(t, err)
 			commits, err := filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), target, test.include)
 			require.NoError(t, err)
@@ -105,13 +106,13 @@ func TestFilterCommitsInitialAndDeletedPaths(t *testing.T) {
 	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
 	require.NoError(t, err)
 	// Files that no longer exist in the worktree still select historical changes.
-	target := Target{Paths: []string{"packages/api/remove.txt"}}
+	target := releaseTarget{Paths: []string{"packages/api/remove.txt"}}
 	commits, err := filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), target, nil)
 	require.NoError(t, err)
 	require.Equal(t, []string{fixture.hashes["base"].String(), fixture.hashes["deletion"].String()}, commitHashes(commitHistory{Commits: commits}))
 
 	// Nonexistent paths select no changes rather than requiring live files.
-	commits, err = filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), Target{Paths: []string{"future"}}, nil)
+	commits, err = filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), releaseTarget{Paths: []string{"future"}}, nil)
 	require.NoError(t, err)
 	require.Empty(t, commits)
 }
@@ -123,14 +124,14 @@ func TestFilterCommitsValidation(t *testing.T) {
 	directory := filepath.Join(fixture.directory, "project")
 	tests := []struct {
 		name    string
-		target  Target
+		target  releaseTarget
 		include []string
 		message string
 	}{
-		{"empty path", Target{Paths: []string{""}}, nil, "non-empty path"},
-		{"absolute path", Target{Paths: []string{directory}}, nil, "relative to the release directory"},
-		{"escape target", Target{Paths: []string{"../../outside"}}, nil, "outside repository"},
-		{"escape include on root", Target{}, []string{"../../outside"}, "outside repository"},
+		{"empty path", releaseTarget{Paths: []string{""}}, nil, "non-empty path"},
+		{"absolute path", releaseTarget{Paths: []string{directory}}, nil, "relative to the release directory"},
+		{"escape target", releaseTarget{Paths: []string{"../../outside"}}, nil, "outside repository"},
+		{"escape include on root", releaseTarget{}, []string{"../../outside"}, "outside repository"},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -139,13 +140,13 @@ func TestFilterCommitsValidation(t *testing.T) {
 			require.Empty(t, commits)
 		})
 	}
-	_, err = filterCommits(t.Context(), history, t.TempDir(), Target{}, nil)
+	_, err = filterCommits(t.Context(), history, t.TempDir(), releaseTarget{}, nil)
 	require.ErrorContains(t, err, "outside repository")
-	_, err = filterCommits(t.Context(), history, filepath.Join(directory, "missing"), Target{}, nil)
+	_, err = filterCommits(t.Context(), history, filepath.Join(directory, "missing"), releaseTarget{}, nil)
 	require.ErrorContains(t, err, "resolve release directory")
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	_, err = filterCommits(ctx, history, directory, Target{}, nil)
+	_, err = filterCommits(ctx, history, directory, releaseTarget{}, nil)
 	require.ErrorIs(t, err, context.Canceled)
 }
 
@@ -160,7 +161,7 @@ func TestFilterCommitsRelativeAndSymlinkDirectories(t *testing.T) {
 	link := filepath.Join(t.TempDir(), "project")
 	require.NoError(t, os.Symlink(filepath.Join(fixture.directory, "project"), link))
 	for _, directory := range []string{relative, link} {
-		commits, err := filterCommits(t.Context(), history, directory, Target{Paths: []string{"packages/api/remove.txt"}}, nil)
+		commits, err := filterCommits(t.Context(), history, directory, releaseTarget{Paths: []string{"packages/api/remove.txt"}}, nil)
 		require.NoError(t, err)
 		require.Equal(t, []string{fixture.hashes["base"].String(), fixture.hashes["deletion"].String()}, commitHashes(commitHistory{Commits: commits}))
 	}
@@ -172,6 +173,17 @@ func TestFilterCommitsMissingTree(t *testing.T) {
 	require.NoError(t, err)
 	treeHash := history.Commits[0].TreeHash.String()
 	require.NoError(t, os.Remove(filepath.Join(fixture.directory, ".git", "objects", treeHash[:2], treeHash[2:])))
-	_, err = filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), Target{Paths: []string{"packages/api"}}, nil)
+	_, err = filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), releaseTarget{Paths: []string{"packages/api"}}, nil)
 	require.ErrorContains(t, err, "inspect paths in commit "+fixture.hashes["base"].String())
+}
+
+func TestFilterCommitsOrdersTimestampTiesByHash(t *testing.T) {
+	fixture := newHistoryFixture(t)
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{From: "base"})
+	require.NoError(t, err)
+	selected, err := filterCommits(t.Context(), history, fixture.directory, releaseTarget{}, nil)
+	require.NoError(t, err)
+	branches := []string{fixture.hashes["feature"].String(), fixture.hashes["maintenance"].String()}
+	slices.Sort(branches)
+	require.Equal(t, append(branches, fixture.hashes["endpoint"].String()), commitHashes(commitHistory{Commits: selected}))
 }

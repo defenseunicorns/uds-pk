@@ -6,7 +6,6 @@ package changelog
 import (
 	"context"
 	"fmt"
-	"sort"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -21,7 +20,7 @@ type RevisionRange struct {
 	Initial bool
 }
 
-// commitHistory holds resolved revisions and unique commits in stable order.
+// commitHistory holds resolved revisions and unique commits in traversal order.
 // Commit objects retain access to their trees for subsequent path filtering.
 type commitHistory struct {
 	Root    string
@@ -114,13 +113,6 @@ func readHistory(ctx context.Context, directory string, revisions RevisionRange)
 		}
 	}
 	history.Commits = included
-	sort.Slice(history.Commits, func(left, right int) bool {
-		leftCommit, rightCommit := history.Commits[left], history.Commits[right]
-		if leftCommit.Committer.When.Equal(rightCommit.Committer.When) {
-			return leftCommit.Hash.String() < rightCommit.Hash.String()
-		}
-		return leftCommit.Committer.When.Before(rightCommit.Committer.When)
-	})
 	return history, nil
 }
 

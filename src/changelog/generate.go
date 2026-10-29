@@ -46,7 +46,7 @@ func Generate(ctx context.Context, options GenerateOptions) (Generation, error) 
 	if err := config.Validate(); err != nil {
 		return Generation{}, fmt.Errorf("validate release configuration %q: %w", configPath, err)
 	}
-	target, err := ResolveTarget(config, options.Selection)
+	target, err := resolveTarget(config, options.Selection)
 	if err != nil {
 		return Generation{}, err
 	}
@@ -58,22 +58,22 @@ func Generate(ctx context.Context, options GenerateOptions) (Generation, error) 
 	if err != nil {
 		return Generation{}, err
 	}
-	release := Release{Target: target, To: history.To.Hash.String(), RevisionDate: history.To.Committer.When, Sections: groupCommits(commits)}
+	release := releaseData{Target: target, To: history.To.Hash.String(), RevisionDate: history.To.Committer.When, Sections: groupCommits(commits)}
 	if history.From != nil {
 		release.From = history.From.Hash.String()
 	}
-	notes := RenderNotes(release, history.Origin)
+	notes := renderNotes(release, history.Origin)
 	var artifacts []Artifact
 	if options.Output != "" {
 		artifacts = append(artifacts, Artifact{Path: artifactPath(directory, options.Output), Content: notes})
 	}
 	if options.Changelog != "" {
 		path := artifactPath(directory, options.Changelog)
-		existing, err := ReadArtifact(path)
+		existing, err := readArtifact(path)
 		if err != nil {
 			return Generation{}, fmt.Errorf("read changelog %q: %w", path, err)
 		}
-		updated, err := UpdateChangelog(existing, release, history.Origin)
+		updated, err := updateChangelog(existing, release, history.Origin)
 		if err != nil {
 			return Generation{}, fmt.Errorf("update changelog %q: %w", path, err)
 		}

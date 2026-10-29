@@ -62,7 +62,7 @@ func addNotesFlags(cmd *cobra.Command, options *notesOptions) {
 	cmd.Flags().StringVar(&options.to, "to", "HEAD", "Last Git revision to include")
 	cmd.Flags().BoolVar(&options.initial, "initial", false, "Generate a first release from all reachable history")
 	cmd.Flags().StringVar(&options.output, "output", "", "Write release notes to this file instead of stdout; relative to --dir")
-	cmd.Flags().StringVar(&options.changelog, "changelog", "", "Also update this changelog file; relative to --dir")
+	cmd.Flags().StringVar(&options.changelog, "changelog", "", "Also maintain a fully generated changelog; relative to --dir")
 	cmd.Flags().StringArrayVar(&options.includePaths, "include-path", nil, "Include an additional shared file or directory relative to --dir; repeatable")
 	cmd.MarkFlagsMutuallyExclusive("from", "initial")
 	cmd.MarkFlagsOneRequired("from", "initial")

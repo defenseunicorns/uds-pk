@@ -21,28 +21,28 @@ func TestParseMessage(t *testing.T) {
 		Scope       string
 		Description string
 		Breaking    []string
-		Category    Category
+		Category    changeCategory
 	}
 	require.NoError(t, utils.LoadYaml("testdata/messages.yaml", &fixtures))
 	require.NotEmpty(t, fixtures)
 	for _, fixture := range fixtures {
 		t.Run(fixture.Name, func(t *testing.T) {
-			message := ParseMessage(fixture.Text)
-			require.Equal(t, Message{
+			message := parseMessage(fixture.Text)
+			require.Equal(t, commitMessage{
 				Subject:              strings.TrimSpace(strings.Split(fixture.Text, "\n")[0]),
 				Type:                 fixture.Type,
 				Scope:                fixture.Scope,
 				Description:          fixture.Description,
 				BreakingDescriptions: fixture.Breaking,
 			}, message)
-			require.Equal(t, fixture.Category, message.Category())
+			require.Equal(t, fixture.Category, message.category())
 		})
 	}
 }
 
 func TestMaintenanceTypes(t *testing.T) {
 	for _, commitType := range []string{"chore", "build", "ci", "refactor", "test", "style"} {
-		require.Equal(t, Maintenance, ParseMessage(commitType+": maintain the project").Category())
+		require.Equal(t, maintenance, parseMessage(commitType+": maintain the project").category())
 	}
 }
 
@@ -50,10 +50,10 @@ func TestGroupCommits(t *testing.T) {
 	fixture := newHistoryFixture(t)
 	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
 	require.NoError(t, err)
-	selected, err := filterCommits(t.Context(), history, fixture.directory, Target{}, nil)
+	selected, err := filterCommits(t.Context(), history, fixture.directory, releaseTarget{}, nil)
 	require.NoError(t, err)
 	sections := groupCommits(selected)
-	var categories []Category
+	var categories []changeCategory
 	var hashes []string
 	for _, section := range sections {
 		categories = append(categories, section.Category)
@@ -62,7 +62,7 @@ func TestGroupCommits(t *testing.T) {
 			hashes = append(hashes, change.Hash)
 		}
 	}
-	require.Equal(t, []Category{Features, BugFixes, Dependencies, Maintenance}, categories)
+	require.Equal(t, []changeCategory{features, bugFixes, dependencies, maintenance}, categories)
 	require.ElementsMatch(t, commitHashes(commitHistory{Commits: selected}), hashes)
 	require.Equal(t, fixture.hashes["base"].String(), sections[0].Changes[0].Hash)
 	require.Equal(t, fixture.hashes["feature"].String(), sections[0].Changes[1].Hash)
@@ -77,9 +77,9 @@ func TestGroupCommitsCategoryOrder(t *testing.T) {
 	} {
 		commits = append(commits, &object.Commit{Hash: plumbing.ComputeHash(plumbing.CommitObject, []byte{byte(index)}), Message: subject})
 	}
-	var categories []Category
+	var categories []changeCategory
 	for _, section := range groupCommits(commits) {
 		categories = append(categories, section.Category)
 	}
-	require.Equal(t, []Category{BreakingChanges, Features, BugFixes, Performance, Dependencies, Documentation, Maintenance, OtherChanges}, categories)
+	require.Equal(t, []changeCategory{breakingChanges, features, bugFixes, performance, dependencies, documentation, maintenance, otherChanges}, categories)
 }
