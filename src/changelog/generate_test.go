@@ -17,7 +17,7 @@ import (
 func TestGeneratePreparesArtifactsWithoutWriting(t *testing.T) {
 	fixture := test.CreateNotesFixture(t)
 	path := filepath.Join(fixture.Directory, "CHANGELOG.md")
-	existing := []byte("# Changelog\n\nHandwritten introduction.\n")
+	existing := requireStableChangelog(t, nil, releaseData{Target: releaseTarget{Kind: "package", Name: "api", Tag: "api-1.0.0"}})
 	require.NoError(t, os.WriteFile(path, existing, 0o644))
 	generated, err := Generate(t.Context(), GenerateOptions{
 		Directory: fixture.Directory, Selection: Selection{Package: "api", Flavor: "upstream"},
@@ -34,9 +34,8 @@ func TestGeneratePreparesArtifactsWithoutWriting(t *testing.T) {
 	require.Equal(t, generated.Notes, generated.Artifacts[0].Content)
 	require.Equal(t, path, generated.Artifacts[1].Path)
 	require.Contains(t, string(generated.Artifacts[1].Content), "<!-- uds-pk:release ")
-	unchanged, err := os.ReadFile(path)
-	require.NoError(t, err)
-	require.Equal(t, existing, unchanged)
+	require.Contains(t, string(generated.Artifacts[1].Content), "## api-1.0.0\n")
+	require.Equal(t, existing, test.ReadFile(t, path))
 	_, err = os.Stat(filepath.Join(fixture.Directory, "notes"))
 	require.ErrorIs(t, err, os.ErrNotExist)
 }
@@ -56,7 +55,10 @@ func TestGenerateBundleOnlyInitialEndpoint(t *testing.T) {
 	require.Contains(t, string(generated.Notes), "Initial release (all reachable history)")
 	require.Contains(t, string(generated.Notes), "initial fixture")
 	require.NotContains(t, string(generated.Notes), "refresh platform references")
-	require.Empty(t, generated.Artifacts)
+	require.Len(t, generated.Artifacts, 1)
+	root, err := filepath.EvalSymlinks(filepath.Dir(fixture.Directory))
+	require.NoError(t, err)
+	require.Equal(t, filepath.Join(root, "CHANGELOG.md"), generated.Artifacts[0].Path)
 }
 
 func TestGenerateNestedDirectorySymlink(t *testing.T) {
@@ -73,4 +75,25 @@ func TestGenerateNestedDirectorySymlink(t *testing.T) {
 	linked, err := Generate(t.Context(), options)
 	require.NoError(t, err)
 	require.Equal(t, physical, linked)
+}
+
+func TestGenerateCanSkipExistingRootChangelog(t *testing.T) {
+	fixture := test.CreateNotesFixture(t)
+	path := filepath.Join(filepath.Dir(fixture.Directory), "CHANGELOG.md")
+	existing := []byte("# Changelog\n\nHandwritten release history.\n")
+	require.NoError(t, os.WriteFile(path, existing, 0o644))
+	options := GenerateOptions{Directory: fixture.Directory, Revisions: RevisionRange{Initial: true}}
+	_, err := Generate(t.Context(), options)
+	require.ErrorContains(t, err, "use a new --changelog path")
+
+	options.SkipChangelog = true
+	generated, err := Generate(t.Context(), options)
+	require.NoError(t, err)
+	require.NotEmpty(t, generated.Notes)
+	require.Empty(t, generated.Artifacts)
+	require.Equal(t, existing, test.ReadFile(t, path))
+
+	options.Changelog = "other.md"
+	_, err = Generate(t.Context(), options)
+	require.ErrorContains(t, err, "--no-changelog cannot be combined with --changelog")
 }

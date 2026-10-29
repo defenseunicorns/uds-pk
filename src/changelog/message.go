@@ -10,27 +10,27 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// Category is a conventional-commit section heading.
-type Category string
+// changeCategory is a conventional-commit section heading.
+type changeCategory string
 
 const (
-	BreakingChanges Category = "Breaking Changes"
-	Features        Category = "Features"
-	BugFixes        Category = "Bug Fixes"
-	Performance     Category = "Performance"
-	Dependencies    Category = "Dependencies"
-	Documentation   Category = "Documentation"
-	Maintenance     Category = "Maintenance"
-	OtherChanges    Category = "Other Changes"
+	breakingChanges changeCategory = "Breaking Changes"
+	features        changeCategory = "Features"
+	bugFixes        changeCategory = "Bug Fixes"
+	performance     changeCategory = "Performance"
+	dependencies    changeCategory = "Dependencies"
+	documentation   changeCategory = "Documentation"
+	maintenance     changeCategory = "Maintenance"
+	otherChanges    changeCategory = "Other Changes"
 )
 
 var headerPattern = regexp.MustCompile(`^([A-Za-z][A-Za-z0-9-]*)(?:\(([^()\r\n]+)\))?(!)?: +([^\s].*)$`)
 var footerPattern = regexp.MustCompile(`^([A-Za-z0-9-]+|BREAKING CHANGE)(?:: | #)(.*)$`)
 
-// Message preserves the original subject alongside parsed conventional fields.
+// commitMessage preserves the original subject alongside parsed conventional fields.
 // BreakingDescriptions contains footer descriptions, or the header description
 // when only a ! marker is present.
-type Message struct {
+type commitMessage struct {
 	Subject              string
 	Type                 string
 	Scope                string
@@ -38,12 +38,12 @@ type Message struct {
 	BreakingDescriptions []string
 }
 
-// ParseMessage follows Conventional Commits 1.0.0 without discarding messages
+// parseMessage follows Conventional Commits 1.0.0 without discarding messages
 // that use an unrecognized type or do not follow the convention.
-func ParseMessage(text string) Message {
+func parseMessage(text string) commitMessage {
 	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
 	subject := strings.TrimSpace(lines[0])
-	message := Message{Subject: subject, Description: subject}
+	message := commitMessage{Subject: subject, Description: subject}
 	header := headerPattern.FindStringSubmatch(subject)
 	if header != nil {
 		message.Type = strings.ToLower(header[1])
@@ -85,56 +85,56 @@ func breakingDescriptions(lines []string) []string {
 	return descriptions
 }
 
-// Category assigns breaking changes first, then dependency scope, then type.
-func (message Message) Category() Category {
+// category assigns breaking changes first, then dependency scope, then type.
+func (message commitMessage) category() changeCategory {
 	if len(message.BreakingDescriptions) > 0 {
-		return BreakingChanges
+		return breakingChanges
 	}
 	if strings.EqualFold(message.Scope, "deps") {
-		return Dependencies
+		return dependencies
 	}
 	switch message.Type {
 	case "feat":
-		return Features
+		return features
 	case "fix":
-		return BugFixes
+		return bugFixes
 	case "perf":
-		return Performance
+		return performance
 	case "docs":
-		return Documentation
+		return documentation
 	case "chore", "build", "ci", "refactor", "test", "style":
-		return Maintenance
+		return maintenance
 	default:
-		return OtherChanges
+		return otherChanges
 	}
 }
 
-// Change ties one parsed commit message to its full Git hash.
-type Change struct {
+// change ties one parsed commit message to its full Git hash.
+type change struct {
 	Hash    string
-	Message Message
+	Message commitMessage
 }
 
-// Section groups changes into one non-empty category.
-type Section struct {
-	Category Category
-	Changes  []Change
+// section groups changes into one non-empty category.
+type section struct {
+	Category changeCategory
+	Changes  []change
 }
 
 // groupCommits emits categories in a fixed order, preserving commit order
 // within each category. Input commits come from the unique history traversal.
-func groupCommits(commits []*object.Commit) []Section {
-	groups := make(map[Category][]Change)
+func groupCommits(commits []*object.Commit) []section {
+	groups := make(map[changeCategory][]change)
 	for _, commit := range commits {
 		hash := commit.Hash.String()
-		message := ParseMessage(commit.Message)
-		category := message.Category()
-		groups[category] = append(groups[category], Change{Hash: hash, Message: message})
+		message := parseMessage(commit.Message)
+		category := message.category()
+		groups[category] = append(groups[category], change{Hash: hash, Message: message})
 	}
-	var sections []Section
-	for _, category := range []Category{BreakingChanges, Features, BugFixes, Performance, Dependencies, Documentation, Maintenance, OtherChanges} {
+	var sections []section
+	for _, category := range []changeCategory{breakingChanges, features, bugFixes, performance, dependencies, documentation, maintenance, otherChanges} {
 		if changes := groups[category]; len(changes) > 0 {
-			sections = append(sections, Section{Category: category, Changes: changes})
+			sections = append(sections, section{Category: category, Changes: changes})
 		}
 	}
 	return sections

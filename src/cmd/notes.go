@@ -18,6 +18,7 @@ type notesOptions struct {
 	initial      bool
 	output       string
 	changelog    string
+	noChangelog  bool
 	includePaths []string
 }
 
@@ -25,7 +26,7 @@ func notesCmd() *cobra.Command {
 	options := &notesOptions{}
 	cmd := &cobra.Command{
 		Use:          "notes [flavor]",
-		Short:        "Generate Markdown release notes and optionally update a changelog",
+		Short:        "Generate Markdown release notes and update a changelog",
 		Args:         cobra.MaximumNArgs(1),
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -62,10 +63,12 @@ func addNotesFlags(cmd *cobra.Command, options *notesOptions) {
 	cmd.Flags().StringVar(&options.to, "to", "HEAD", "Last Git revision to include")
 	cmd.Flags().BoolVar(&options.initial, "initial", false, "Generate a first release from all reachable history")
 	cmd.Flags().StringVar(&options.output, "output", "", "Write release notes to this file instead of stdout; relative to --dir")
-	cmd.Flags().StringVar(&options.changelog, "changelog", "", "Also update this changelog file; relative to --dir")
+	cmd.Flags().StringVar(&options.changelog, "changelog", "", "Override the repository-root CHANGELOG.md path; relative to --dir")
+	cmd.Flags().BoolVar(&options.noChangelog, "no-changelog", false, "Generate notes without updating a changelog")
 	cmd.Flags().StringArrayVar(&options.includePaths, "include-path", nil, "Include an additional shared file or directory relative to --dir; repeatable")
 	cmd.MarkFlagsMutuallyExclusive("from", "initial")
 	cmd.MarkFlagsOneRequired("from", "initial")
+	cmd.MarkFlagsMutuallyExclusive("changelog", "no-changelog")
 }
 
 func (options *notesOptions) run(cmd *cobra.Command, selection changelog.Selection) error {
@@ -84,6 +87,7 @@ func (options *notesOptions) run(cmd *cobra.Command, selection changelog.Selecti
 		Directory: options.releaseDir, Selection: selection,
 		Revisions:    changelog.RevisionRange{From: options.from, To: options.to, Initial: options.initial},
 		IncludePaths: options.includePaths, Output: options.output, Changelog: options.changelog,
+		SkipChangelog: options.noChangelog,
 	})
 	if err != nil {
 		return err

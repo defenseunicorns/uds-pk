@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -14,8 +15,8 @@ import (
 
 // filterCommits selects commits touching the target's paths or explicit shared
 // paths. Root targets cover the whole repository. Paths are relative to the
-// release directory; returned commits retain the history's unique order.
-func filterCommits(ctx context.Context, history commitHistory, directory string, target Target, includePaths []string) ([]*object.Commit, error) {
+// release directory. Only selected commits are sorted, by commit time then hash.
+func filterCommits(ctx context.Context, history commitHistory, directory string, target releaseTarget, includePaths []string) ([]*object.Commit, error) {
 	paths := append(append([]string(nil), target.Paths...), includePaths...)
 	scopes, err := resolveScopes(history.Root, directory, paths)
 	if err != nil {
@@ -44,6 +45,13 @@ func filterCommits(ctx context.Context, history commitHistory, directory string,
 			selected = append(selected, commit)
 		}
 	}
+	sort.Slice(selected, func(left, right int) bool {
+		leftCommit, rightCommit := selected[left], selected[right]
+		if leftCommit.Committer.When.Equal(rightCommit.Committer.When) {
+			return leftCommit.Hash.String() < rightCommit.Hash.String()
+		}
+		return leftCommit.Committer.When.Before(rightCommit.Committer.When)
+	})
 	return selected, nil
 }
 
@@ -108,7 +116,7 @@ func commitRelevant(ctx context.Context, commit *object.Commit, scopes []string,
 		changed, err := changedPaths(ctx, commit, 0, scopes)
 		return len(changed) > 0, err
 	}
-	message := ParseMessage(commit.Message)
+	message := parseMessage(commit.Message)
 	metadata := message.Type != "" || len(message.BreakingDescriptions) > 0
 	if metadata {
 		if repositoryWide {

@@ -31,7 +31,7 @@ func TestNotesCLIRejectsFIFODestinations(t *testing.T) {
 					require.NoError(t, os.Symlink(fifo, path))
 				}
 				other := filepath.Join(fixture.Directory, "other.md")
-				require.NoError(t, os.WriteFile(other, []byte("original"), 0o600))
+				require.NoError(t, os.WriteFile(other, nil, 0o600))
 				otherFlag := "--output"
 				if flag == otherFlag {
 					otherFlag = "--changelog"
@@ -43,9 +43,7 @@ func TestNotesCLIRejectsFIFODestinations(t *testing.T) {
 				require.NoError(t, ctx.Err(), "command blocked on FIFO: %s", output)
 				require.Error(t, err)
 				require.Contains(t, string(output), "not a regular file")
-				content, err := os.ReadFile(other)
-				require.NoError(t, err)
-				require.Equal(t, "original", string(content))
+				test.RequireFileContents(t, map[string]string{other: ""})
 			})
 		}
 	}

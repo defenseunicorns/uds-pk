@@ -12,15 +12,17 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/utils"
 )
 
-// GenerateOptions selects a release and optional artifact destinations. Paths
-// are relative to Directory, which contains releaser.yaml.
+// GenerateOptions selects a release and artifact destinations. Explicit paths
+// are relative to Directory, which contains releaser.yaml. The default changelog
+// is CHANGELOG.md at the repository root; SkipChangelog disables it.
 type GenerateOptions struct {
-	Directory    string
-	Selection    Selection
-	Revisions    RevisionRange
-	IncludePaths []string
-	Output       string
-	Changelog    string
+	Directory     string
+	Selection     Selection
+	Revisions     RevisionRange
+	IncludePaths  []string
+	Output        string
+	Changelog     string
+	SkipChangelog bool
 }
 
 // Generation contains rendered Markdown and files ready for WriteArtifacts.
@@ -31,9 +33,12 @@ type Generation struct {
 }
 
 // Generate reads local configuration and history, selects and groups changes,
-// and renders notes plus any requested changelog update. It does not write
+// and renders notes plus the default or overridden changelog update. It does not write
 // artifacts; errors leave existing files untouched.
 func Generate(ctx context.Context, options GenerateOptions) (Generation, error) {
+	if options.SkipChangelog && options.Changelog != "" {
+		return Generation{}, fmt.Errorf("--no-changelog cannot be combined with --changelog")
+	}
 	directory, err := filepath.Abs(options.Directory)
 	if err != nil {
 		return Generation{}, fmt.Errorf("resolve release directory: %w", err)
@@ -46,7 +51,7 @@ func Generate(ctx context.Context, options GenerateOptions) (Generation, error) 
 	if err := config.Validate(); err != nil {
 		return Generation{}, fmt.Errorf("validate release configuration %q: %w", configPath, err)
 	}
-	target, err := ResolveTarget(config, options.Selection)
+	target, err := resolveTarget(config, options.Selection)
 	if err != nil {
 		return Generation{}, err
 	}
@@ -58,22 +63,25 @@ func Generate(ctx context.Context, options GenerateOptions) (Generation, error) 
 	if err != nil {
 		return Generation{}, err
 	}
-	release := Release{Target: target, To: history.To.Hash.String(), RevisionDate: history.To.Committer.When, Sections: groupCommits(commits)}
+	release := releaseData{Target: target, To: history.To.Hash.String(), RevisionDate: history.To.Committer.When, Sections: groupCommits(commits)}
 	if history.From != nil {
 		release.From = history.From.Hash.String()
 	}
-	notes := RenderNotes(release, history.Origin)
+	notes := renderNotes(release, history.Origin)
 	var artifacts []Artifact
 	if options.Output != "" {
 		artifacts = append(artifacts, Artifact{Path: artifactPath(directory, options.Output), Content: notes})
 	}
-	if options.Changelog != "" {
-		path := artifactPath(directory, options.Changelog)
-		existing, err := ReadArtifact(path)
+	if !options.SkipChangelog {
+		path := filepath.Join(history.Root, "CHANGELOG.md")
+		if options.Changelog != "" {
+			path = artifactPath(directory, options.Changelog)
+		}
+		existing, err := readArtifact(path)
 		if err != nil {
 			return Generation{}, fmt.Errorf("read changelog %q: %w", path, err)
 		}
-		updated, err := UpdateChangelog(existing, release, history.Origin)
+		updated, err := updateChangelog(existing, release, history.Origin)
 		if err != nil {
 			return Generation{}, fmt.Errorf("update changelog %q: %w", path, err)
 		}
