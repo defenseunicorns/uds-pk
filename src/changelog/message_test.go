@@ -50,8 +50,10 @@ func TestGroupCommits(t *testing.T) {
 	fixture := newHistoryFixture(t)
 	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
 	require.NoError(t, err)
+	selected, err := FilterCommits(t.Context(), history, fixture.directory, Target{}, nil)
+	require.NoError(t, err)
 	// Deliberately repeat a commit to verify one entry per hash.
-	commits := append(append([]*object.Commit(nil), history.Commits...), history.Commits[0])
+	commits := append(append([]*object.Commit(nil), selected...), selected[0])
 	sections := GroupCommits(commits)
 	var categories []Category
 	var hashes []string
@@ -63,7 +65,7 @@ func TestGroupCommits(t *testing.T) {
 		}
 	}
 	require.Equal(t, []Category{Features, BugFixes, Dependencies, Maintenance}, categories)
-	require.ElementsMatch(t, commitHashes(history), hashes)
+	require.ElementsMatch(t, commitHashes(History{Commits: selected}), hashes)
 	require.Equal(t, fixture.hashes["base"].String(), sections[0].Changes[0].Hash)
 	require.Equal(t, fixture.hashes["feature"].String(), sections[0].Changes[1].Hash)
 	require.Empty(t, GroupCommits(nil))

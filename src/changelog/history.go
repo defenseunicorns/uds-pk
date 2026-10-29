@@ -22,7 +22,7 @@ type RevisionRange struct {
 	Initial bool
 }
 
-// History holds resolved revisions and non-merge commits in stable order.
+// History holds resolved revisions and commits in stable order.
 // Commit objects retain access to their trees for subsequent path filtering.
 type History struct {
 	Root    string
@@ -30,6 +30,13 @@ type History struct {
 	From    *object.Commit
 	To      *object.Commit
 	Commits []*object.Commit
+}
+
+type commitSet map[plumbing.Hash]struct{}
+
+func (set commitSet) contains(hash plumbing.Hash) bool {
+	_, found := set[hash]
+	return found
 }
 
 // ReadHistory reads local objects without changing refs, the index, or files.
@@ -68,36 +75,31 @@ func ReadHistory(ctx context.Context, directory string, revisions RevisionRange)
 		if err != nil {
 			return History{}, err
 		}
-		if history.From.Hash == endpoint.Hash {
-			return history, nil
-		}
 	}
 
 	shallow, err := repository.Storer.Shallow()
 	if err != nil {
 		return History{}, fmt.Errorf("read shallow boundaries: %w", err)
 	}
-	boundaries := make(map[plumbing.Hash]bool, len(shallow))
+	boundaries := make(commitSet, len(shallow))
 	for _, hash := range shallow {
-		boundaries[hash] = true
+		boundaries[hash] = struct{}{}
 	}
-	excluded := make(map[plumbing.Hash]*object.Commit)
+	var excluded commitSet
 	if history.From != nil {
-		excluded, err = reachableCommits(ctx, repository, history.From.Hash, nil, boundaries)
+		excluded, err = reachableCommits(ctx, repository, history.From.Hash, nil, boundaries, nil)
 		if err != nil {
-			return History{}, err
+			return History{}, fmt.Errorf("establish baseline ancestry for %q: %w", revisions.From, err)
 		}
 	}
-	included, err := reachableCommits(ctx, repository, endpoint.Hash, excluded, boundaries)
+	var included []*object.Commit
+	_, err = reachableCommits(ctx, repository, endpoint.Hash, excluded, boundaries, func(commit *object.Commit) {
+		included = append(included, commit)
+	})
 	if err != nil {
 		return History{}, err
 	}
-	for hash := range included {
-		if boundaries[hash] {
-			return History{}, fmt.Errorf("history reaches shallow boundary %s; fetch complete history (git fetch --unshallow) before generating notes", hash)
-		}
-	}
-	if history.From != nil {
+	if history.From != nil && history.From.Hash != endpoint.Hash {
 		// The traversal stops at excluded commits, so the baseline is reachable
 		// only when it is the endpoint or a parent of an included commit.
 		ancestor := false
@@ -112,11 +114,7 @@ func ReadHistory(ctx context.Context, directory string, revisions RevisionRange)
 			return History{}, fmt.Errorf("baseline %q is not an ancestor of %q", revisions.From, revisions.To)
 		}
 	}
-	for _, commit := range included {
-		if commit.NumParents() <= 1 {
-			history.Commits = append(history.Commits, commit)
-		}
-	}
+	history.Commits = included
 	sort.Slice(history.Commits, func(left, right int) bool {
 		leftCommit, rightCommit := history.Commits[left], history.Commits[right]
 		if leftCommit.Committer.When.Equal(rightCommit.Committer.When) {
@@ -139,8 +137,12 @@ func resolveCommit(repository *git.Repository, revision string) (*object.Commit,
 	return commit, nil
 }
 
-func reachableCommits(ctx context.Context, repository *git.Repository, start plumbing.Hash, excluded map[plumbing.Hash]*object.Commit, boundaries map[plumbing.Hash]bool) (map[plumbing.Hash]*object.Commit, error) {
-	commits := make(map[plumbing.Hash]*object.Commit)
+// reachableCommits requires complete ancestry for every visited commit. A
+// shallow boundary cannot serve as a known root, including during baseline
+// exclusion: ancestors hidden there may also be reached through another branch.
+// Only hashes are retained; visit optionally collects objects for the result.
+func reachableCommits(ctx context.Context, repository *git.Repository, start plumbing.Hash, excluded, boundaries commitSet, visit func(*object.Commit)) (commitSet, error) {
+	seen := make(commitSet)
 	pending := []plumbing.Hash{start}
 	for len(pending) > 0 {
 		if err := ctx.Err(); err != nil {
@@ -148,17 +150,21 @@ func reachableCommits(ctx context.Context, repository *git.Repository, start plu
 		}
 		hash := pending[len(pending)-1]
 		pending = pending[:len(pending)-1]
-		if commits[hash] != nil || excluded[hash] != nil {
+		if seen.contains(hash) || excluded.contains(hash) {
 			continue
+		}
+		if boundaries.contains(hash) {
+			return nil, fmt.Errorf("history reaches shallow boundary %s; fetch complete history (git fetch --unshallow) before generating notes", hash)
 		}
 		commit, err := repository.CommitObject(hash)
 		if err != nil {
 			return nil, fmt.Errorf("read history commit %s: %w; fetch complete history before generating notes", hash, err)
 		}
-		commits[hash] = commit
-		if !boundaries[hash] {
-			pending = append(pending, commit.ParentHashes...)
+		seen[hash] = struct{}{}
+		if visit != nil {
+			visit(commit)
 		}
+		pending = append(pending, commit.ParentHashes...)
 	}
-	return commits, nil
+	return seen, nil
 }

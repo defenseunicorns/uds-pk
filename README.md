@@ -186,9 +186,9 @@ Use `--from` for the previous release of the same package, flavor, or bundle, or
 
 Root releases include the whole repository. Named packages include their package and configured chart directories; bundles include their bundle directory. Repeat `--include-path` to add shared files or package directories. Omit the flavor argument for a flavorless release.
 
-Paths are relative to `--dir` (default: `.`), which locates `releaser.yaml`. Output paths can also be absolute. Include paths must stay within the repository. Fetch required history first; use `git fetch --unshallow` for incomplete shallow clones.
+Paths are relative to `--dir` (default: `.`), which locates `releaser.yaml`. Output paths can also be absolute. Include paths must stay within the repository. Fetch the baseline's full history and the selected range before generating notes. Use `git fetch --unshallow` for incomplete shallow clones.
 
-Notes group conventional commits by type, include other commit messages, and link to GitHub/GitLab commits and comparisons when supported.
+Notes group conventional commits by type, include other commit messages, and link to GitHub/GitLab commits and comparisons when supported. Merge wrappers are omitted unless they introduce file changes absent from every parent or carry release metadata. For package notes, merge metadata requires a change against the first parent within the selected paths.
 
 Notes print to stdout unless `--output` is set; errors go to stderr. `--changelog` creates or updates marked release sections. Re-running replaces the selected section, including any edits inside it, and preserves surrounding handwritten content. Conflicting release headings or damaged markers return an error.
 
