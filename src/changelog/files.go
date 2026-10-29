@@ -4,12 +4,10 @@
 package changelog
 
 import (
-	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // Artifact is a rendered file ready for writing.
@@ -20,7 +18,22 @@ type Artifact struct {
 
 type preparedArtifact struct {
 	Artifact
-	mode fs.FileMode
+	mode     fs.FileMode
+	existing bool
+}
+
+// ReadArtifact reads an existing regular destination, following valid symlinks.
+// A new destination returns no content. Validate the type before opening it so
+// special files such as FIFOs cannot block changelog generation.
+func ReadArtifact(path string) ([]byte, error) {
+	destination, err := resolveDestination(path)
+	if err != nil {
+		return nil, err
+	}
+	if destination.existing == nil {
+		return nil, nil
+	}
+	return os.ReadFile(destination.path)
 }
 
 // WriteArtifacts validates every destination and stages every file before
@@ -36,7 +49,7 @@ func WriteArtifacts(artifacts ...Artifact) error {
 	var staged []string
 	defer func() {
 		for _, path := range staged {
-			_ = os.Remove(path)
+			_ = os.RemoveAll(filepath.Dir(path))
 		}
 	}()
 	for _, artifact := range prepared {
@@ -56,100 +69,60 @@ func WriteArtifacts(artifacts ...Artifact) error {
 
 func prepareArtifacts(artifacts []Artifact) ([]preparedArtifact, error) {
 	var prepared []preparedArtifact
-	seen := make(map[string]bool)
+	var destinations []artifactDestination
 	for _, artifact := range artifacts {
 		if artifact.Path == "" {
 			return nil, fmt.Errorf("artifact path must not be empty")
 		}
-		path, err := resolveDestination(artifact.Path)
+		destination, err := resolveDestination(artifact.Path)
 		if err != nil {
 			return nil, fmt.Errorf("resolve artifact %q: %w", artifact.Path, err)
 		}
-		if seen[path] {
-			return nil, fmt.Errorf("artifact destinations refer to the same file: %q", artifact.Path)
-		}
-		for previous := range seen {
-			if strings.HasPrefix(path, previous+string(filepath.Separator)) || strings.HasPrefix(previous, path+string(filepath.Separator)) {
-				return nil, fmt.Errorf("artifact destination %q is a parent of another destination", artifact.Path)
-			}
-		}
-		seen[path] = true
 		mode := fs.FileMode(0o644)
-		info, err := os.Stat(path)
-		if err == nil {
-			if !info.Mode().IsRegular() {
-				return nil, fmt.Errorf("artifact destination %q is not a regular file", artifact.Path)
-			}
-			mode = info.Mode().Perm()
-		} else if !errors.Is(err, fs.ErrNotExist) {
-			return nil, fmt.Errorf("inspect artifact %q: %w", artifact.Path, err)
+		if destination.existing != nil {
+			mode = destination.existing.Mode().Perm()
 		}
-		prepared = append(prepared, preparedArtifact{Artifact: Artifact{Path: path, Content: artifact.Content}, mode: mode})
+		destinations = append(destinations, destination)
+		prepared = append(prepared, preparedArtifact{Artifact: Artifact{Path: destination.path, Content: artifact.Content}, mode: mode, existing: destination.existing != nil})
+	}
+	if err := validateDestinations(destinations); err != nil {
+		return nil, err
 	}
 	return prepared, nil
-}
-
-// Resolve existing symlinks, including parent directories, while allowing new
-// directories and filenames. A dangling symlink is an error, not a new output
-// file whose creation would replace the symlink itself.
-func resolveDestination(path string) (string, error) {
-	current, err := filepath.Abs(path)
-	if err != nil {
-		return "", err
-	}
-	var missing []string
-	for {
-		resolved, err := filepath.EvalSymlinks(current)
-		if err == nil {
-			if len(missing) > 0 {
-				info, err := os.Stat(resolved)
-				if err != nil {
-					return "", err
-				}
-				if !info.IsDir() {
-					return "", fmt.Errorf("parent path %q is not a directory", resolved)
-				}
-			}
-			for index := len(missing) - 1; index >= 0; index-- {
-				resolved = filepath.Join(resolved, missing[index])
-			}
-			return resolved, nil
-		}
-		if !errors.Is(err, fs.ErrNotExist) {
-			return "", err
-		}
-		if info, statErr := os.Lstat(current); statErr == nil && info.Mode()&fs.ModeSymlink != 0 {
-			return "", fmt.Errorf("symlink %q has a missing target", current)
-		}
-		missing = append(missing, filepath.Base(current))
-		parent := filepath.Dir(current)
-		if parent == current {
-			return "", err
-		}
-		current = parent
-	}
 }
 
 func stageArtifact(artifact preparedArtifact) (path string, err error) {
 	if err := os.MkdirAll(filepath.Dir(artifact.Path), 0o755); err != nil {
 		return "", err
 	}
-	file, err := os.CreateTemp(filepath.Dir(artifact.Path), ".uds-pk-*")
+	// A private staging directory lets normal file creation apply the caller's
+	// umask to new artifacts while keeping unfinished content inaccessible.
+	directory, err := os.MkdirTemp(filepath.Dir(artifact.Path), ".uds-pk-*")
 	if err != nil {
 		return "", err
 	}
-	path = file.Name()
 	defer func() {
-		_ = file.Close()
 		if err != nil {
-			_ = os.Remove(path)
+			_ = os.RemoveAll(directory)
 		}
 	}()
+	mode := artifact.mode
+	if artifact.existing {
+		mode = 0o600
+	}
+	path = filepath.Join(directory, "artifact")
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = file.Close() }()
 	if _, err = file.Write(artifact.Content); err != nil {
 		return path, err
 	}
-	if err = file.Chmod(artifact.mode); err != nil {
-		return path, err
+	if artifact.existing {
+		if err = file.Chmod(artifact.mode); err != nil {
+			return path, err
+		}
 	}
 	if err = file.Sync(); err != nil {
 		return path, err

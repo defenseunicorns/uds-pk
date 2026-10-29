@@ -167,57 +167,34 @@ bundles:
 
 ### Release Notes and Changelogs
 
-Generate Markdown for the root package, a named package, or a bundle using local Git history:
+Generate Markdown release notes and changelogs for the packages, flavors, and bundles in `releaser.yaml`. Generation uses local Git history and requires no hosting token.
 
 ```bash
-# Root package with a flavor; write notes to stdout
-uds-pk release notes upstream --from 1.0.0-uds.0-upstream
+# Print notes for the root package
+uds-pk release notes upstream --from 0.9.0-uds.0-upstream
 
-# Named package; write standalone notes and maintain its changelog
+# Save notes and update a named package's changelog
 uds-pk release notes upstream --package second-package \
-  --from second-package-1.0.0-uds.0-upstream \
+  --from second-package-0.9.0-uds.0-upstream \
   --output notes/second-package.md --changelog second-package/CHANGELOG.md
 
-# Flavorless named package
-uds-pk release notes --package second-package --from second-package-1.0.0-flavorless.0
-
-# Bundle with explicit shared package history
+# Bundle notes, including changes in a shared package
 uds-pk release bundle notes dev --from dev-0.0.1 --include-path second-package
-
-# First release; include all reachable history
-uds-pk release notes upstream --initial --output release-notes.md
 ```
 
-Each invocation selects one target using the same configuration and tag conventions as the other release commands. Repeat the command for additional packages, flavors, or bundles. Bundle generation also works with a bundle-only `releaser.yaml` and requires no `zarf.yaml`.
+Use `--from` for the previous release of the same package, flavor, or bundle, or `--initial` for a first release. The range ends at `HEAD` unless you set `--to REF`. Tags, branches, and commit hashes are accepted. The release version and tag come from your current `releaser.yaml`, even when `--to` is set.
 
-| Flag | Behavior |
-| --- | --- |
-| `--dir`, `-d` | Directory containing the working-tree `releaser.yaml`; defaults to `.`. Repository discovery starts here, so the command can run from outside the repository. |
-| `--package`, `-p` | Named package from `packages`; omit to select the root package. Available on `release notes`. |
-| `--from REF` | Exclude this baseline revision and its ancestors. Required unless `--initial` is selected. |
-| `--initial` | Include all history reachable from the end revision for a first release. Mutually exclusive with `--from`. |
-| `--to REF` | Include changes through this revision; defaults to `HEAD`. |
-| `--output FILE` | Write standalone notes to this file instead of stdout. |
-| `--changelog FILE` | Also insert or refresh this release's section in a persistent changelog. |
-| `--include-path PATH` | Include an additional shared file or directory; repeat the flag for multiple paths. |
+Root releases include the whole repository. Named packages include their package and configured chart directories; bundles include their bundle directory. Repeat `--include-path` to add shared files or package directories. Omit the flavor argument for a flavorless release.
 
-Relative output, changelog, package, chart, bundle, and include paths resolve from `--dir`. Absolute output and changelog paths are also supported. Include paths must be relative and stay within the repository. Parent directories for output files are created as needed. Notes and changelog destinations must be distinct files.
+Paths are relative to `--dir` (default: `.`), which locates `releaser.yaml`. Output paths can also be absolute. Include paths must stay within the repository. Fetch required history first; use `git fetch --unshallow` for incomplete shallow clones.
 
-Choose the previous revision for the same package, flavor, or bundle explicitly. The command accepts local tags, branches, and commit hashes; it does not infer a baseline from other targets' tags. The baseline must be an ancestor of the end revision. Equal endpoints produce an explicit no-changes section. Fetch required refs before generation. If a shallow clone truncates the requested history, run `git fetch --unshallow`; generation does not fetch automatically.
+Notes group conventional commits by type, include other commit messages, and link to GitHub/GitLab commits and comparisons when supported.
 
-The selected version and formatted tag come from the working-tree `releaser.yaml`. `--to` changes the Git history endpoint only. When regenerating an older release, use its corresponding checkout and release configuration. Notes show the configured tag, resolved revision and baseline hashes, and the endpoint commit's UTC date, which is a revision date rather than the publication date.
+Notes print to stdout unless `--output` is set; errors go to stderr. `--changelog` creates or updates marked release sections. Re-running replaces the selected section, including any edits inside it, and preserves surrounding handwritten content. Conflicting release headings or damaged markers return an error.
 
-Root releases include repository-wide history. Named packages include changes in their configured package and chart directories. Bundles include their configured bundle directory. Use `--include-path` to add shared code, dependency directories, or `releaser.yaml` changes explicitly; bundle generation does not recursively include bundled packages. Moves and deletions count for the affected paths. A commit touching multiple selected paths appears once. Flavor selection controls the version and tag; it does not independently filter files within a package.
+Use separate files for notes and the changelog. If saving both fails, check both before retrying: one may already be updated. Review the generated files before publishing through your usual release workflow.
 
-Notes group conventional commits into Breaking Changes, Features, Bug Fixes, Performance, Dependencies, Documentation, Maintenance, and Other Changes. Breaking markers and multiline breaking-change footers take precedence; `deps` scopes select Dependencies before ordinary type classification. Unknown and non-conventional messages remain visible. Merge wrappers are omitted while commits on merged branches are retained. Categories and commit ordering are deterministic, and Git-derived text is escaped for Markdown.
-
-Common GitHub and GitLab remotes produce commit and full-history comparison links. GitLab subgroup paths and hosts named `gitlab.*` or containing `.gitlab.` are recognized. Missing or unsupported remotes produce plain commit references with an explanation. Generation requires no hosting tokens or hosted API calls.
-
-With `--changelog`, a missing file starts with `# Changelog`. New generated sections are inserted newest-first by revision date. Each block has `uds-pk:release` and `uds-pk:end` HTML markers keyed by target kind, name, flavor, and tag. Repeating generation replaces that block in place, including manual edits inside it. Preambles, handwritten sections, and other blocks are preserved. Malformed or duplicate markers and handwritten headings for the same tag return errors for review.
-
-Without `--output`, stdout contains only the notes, including when `--changelog` is used. With `--output`, successful generation is silent. Errors go to stderr. Both artifacts are rendered and their destinations validated before writing; existing permissions are preserved, and each file is replaced atomically. Replacing two files is not a cross-file transaction, so a later replacement failure can leave the earlier file updated.
-
-Generation reads history and writes only requested artifacts. Tag creation, hosted release creation, version updates, and publishing continue through the existing release commands; automatically consuming the generated notes in those workflows is separate follow-up work.
+Run `uds-pk release notes --help` or `uds-pk release bundle notes --help` for all options.
 
 ## Scan Comparison
 

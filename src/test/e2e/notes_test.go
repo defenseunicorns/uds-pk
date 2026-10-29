@@ -47,6 +47,8 @@ func notesRefs(t *testing.T, fixture test.NotesFixture) map[string]string {
 func TestNotesCLISelectorsAndReadOnlyHistory(t *testing.T) {
 	fixture := test.CreateNotesFixture(t)
 	outside := t.TempDir()
+	relativeDirectory, err := filepath.Rel(outside, fixture.Directory)
+	require.NoError(t, err)
 	refs := notesRefs(t, fixture)
 	configPath := filepath.Join(fixture.Directory, "releaser.yaml")
 	configBefore, err := os.ReadFile(configPath)
@@ -66,7 +68,7 @@ func TestNotesCLISelectorsAndReadOnlyHistory(t *testing.T) {
 		{[]string{"release", "bundle", "notes", "platform-test"}, "platform-test-testing", "No changes matched", "refresh platform references"},
 	}
 	for _, current := range tests {
-		args := append(append([]string(nil), current.args...), "--dir", fixture.Directory, "--from", "previous-api")
+		args := append(append([]string(nil), current.args...), "-d", relativeDirectory, "--from", "previous-api")
 		stdout, stderr, err := runNotesBinary(t, outside, args...)
 		require.NoError(t, err, stderr)
 		require.Empty(t, stderr)
@@ -149,4 +151,103 @@ func TestNotesCLIBundleOnlyInitialRelease(t *testing.T) {
 	require.Contains(t, stdout, "Initial release (all reachable history)")
 	require.Contains(t, stdout, "initial fixture")
 	require.NotContains(t, stdout, "refresh platform references")
+}
+
+func TestNotesCLIHandwrittenReferenceConflicts(t *testing.T) {
+	for _, heading := range []string{
+		"## [root-flavorless] - 2026-10-29",
+		"### [root-flavorless](https://example.test/release)",
+		"root-flavorless\n---",
+	} {
+		t.Run(heading, func(t *testing.T) {
+			fixture := test.CreateNotesFixture(t)
+			notesPath := filepath.Join(fixture.Directory, "notes.md")
+			historyPath := filepath.Join(fixture.Directory, "CHANGELOG.md")
+			history := []byte("# Changelog\n\n" + heading + "\n\nHandwritten.\n\n[root-flavorless]: https://example.test/release\n")
+			require.NoError(t, os.WriteFile(notesPath, []byte("original notes"), 0o644))
+			require.NoError(t, os.WriteFile(historyPath, history, 0o644))
+			stdout, stderr, err := runNotesBinary(t, t.TempDir(), "release", "notes", "--dir", fixture.Directory, "--initial", "--output", "notes.md", "--changelog", "CHANGELOG.md")
+			require.Error(t, err)
+			require.Empty(t, stdout)
+			require.Contains(t, stderr, "handwritten section")
+			unchanged, err := os.ReadFile(historyPath)
+			require.NoError(t, err)
+			require.Equal(t, history, unchanged)
+			unchanged, err = os.ReadFile(notesPath)
+			require.NoError(t, err)
+			require.Equal(t, "original notes", string(unchanged))
+		})
+	}
+}
+
+func TestNotesCLIOpenFenceDoesNotWrite(t *testing.T) {
+	for _, fence := range []string{"```text", "~~~text"} {
+		t.Run(fence, func(t *testing.T) {
+			fixture := test.CreateNotesFixture(t)
+			notesPath := filepath.Join(fixture.Directory, "notes.md")
+			historyPath := filepath.Join(fixture.Directory, "CHANGELOG.md")
+			history := []byte("# Changelog\n\n" + fence + "\nHandwritten example.\n")
+			require.NoError(t, os.WriteFile(notesPath, []byte("original notes"), 0o644))
+			require.NoError(t, os.WriteFile(historyPath, history, 0o644))
+			for range 2 {
+				stdout, stderr, err := runNotesBinary(t, t.TempDir(), "release", "notes", "--dir", fixture.Directory, "--initial", "--output", "notes.md", "--changelog", "CHANGELOG.md")
+				require.Error(t, err)
+				require.Empty(t, stdout)
+				require.Contains(t, stderr, "close any open code fence")
+				unchanged, err := os.ReadFile(historyPath)
+				require.NoError(t, err)
+				require.Equal(t, history, unchanged)
+				unchanged, err = os.ReadFile(notesPath)
+				require.NoError(t, err)
+				require.Equal(t, "original notes", string(unchanged))
+			}
+		})
+	}
+}
+
+func TestNotesCLIOutputCaseAliases(t *testing.T) {
+	for _, scenario := range []struct {
+		name     string
+		existing bool
+	}{{name: "new files"}, {name: "existing file", existing: true}} {
+		t.Run(scenario.name, func(t *testing.T) {
+			existing := scenario.existing
+			fixture := test.CreateNotesFixture(t)
+			probe := filepath.Join(fixture.Directory, "case-probe")
+			require.NoError(t, os.WriteFile(probe, nil, 0o600))
+			_, probeErr := os.Stat(filepath.Join(fixture.Directory, "CASE-PROBE"))
+			aliases := probeErr == nil
+			if !aliases {
+				require.ErrorIs(t, probeErr, os.ErrNotExist)
+			}
+			output, history := "artifacts/notes.md", "ARTIFACTS/NOTES.md"
+			if existing {
+				output, history = "notes.md", "NOTES.md"
+				require.NoError(t, os.WriteFile(filepath.Join(fixture.Directory, output), []byte("original notes"), 0o644))
+			}
+			stdout, stderr, err := runNotesBinary(t, t.TempDir(), "release", "notes", "--dir", fixture.Directory, "--initial", "--output", output, "--changelog", history)
+			require.Empty(t, stdout)
+			if aliases {
+				require.Error(t, err)
+				require.Contains(t, stderr, "same file")
+				if existing {
+					unchanged, err := os.ReadFile(filepath.Join(fixture.Directory, output))
+					require.NoError(t, err)
+					require.Equal(t, "original notes", string(unchanged))
+				} else {
+					_, err := os.Stat(filepath.Join(fixture.Directory, "artifacts"))
+					require.ErrorIs(t, err, os.ErrNotExist)
+				}
+			} else {
+				require.NoError(t, err, stderr)
+				require.Empty(t, stderr)
+				notes, err := os.ReadFile(filepath.Join(fixture.Directory, output))
+				require.NoError(t, err)
+				require.True(t, strings.HasPrefix(string(notes), "# Release notes\n"))
+				changelog, err := os.ReadFile(filepath.Join(fixture.Directory, history))
+				require.NoError(t, err)
+				require.Contains(t, string(changelog), "<!-- uds-pk:release ")
+			}
+		})
+	}
 }

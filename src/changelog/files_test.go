@@ -4,6 +4,7 @@
 package changelog
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -118,4 +119,95 @@ func TestWriteArtifactsStagesAllBeforeReplacing(t *testing.T) {
 	matches, err := filepath.Glob(filepath.Join(directory, ".uds-pk-*"))
 	require.NoError(t, err)
 	require.Empty(t, matches)
+}
+
+func TestWriteArtifactsExistingFileAliases(t *testing.T) {
+	for _, alias := range []string{"hard link", "case alias"} {
+		t.Run(alias, func(t *testing.T) {
+			directory := t.TempDir()
+			original := filepath.Join(directory, "notes.md")
+			alternate := filepath.Join(directory, "NOTES.md")
+			require.NoError(t, os.WriteFile(original, []byte("original"), 0o644))
+			if alias == "hard link" {
+				alternate = filepath.Join(directory, "linked.md")
+				require.NoError(t, os.Link(original, alternate))
+			} else if _, err := os.Stat(alternate); errors.Is(err, os.ErrNotExist) {
+				t.Skip("filesystem treats case variants as distinct filenames")
+			} else {
+				require.NoError(t, err)
+			}
+			err := WriteArtifacts(Artifact{Path: original, Content: []byte("notes")}, Artifact{Path: alternate, Content: []byte("changelog")})
+			require.ErrorContains(t, err, "same file")
+			content, err := os.ReadFile(original)
+			require.NoError(t, err)
+			require.Equal(t, "original", string(content))
+			content, err = os.ReadFile(alternate)
+			require.NoError(t, err)
+			require.Equal(t, "original", string(content))
+		})
+	}
+}
+
+func TestWriteArtifactsNewFileAliases(t *testing.T) {
+	for _, filenames := range [][2]string{
+		{"notes.md", "NOTES.md"},
+		{"new/notes.md", "NEW/NOTES.md"},
+		{"new/notes.md", "NEW/notes.md"},
+		{"caf\u00e9.md", "cafe\u0301.md"},
+		{"new/caf\u00e9.md", "NEW/cafe\u0301.md"},
+		{"notes,api.md", "NOTES,API.md"},
+	} {
+		t.Run(filenames[0]+" and "+filenames[1], func(t *testing.T) {
+			directory := t.TempDir()
+			// Probe the actual filesystem semantics in a disposable sibling tree.
+			probe := filepath.Join(directory, "probe", filenames[0])
+			require.NoError(t, os.MkdirAll(filepath.Dir(probe), 0o755))
+			require.NoError(t, os.WriteFile(probe, []byte("probe"), 0o644))
+			_, probeErr := os.Stat(filepath.Join(directory, "probe", filenames[1]))
+			aliases := probeErr == nil
+			if !aliases {
+				require.ErrorIs(t, probeErr, os.ErrNotExist)
+			}
+			first := filepath.Join(directory, "output", filenames[0])
+			second := filepath.Join(directory, "output", filenames[1])
+			err := WriteArtifacts(Artifact{Path: first, Content: []byte("notes")}, Artifact{Path: second, Content: []byte("changelog")})
+			if aliases {
+				require.ErrorContains(t, err, "same file")
+				_, err = os.Stat(first)
+				require.ErrorIs(t, err, os.ErrNotExist)
+				_, err = os.Stat(second)
+				require.ErrorIs(t, err, os.ErrNotExist)
+				_, err = os.Stat(filepath.Join(directory, "output"))
+				require.ErrorIs(t, err, os.ErrNotExist)
+			} else {
+				require.NoError(t, err)
+				content, err := os.ReadFile(first)
+				require.NoError(t, err)
+				require.Equal(t, "notes", string(content))
+				content, err = os.ReadFile(second)
+				require.NoError(t, err)
+				require.Equal(t, "changelog", string(content))
+			}
+			matches, err := filepath.Glob(filepath.Join(directory, ".uds-pk-*"))
+			require.NoError(t, err)
+			require.Empty(t, matches)
+		})
+	}
+}
+
+func TestWriteArtifactsAliasedParentPaths(t *testing.T) {
+	directory := t.TempDir()
+	probe := filepath.Join(directory, "case-probe")
+	require.NoError(t, os.WriteFile(probe, nil, 0o600))
+	if _, err := os.Stat(filepath.Join(directory, "CASE-PROBE")); errors.Is(err, os.ErrNotExist) {
+		t.Skip("filesystem treats case variants as distinct paths")
+	} else {
+		require.NoError(t, err)
+	}
+	for _, paths := range [][2]string{{"new/notes.md", "NEW/NOTES.MD/child.md"}, {"new/NOTES.MD/child.md", "NEW/notes.md"}} {
+		err := WriteArtifacts(Artifact{Path: filepath.Join(directory, paths[0])}, Artifact{Path: filepath.Join(directory, paths[1])})
+		require.Error(t, err)
+		_, err = os.Stat(filepath.Join(directory, "new"))
+		require.ErrorIs(t, err, os.ErrNotExist)
+	}
 }

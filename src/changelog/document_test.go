@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	goyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,6 +40,92 @@ func TestUpdateChangelogPreservesManualContent(t *testing.T) {
 	regenerated, err := UpdateChangelog(edited, release, "https://github.com/example/project")
 	require.NoError(t, err)
 	require.Equal(t, updated, regenerated)
+}
+
+func TestUpdateChangelogPreservesEmptyHeadings(t *testing.T) {
+	for _, heading := range []string{"##", "# ###", "######", "  ##   ##"} {
+		for _, newline := range []string{"\n", "\r\n"} {
+			t.Run(heading+fmt.Sprintf("/%q", newline), func(t *testing.T) {
+				existing := []byte(strings.ReplaceAll("# Changelog\n\n"+heading+"\n\n## previous\n\nHandwritten.\n", "\n", newline))
+				release := renderFixture(t)
+				updated, err := UpdateChangelog(existing, release, "")
+				require.NoError(t, err)
+				blocks, err := readBlocks(contentLines(string(updated)))
+				require.NoError(t, err)
+				require.Len(t, blocks, 1)
+				block := blocks[0]
+				restored := append(append([]byte(nil), updated[:block.start]...), updated[block.end+len(newline):]...)
+				require.Equal(t, existing, restored)
+				repeated, err := UpdateChangelog(updated, release, "")
+				require.NoError(t, err)
+				require.Equal(t, updated, repeated)
+			})
+		}
+	}
+}
+
+func TestUpdateChangelogPreservesFrontmatter(t *testing.T) {
+	release := renderFixture(t)
+	for _, closing := range []string{"---", "..."} {
+		for _, newline := range []string{"\n", "\r\n"} {
+			for _, body := range []string{"# Changelog\n", "# Changelog\n\nIntroduction.\n\n## previous\n\nHandwritten.\n", ""} {
+				t.Run(fmt.Sprintf("%s/%q/%q", closing, newline, body), func(t *testing.T) {
+					metadata := "sidebar_position: 1\ntitle: Changelog\n"
+					metadata = strings.ReplaceAll(metadata, "\n", newline)
+					frontmatter := []byte("---" + newline + metadata + closing + newline)
+					existing := append(append([]byte(nil), frontmatter...), []byte(newline+strings.ReplaceAll(body, "\n", newline))...)
+					var originalMetadata map[string]any
+					require.NoError(t, goyaml.Unmarshal([]byte(metadata), &originalMetadata))
+					updated, err := UpdateChangelog(existing, release, "")
+					require.NoError(t, err)
+					require.True(t, bytes.HasPrefix(updated, frontmatter), "frontmatter must remain byte-for-byte intact")
+					payload, _, found := strings.Cut(strings.TrimPrefix(string(updated), "---"+newline), newline+closing+newline)
+					require.True(t, found)
+					var updatedMetadata map[string]any
+					require.NoError(t, goyaml.Unmarshal([]byte(payload), &updatedMetadata))
+					require.Equal(t, originalMetadata, updatedMetadata)
+					blocks, err := readBlocks(contentLines(string(updated)))
+					require.NoError(t, err)
+					require.Len(t, blocks, 1)
+					require.GreaterOrEqual(t, blocks[0].start, len(frontmatter))
+					repeated, err := UpdateChangelog(updated, release, "")
+					require.NoError(t, err)
+					require.Equal(t, updated, repeated)
+				})
+			}
+		}
+	}
+}
+
+func TestUpdateChangelogRejectsHiddenReleaseSections(t *testing.T) {
+	for _, fence := range []string{
+		"```", "```markdown\nExample", "~~~text\nExample\n", "  ```text\nExample\n",
+		"````text\nExample\n```\n", "```text\nExample\n~~~\n",
+	} {
+		for _, newline := range []string{"\n", "\r\n"} {
+			t.Run(fmt.Sprintf("%q/%q", fence, newline), func(t *testing.T) {
+				existing := []byte(strings.ReplaceAll("# Changelog\n\n"+fence, "\n", newline))
+				original := append([]byte(nil), existing...)
+				for range 2 {
+					updated, err := UpdateChangelog(existing, renderFixture(t), "")
+					require.ErrorContains(t, err, "hidden by surrounding Markdown")
+					require.Nil(t, updated)
+					require.Equal(t, original, existing)
+				}
+			})
+		}
+	}
+}
+
+func TestUpdateChangelogCanInsertBeforeOpenFence(t *testing.T) {
+	existing := []byte("# Changelog\n\n## previous\n\nHandwritten.\n\n```text\nExample\n")
+	release := renderFixture(t)
+	updated, err := UpdateChangelog(existing, release, "")
+	require.NoError(t, err)
+	require.True(t, bytes.HasSuffix(updated, []byte("## previous\n\nHandwritten.\n\n```text\nExample\n")))
+	repeated, err := UpdateChangelog(updated, release, "")
+	require.NoError(t, err)
+	require.Equal(t, updated, repeated)
 }
 
 func TestUpdateChangelogMultipleReleases(t *testing.T) {
@@ -115,19 +202,111 @@ func TestUpdateChangelogLineEndingsAndPreambles(t *testing.T) {
 func TestUpdateChangelogManualConflicts(t *testing.T) {
 	release := renderFixture(t)
 	for _, heading := range []string{
+		"# " + release.Target.Tag,
+		"### [" + release.Target.Tag + "](https://example.test/compare)",
+		"#### " + release.Target.Tag,
+		"##### " + release.Target.Tag,
+		"###### " + release.Target.Tag,
+		release.Target.Tag + "\n---",
+		release.Target.Tag + "\n===",
+		"[" + release.Target.Tag + "][release]\n---",
+		"### **" + release.Target.Tag + "** - 2026-10-29",
 		"## " + release.Target.Tag,
 		"## " + release.Target.Tag + " (2026-10-29)",
+		"## " + release.Target.Tag + " - 2026-10-29",
+		"## " + release.Target.Tag + "\t- 2026-10-29",
 		"## [" + release.Target.Tag + "](https://example.test/compare) (2026-10-29)",
+		"## [" + release.Target.Tag + "] - 2026-10-29",
+		"## [" + release.Target.Tag + "] (2026-10-29)",
+		"## [" + release.Target.Tag + "]",
+		"## [" + release.Target.Tag + "][release] - 2026-10-29",
+		"## [" + release.Target.Tag + "][] - 2026-10-29",
 		"## `" + release.Target.Tag + "`",
+		"## `" + release.Target.Tag + "` - 2026-10-29",
+		"## [`" + release.Target.Tag + "`][release] - 2026-10-29",
 		"  ## " + release.Target.Tag + " ##",
 	} {
-		updated, err := UpdateChangelog([]byte("# Changelog\n\n"+heading+"\n\nHandwritten.\n"), release, "")
+		t.Run(heading, func(t *testing.T) {
+			existing := []byte("# Changelog\n\n" + heading + "\n\nHandwritten.\n\n[release]: https://example.test/compare\n[" + release.Target.Tag + "]: https://example.test/compare\n")
+			original := append([]byte(nil), existing...)
+			updated, err := UpdateChangelog(existing, release, "")
+			require.ErrorContains(t, err, "handwritten section")
+			require.Nil(t, updated)
+			require.Equal(t, original, existing)
+		})
+	}
+	// A longer tag sharing the same prefix is a different release.
+	for _, heading := range []string{
+		"## " + release.Target.Tag + "-extra",
+		"## [" + release.Target.Tag + "-extra] - 2026-10-29",
+		"## [" + release.Target.Tag + "-extra][release] - 2026-10-29",
+		"## [`" + release.Target.Tag + "-extra`][release] - 2026-10-29",
+	} {
+		_, err := UpdateChangelog([]byte(heading+"\n"), release, "")
+		require.NoError(t, err)
+	}
+}
+
+func TestUpdateChangelogPreservesMarkdownExamples(t *testing.T) {
+	release := renderFixture(t)
+	for name, example := range map[string]string{
+		"inline code":    "Markers look like `<!-- uds-pk:release invalid -->`.",
+		"inline comment": "A marker example: <!-- uds-pk:release invalid -->",
+		"fenced code":    "```markdown\n### " + release.Target.Tag + "\n<!-- uds-pk:release invalid -->\n```",
+		"indented code":  "    ### " + release.Target.Tag + "\n    <!-- uds-pk:release invalid -->",
+		"quoted example": "> ### " + release.Target.Tag + "\n> <!-- uds-pk:release invalid -->",
+		"list example":   "- Example:\n\n      ### " + release.Target.Tag + "\n      <!-- uds-pk:release invalid -->",
+		"larger comment": "<!-- Documentation example:\n<!-- uds-pk:release invalid -->",
+	} {
+		for _, newline := range []string{"\n", "\r\n"} {
+			t.Run(name+fmt.Sprintf("/%q", newline), func(t *testing.T) {
+				existing := []byte(strings.ReplaceAll("# Changelog\n\n"+example+"\n\n### [1.0.0](https://example.test/previous)\n\nHandwritten.\n", "\n", newline))
+				updated, err := UpdateChangelog(existing, release, "")
+				require.NoError(t, err)
+				blocks, err := readBlocks(contentLines(string(updated)))
+				require.NoError(t, err)
+				require.Len(t, blocks, 1)
+				block := blocks[0]
+				// Only the generated block and its separator have been added.
+				restored := append(append([]byte(nil), updated[:block.start]...), updated[block.end+len(newline):]...)
+				require.Equal(t, existing, restored)
+				repeated, err := UpdateChangelog(updated, release, "")
+				require.NoError(t, err)
+				require.Equal(t, updated, repeated)
+			})
+		}
+	}
+}
+
+func TestUpdateChangelogEscapedHeadingConflict(t *testing.T) {
+	release := renderFixture(t)
+	release.Target.Tag = "api_2&next"
+	for _, heading := range []string{"### api\\_2&amp;next", "### `api_2&next`", "[api\\_2&amp;next](https://example.test)\n---"} {
+		updated, err := UpdateChangelog([]byte(heading+"\n"), release, "")
 		require.ErrorContains(t, err, "handwritten section")
 		require.Nil(t, updated)
 	}
-	// A longer tag sharing the same prefix is a different release.
-	_, err := UpdateChangelog([]byte("## "+release.Target.Tag+"-extra\n"), release, "")
-	require.NoError(t, err)
+}
+
+func TestUpdateChangelogPreservesManualHeadingStyles(t *testing.T) {
+	for _, heading := range []string{
+		"### [1.0.0](https://example.test/release)",
+		"[1.0.0](https://example.test/release)\n---",
+		"1.0.0\n===",
+	} {
+		t.Run(heading, func(t *testing.T) {
+			existing := []byte("# Changelog\n\nIntroduction.\n\n" + heading + "\n\nHandwritten release.\n")
+			updated, err := UpdateChangelog(existing, renderFixture(t), "")
+			require.NoError(t, err)
+			blocks, err := readBlocks(contentLines(string(updated)))
+			require.NoError(t, err)
+			require.Len(t, blocks, 1)
+			block := blocks[0]
+			restored := append(append([]byte(nil), updated[:block.start]...), updated[block.end+1:]...)
+			require.Equal(t, existing, restored)
+			require.True(t, bytes.HasSuffix(updated, []byte(heading+"\n\nHandwritten release.\n")))
+		})
+	}
 }
 
 func TestUpdateChangelogInvalidMarkers(t *testing.T) {

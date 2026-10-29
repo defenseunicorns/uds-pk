@@ -4,9 +4,7 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/defenseunicorns/uds-pk/src/changelog"
@@ -120,8 +118,8 @@ func (options *notesOptions) run(cmd *cobra.Command, selection changelog.Selecti
 	}
 	if options.changelog != "" {
 		path := notesPath(directory, options.changelog)
-		existing, err := os.ReadFile(path)
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
+		existing, err := changelog.ReadArtifact(path)
+		if err != nil {
 			return fmt.Errorf("read changelog %q: %w", path, err)
 		}
 		updated, err := changelog.UpdateChangelog(existing, release, history.Origin)

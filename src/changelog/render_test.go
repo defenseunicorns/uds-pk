@@ -13,6 +13,9 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/require"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	markdowntext "github.com/yuin/goldmark/text"
 )
 
 func renderFixture(t *testing.T) Release {
@@ -82,4 +85,36 @@ func TestRenderNotesEscapesText(t *testing.T) {
 	require.Equal(t, 1, strings.Count(notes, "remove the old endpoint"))
 	require.Contains(t, notes, "\\(empty commit message\\)")
 	require.NotContains(t, notes, "### Documentation")
+}
+
+func TestRenderNotesKeepsLiteralBlockSyntax(t *testing.T) {
+	release := renderFixture(t)
+	var changes []Change
+	for _, subject := range []string{"- literal bullet", "+ literal bullet", "1. literal item", "123456789. literal item", "1) literal item", "---", "---- ----", "==="} {
+		changes = append(changes, Change{Hash: "abc", Message: ParseMessage(subject + "\n\nBREAKING CHANGE: first line\n---\n\n1. literal item\n+ literal bullet\n===\n- - -")})
+	}
+	release.Sections = []Section{{Category: BreakingChanges, Changes: changes}}
+	notes := RenderNotes(release, "")
+	document := goldmark.New().Parser().Parse(markdowntext.NewReader(notes))
+	headings, items, lists := 0, 0, 0
+	require.NoError(t, ast.Walk(document, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		switch node.(type) {
+		case *ast.Heading:
+			headings++
+		case *ast.List:
+			lists++
+			require.Equal(t, document, node.Parent(), "commit text must not create nested lists")
+		case *ast.ListItem:
+			items++
+		case *ast.ThematicBreak, *ast.CodeBlock:
+			t.Errorf("commit text created a %s block", node.Kind())
+		}
+		return ast.WalkContinue, nil
+	}))
+	require.Equal(t, 3, headings, "only the document, release, and category headings")
+	require.Equal(t, 2, lists, "only metadata and changes lists")
+	require.Equal(t, 5+len(changes), items)
 }
