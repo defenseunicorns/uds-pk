@@ -94,7 +94,7 @@ func TestReadHistoryRange(t *testing.T) {
 
 	for _, baseline := range []string{"base", "api-1.0.0-upstream", "api-annotated", fixture.hashes["base"].String()} {
 		t.Run(baseline, func(t *testing.T) {
-			history, err := ReadHistory(context.Background(), directory, RevisionRange{From: baseline})
+			history, err := readHistory(context.Background(), directory, RevisionRange{From: baseline})
 			require.NoError(t, err)
 			require.Equal(t, fixture.directory, history.Root)
 			require.Equal(t, fixture.hashes["base"], history.From.Hash)
@@ -120,12 +120,12 @@ func TestReadHistoryRange(t *testing.T) {
 
 func TestReadHistoryInitialAndEndpoints(t *testing.T) {
 	fixture := newHistoryFixture(t)
-	history, err := ReadHistory(context.Background(), fixture.directory, RevisionRange{Initial: true, To: "feature"})
+	history, err := readHistory(context.Background(), fixture.directory, RevisionRange{Initial: true, To: "feature"})
 	require.NoError(t, err)
 	require.Nil(t, history.From)
 	require.Equal(t, []string{fixture.hashes["root"].String(), fixture.hashes["base"].String(), fixture.hashes["feature"].String()}, commitHashes(history))
 
-	history, err = ReadHistory(context.Background(), fixture.directory, RevisionRange{From: "api-annotated", To: "base"})
+	history, err = readHistory(context.Background(), fixture.directory, RevisionRange{From: "api-annotated", To: "base"})
 	require.NoError(t, err)
 	require.Empty(t, history.Commits)
 	require.Equal(t, history.From.Hash, history.To.Hash)
@@ -147,34 +147,34 @@ func TestReadHistoryErrors(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			history, err := ReadHistory(context.Background(), fixture.directory, test.revisions)
+			history, err := readHistory(context.Background(), fixture.directory, test.revisions)
 			require.ErrorContains(t, err, test.message)
 			require.Empty(t, history)
 		})
 	}
-	_, err := ReadHistory(context.Background(), t.TempDir(), RevisionRange{Initial: true})
+	_, err := readHistory(context.Background(), t.TempDir(), RevisionRange{Initial: true})
 	require.ErrorContains(t, err, "open repository")
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	_, err = ReadHistory(ctx, fixture.directory, RevisionRange{Initial: true})
+	_, err = readHistory(ctx, fixture.directory, RevisionRange{Initial: true})
 	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestReadHistoryShallowBoundaries(t *testing.T) {
 	fixture := newHistoryFixture(t)
 	require.NoError(t, fixture.repository.Storer.SetShallow([]plumbing.Hash{fixture.hashes["base"]}))
-	_, err := ReadHistory(context.Background(), fixture.directory, RevisionRange{Initial: true})
+	_, err := readHistory(context.Background(), fixture.directory, RevisionRange{Initial: true})
 	require.ErrorContains(t, err, "git fetch --unshallow")
 
 	// Exclusion must establish the baseline's complete ancestry too, including
 	// when the requested endpoints are equal.
 	for _, revisions := range []RevisionRange{{From: "base"}, {From: "base", To: "base"}} {
-		history, err := ReadHistory(context.Background(), fixture.directory, revisions)
+		history, err := readHistory(context.Background(), fixture.directory, revisions)
 		require.ErrorContains(t, err, "baseline ancestry")
 		require.ErrorContains(t, err, "git fetch --unshallow")
 		require.Empty(t, history)
 	}
-	_, err = ReadHistory(context.Background(), fixture.directory, RevisionRange{From: "root"})
+	_, err = readHistory(context.Background(), fixture.directory, RevisionRange{From: "root"})
 	require.ErrorContains(t, err, "git fetch --unshallow")
 }
 
@@ -184,7 +184,7 @@ func TestReadHistoryMissingObject(t *testing.T) {
 			fixture := newHistoryFixture(t)
 			missing := filepath.Join(fixture.directory, ".git", "objects", fixture.hashes[name].String()[:2], fixture.hashes[name].String()[2:])
 			require.NoError(t, os.Remove(missing))
-			history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{From: "base"})
+			history, err := readHistory(t.Context(), fixture.directory, RevisionRange{From: "base"})
 			require.ErrorContains(t, err, "fetch complete history")
 			if name == "root" {
 				require.ErrorContains(t, err, "baseline ancestry")
@@ -197,7 +197,7 @@ func TestReadHistoryMissingObject(t *testing.T) {
 func TestReadHistoryUnrelatedShallowBoundary(t *testing.T) {
 	fixture := newHistoryFixture(t)
 	require.NoError(t, fixture.repository.Storer.SetShallow([]plumbing.Hash{fixture.hashes["unrelated"]}))
-	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{From: "base"})
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{From: "base"})
 	require.NoError(t, err)
 	require.Len(t, history.Commits, 4)
 }
@@ -217,7 +217,7 @@ func TestReadHistoryRejectsIncompleteBaselineInRealShallowClone(t *testing.T) {
 	_, err = repository.CommitObject(fixture.hashes["old"])
 	require.NoError(t, err)
 	runHistoryGit(t, "-C", fixture.directory, "merge-base", "--is-ancestor", fixture.hashes["old"].String(), fixture.hashes["base"].String())
-	history, err := ReadHistory(t.Context(), clone, RevisionRange{From: fixture.hashes["base"].String()})
+	history, err := readHistory(t.Context(), clone, RevisionRange{From: fixture.hashes["base"].String()})
 	require.ErrorContains(t, err, "baseline ancestry")
 	require.ErrorContains(t, err, "git fetch --unshallow")
 	require.Empty(t, history)
@@ -225,7 +225,7 @@ func TestReadHistoryRejectsIncompleteBaselineInRealShallowClone(t *testing.T) {
 	// Fetching complete ancestry makes the range safe and excludes the older
 	// commits even though the endpoint can still reach them via its side branch.
 	runHistoryGit(t, "-C", clone, "fetch", "--unshallow", "--no-tags", "origin")
-	history, err = ReadHistory(t.Context(), clone, RevisionRange{From: fixture.hashes["base"].String()})
+	history, err = readHistory(t.Context(), clone, RevisionRange{From: fixture.hashes["base"].String()})
 	require.NoError(t, err)
 	require.NotContains(t, commitHashes(history), fixture.hashes["old"].String())
 	require.NotContains(t, commitHashes(history), fixture.hashes["root"].String())
@@ -241,7 +241,7 @@ func runHistoryGit(t *testing.T, args ...string) string {
 	return string(output)
 }
 
-func commitHashes(history History) []string {
+func commitHashes(history commitHistory) []string {
 	var hashes []string
 	for _, commit := range history.Commits {
 		hashes = append(hashes, commit.Hash.String())

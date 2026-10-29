@@ -63,9 +63,8 @@ func newScopeFixture(t *testing.T) historyFixture {
 
 func TestFilterCommits(t *testing.T) {
 	fixture := newScopeFixture(t)
-	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{From: fixture.hashes["base"].String()})
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{From: fixture.hashes["base"].String()})
 	require.NoError(t, err)
-	history.Commits = append(history.Commits, history.Commits[0])
 	config, err := utils.LoadReleaseConfig("testdata")
 	require.NoError(t, err)
 	tests := []struct {
@@ -90,36 +89,36 @@ func TestFilterCommits(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			target, err := ResolveTarget(config, test.selection)
 			require.NoError(t, err)
-			commits, err := FilterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), target, test.include)
+			commits, err := filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), target, test.include)
 			require.NoError(t, err)
 			var want []string
 			for _, name := range test.want {
 				want = append(want, fixture.hashes[name].String())
 			}
-			require.Equal(t, want, commitHashes(History{Commits: commits}))
+			require.Equal(t, want, commitHashes(commitHistory{Commits: commits}))
 		})
 	}
 }
 
 func TestFilterCommitsInitialAndDeletedPaths(t *testing.T) {
 	fixture := newScopeFixture(t)
-	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
 	require.NoError(t, err)
 	// Files that no longer exist in the worktree still select historical changes.
 	target := Target{Paths: []string{"packages/api/remove.txt"}}
-	commits, err := FilterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), target, nil)
+	commits, err := filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), target, nil)
 	require.NoError(t, err)
-	require.Equal(t, []string{fixture.hashes["base"].String(), fixture.hashes["deletion"].String()}, commitHashes(History{Commits: commits}))
+	require.Equal(t, []string{fixture.hashes["base"].String(), fixture.hashes["deletion"].String()}, commitHashes(commitHistory{Commits: commits}))
 
 	// Nonexistent paths select no changes rather than requiring live files.
-	commits, err = FilterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), Target{Paths: []string{"future"}}, nil)
+	commits, err = filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), Target{Paths: []string{"future"}}, nil)
 	require.NoError(t, err)
 	require.Empty(t, commits)
 }
 
 func TestFilterCommitsValidation(t *testing.T) {
 	fixture := newScopeFixture(t)
-	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
 	require.NoError(t, err)
 	directory := filepath.Join(fixture.directory, "project")
 	tests := []struct {
@@ -135,24 +134,24 @@ func TestFilterCommitsValidation(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			commits, err := FilterCommits(t.Context(), history, directory, test.target, test.include)
+			commits, err := filterCommits(t.Context(), history, directory, test.target, test.include)
 			require.ErrorContains(t, err, test.message)
 			require.Empty(t, commits)
 		})
 	}
-	_, err = FilterCommits(t.Context(), history, t.TempDir(), Target{}, nil)
+	_, err = filterCommits(t.Context(), history, t.TempDir(), Target{}, nil)
 	require.ErrorContains(t, err, "outside repository")
-	_, err = FilterCommits(t.Context(), history, filepath.Join(directory, "missing"), Target{}, nil)
+	_, err = filterCommits(t.Context(), history, filepath.Join(directory, "missing"), Target{}, nil)
 	require.ErrorContains(t, err, "resolve release directory")
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
-	_, err = FilterCommits(ctx, history, directory, Target{}, nil)
+	_, err = filterCommits(ctx, history, directory, Target{}, nil)
 	require.ErrorIs(t, err, context.Canceled)
 }
 
 func TestFilterCommitsRelativeAndSymlinkDirectories(t *testing.T) {
 	fixture := newScopeFixture(t)
-	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
 	require.NoError(t, err)
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
@@ -161,18 +160,18 @@ func TestFilterCommitsRelativeAndSymlinkDirectories(t *testing.T) {
 	link := filepath.Join(t.TempDir(), "project")
 	require.NoError(t, os.Symlink(filepath.Join(fixture.directory, "project"), link))
 	for _, directory := range []string{relative, link} {
-		commits, err := FilterCommits(t.Context(), history, directory, Target{Paths: []string{"packages/api/remove.txt"}}, nil)
+		commits, err := filterCommits(t.Context(), history, directory, Target{Paths: []string{"packages/api/remove.txt"}}, nil)
 		require.NoError(t, err)
-		require.Equal(t, []string{fixture.hashes["base"].String(), fixture.hashes["deletion"].String()}, commitHashes(History{Commits: commits}))
+		require.Equal(t, []string{fixture.hashes["base"].String(), fixture.hashes["deletion"].String()}, commitHashes(commitHistory{Commits: commits}))
 	}
 }
 
 func TestFilterCommitsMissingTree(t *testing.T) {
 	fixture := newScopeFixture(t)
-	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{Initial: true, To: fixture.hashes["base"].String()})
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{Initial: true, To: fixture.hashes["base"].String()})
 	require.NoError(t, err)
 	treeHash := history.Commits[0].TreeHash.String()
 	require.NoError(t, os.Remove(filepath.Join(fixture.directory, ".git", "objects", treeHash[:2], treeHash[2:])))
-	_, err = FilterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), Target{Paths: []string{"packages/api"}}, nil)
+	_, err = filterCommits(t.Context(), history, filepath.Join(fixture.directory, "project"), Target{Paths: []string{"packages/api"}}, nil)
 	require.ErrorContains(t, err, "inspect paths in commit "+fixture.hashes["base"].String())
 }

@@ -34,7 +34,7 @@ func renderFixture(t *testing.T) Release {
 	for _, commit := range fixture.Commits {
 		commits = append(commits, &object.Commit{Hash: plumbing.NewHash(commit.Hash), Message: commit.Message})
 	}
-	return Release{Target: fixture.Target, From: fixture.From, To: fixture.To, RevisionDate: date, Sections: GroupCommits(commits)}
+	return Release{Target: fixture.Target, From: fixture.From, To: fixture.To, RevisionDate: date, Sections: groupCommits(commits)}
 }
 
 func TestRenderNotesGolden(t *testing.T) {

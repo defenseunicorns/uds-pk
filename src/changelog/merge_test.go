@@ -85,7 +85,7 @@ func TestFilterMergeCommits(t *testing.T) {
 			if test.baselineLeft {
 				baseline = left
 			}
-			history, err := ReadHistory(t.Context(), directory, RevisionRange{From: baseline.String()})
+			history, err := readHistory(t.Context(), directory, RevisionRange{From: baseline.String()})
 			require.NoError(t, err)
 			require.Contains(t, commitHashes(history), merged.String())
 			target := Target{Paths: []string{"api"}}
@@ -94,9 +94,9 @@ func TestFilterMergeCommits(t *testing.T) {
 			} else if test.dot {
 				target.Paths = []string{"."}
 			}
-			selected, err := FilterCommits(t.Context(), history, directory, target, test.include)
+			selected, err := filterCommits(t.Context(), history, directory, target, test.include)
 			require.NoError(t, err)
-			hashes := commitHashes(History{Commits: selected})
+			hashes := commitHashes(commitHistory{Commits: selected})
 			if test.want {
 				require.Contains(t, hashes, merged.String())
 			} else {
@@ -107,7 +107,7 @@ func TestFilterMergeCommits(t *testing.T) {
 			}
 			if test.name == "merge-only breaking change" {
 				require.Equal(t, []string{merged.String()}, hashes)
-				sections := GroupCommits(selected)
+				sections := groupCommits(selected)
 				require.Equal(t, BreakingChanges, sections[0].Category)
 				notes := RenderNotes(Release{Target: Target{Tag: "2.0.0"}, Sections: sections}, "")
 				require.Contains(t, string(notes), "require authentication")

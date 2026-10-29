@@ -5,11 +5,8 @@ package cmd
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/defenseunicorns/uds-pk/src/changelog"
-	"github.com/defenseunicorns/uds-pk/src/types"
-	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -83,68 +80,21 @@ func (options *notesOptions) run(cmd *cobra.Command, selection changelog.Selecti
 			}
 		}
 	}
-	directory, err := filepath.Abs(options.releaseDir)
-	if err != nil {
-		return fmt.Errorf("resolve release directory: %w", err)
-	}
-	configPath := filepath.Join(directory, "releaser.yaml")
-	var config types.ReleaseConfig
-	if err := utils.LoadYaml(configPath, &config); err != nil {
-		return fmt.Errorf("load release configuration %q: %w", configPath, err)
-	}
-	if err := config.Validate(); err != nil {
-		return fmt.Errorf("validate release configuration %q: %w", configPath, err)
-	}
-	target, err := changelog.ResolveTarget(config, selection)
+	generated, err := changelog.Generate(cmd.Context(), changelog.GenerateOptions{
+		Directory: options.releaseDir, Selection: selection,
+		Revisions:    changelog.RevisionRange{From: options.from, To: options.to, Initial: options.initial},
+		IncludePaths: options.includePaths, Output: options.output, Changelog: options.changelog,
+	})
 	if err != nil {
 		return err
 	}
-	history, err := changelog.ReadHistory(cmd.Context(), directory, changelog.RevisionRange{From: options.from, To: options.to, Initial: options.initial})
-	if err != nil {
-		return err
-	}
-	commits, err := changelog.FilterCommits(cmd.Context(), history, directory, target, options.includePaths)
-	if err != nil {
-		return err
-	}
-	release := changelog.Release{Target: target, To: history.To.Hash.String(), RevisionDate: history.To.Committer.When, Sections: changelog.GroupCommits(commits)}
-	if history.From != nil {
-		release.From = history.From.Hash.String()
-	}
-	notes := changelog.RenderNotes(release, history.Origin)
-	var artifacts []changelog.Artifact
-	if options.output != "" {
-		artifacts = append(artifacts, changelog.Artifact{Path: notesPath(directory, options.output), Content: notes})
-	}
-	if options.changelog != "" {
-		path := notesPath(directory, options.changelog)
-		existing, err := changelog.ReadArtifact(path)
-		if err != nil {
-			return fmt.Errorf("read changelog %q: %w", path, err)
-		}
-		updated, err := changelog.UpdateChangelog(existing, release, history.Origin)
-		if err != nil {
-			return fmt.Errorf("update changelog %q: %w", path, err)
-		}
-		artifacts = append(artifacts, changelog.Artifact{Path: path, Content: updated})
-	}
-	if err := cmd.Context().Err(); err != nil {
-		return err
-	}
-	if err := changelog.WriteArtifacts(artifacts...); err != nil {
+	if err := changelog.WriteArtifacts(generated.Artifacts...); err != nil {
 		return err
 	}
 	if options.output == "" {
-		if _, err := cmd.OutOrStdout().Write(notes); err != nil {
+		if _, err := cmd.OutOrStdout().Write(generated.Notes); err != nil {
 			return fmt.Errorf("write release notes to stdout: %w", err)
 		}
 	}
 	return nil
-}
-
-func notesPath(directory, path string) string {
-	if filepath.IsAbs(path) {
-		return filepath.Clean(path)
-	}
-	return filepath.Join(directory, path)
 }
