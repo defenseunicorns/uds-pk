@@ -6,6 +6,7 @@ package changelog
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -28,6 +29,11 @@ type historyFixture struct {
 // network, Git executable, global Git configuration, or process cwd changes.
 func newHistoryFixture(t *testing.T) historyFixture {
 	t.Helper()
+	return newHistoryFixtureFrom(t, "testdata/history.yaml")
+}
+
+func newHistoryFixtureFrom(t *testing.T, path string) historyFixture {
+	t.Helper()
 	var fixture struct {
 		Commits []struct {
 			Name      string
@@ -36,7 +42,7 @@ func newHistoryFixture(t *testing.T) historyFixture {
 			Timestamp int64
 		}
 	}
-	require.NoError(t, utils.LoadYaml("testdata/history.yaml", &fixture))
+	require.NoError(t, utils.LoadYaml(path, &fixture))
 	directory := t.TempDir()
 	directory, err := filepath.EvalSymlinks(directory)
 	require.NoError(t, err)
@@ -93,10 +99,10 @@ func TestReadHistoryRange(t *testing.T) {
 			require.Equal(t, fixture.directory, history.Root)
 			require.Equal(t, fixture.hashes["base"], history.From.Hash)
 			require.Equal(t, fixture.hashes["endpoint"], history.To.Hash)
-			// Reach both branches, omit the merge wrapper, and order timestamp ties by hash.
+			// Reach both branches and the merge; order timestamp ties by hash.
 			branches := []string{fixture.hashes["feature"].String(), fixture.hashes["maintenance"].String()}
 			sort.Strings(branches)
-			require.Equal(t, append(branches, fixture.hashes["endpoint"].String()), commitHashes(history))
+			require.Equal(t, append(branches, fixture.hashes["merge"].String(), fixture.hashes["endpoint"].String()), commitHashes(history))
 		})
 	}
 	afterHead, err := fixture.repository.Head()
@@ -160,20 +166,79 @@ func TestReadHistoryShallowBoundaries(t *testing.T) {
 	_, err := ReadHistory(context.Background(), fixture.directory, RevisionRange{Initial: true})
 	require.ErrorContains(t, err, "git fetch --unshallow")
 
-	// A shallow boundary already excluded by the baseline does not truncate the range.
-	history, err := ReadHistory(context.Background(), fixture.directory, RevisionRange{From: "base"})
-	require.NoError(t, err)
-	require.Len(t, history.Commits, 3)
+	// Exclusion must establish the baseline's complete ancestry too, including
+	// when the requested endpoints are equal.
+	for _, revisions := range []RevisionRange{{From: "base"}, {From: "base", To: "base"}} {
+		history, err := ReadHistory(context.Background(), fixture.directory, revisions)
+		require.ErrorContains(t, err, "baseline ancestry")
+		require.ErrorContains(t, err, "git fetch --unshallow")
+		require.Empty(t, history)
+	}
 	_, err = ReadHistory(context.Background(), fixture.directory, RevisionRange{From: "root"})
 	require.ErrorContains(t, err, "git fetch --unshallow")
 }
 
 func TestReadHistoryMissingObject(t *testing.T) {
+	for _, name := range []string{"root", "feature"} {
+		t.Run(name, func(t *testing.T) {
+			fixture := newHistoryFixture(t)
+			missing := filepath.Join(fixture.directory, ".git", "objects", fixture.hashes[name].String()[:2], fixture.hashes[name].String()[2:])
+			require.NoError(t, os.Remove(missing))
+			history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{From: "base"})
+			require.ErrorContains(t, err, "fetch complete history")
+			if name == "root" {
+				require.ErrorContains(t, err, "baseline ancestry")
+			}
+			require.Empty(t, history)
+		})
+	}
+}
+
+func TestReadHistoryUnrelatedShallowBoundary(t *testing.T) {
 	fixture := newHistoryFixture(t)
-	missing := filepath.Join(fixture.directory, ".git", "objects", fixture.hashes["feature"].String()[:2], fixture.hashes["feature"].String()[2:])
-	require.NoError(t, os.Remove(missing))
-	_, err := ReadHistory(context.Background(), fixture.directory, RevisionRange{From: "base"})
-	require.ErrorContains(t, err, "fetch complete history")
+	require.NoError(t, fixture.repository.Storer.SetShallow([]plumbing.Hash{fixture.hashes["unrelated"]}))
+	history, err := ReadHistory(t.Context(), fixture.directory, RevisionRange{From: "base"})
+	require.NoError(t, err)
+	require.Len(t, history.Commits, 4)
+}
+
+func TestReadHistoryRejectsIncompleteBaselineInRealShallowClone(t *testing.T) {
+	fixture := newHistoryFixtureFrom(t, "testdata/shallow-history.yaml")
+	clone := filepath.Join(t.TempDir(), "clone")
+	runHistoryGit(t, "clone", "--no-local", "--no-tags", "--single-branch", "--branch", "endpoint", "--depth=6", fixture.directory, clone)
+	repository, err := git.PlainOpen(clone)
+	require.NoError(t, err)
+	boundaries, err := repository.Storer.Shallow()
+	require.NoError(t, err)
+	require.Contains(t, boundaries, fixture.hashes["long4"])
+	// The baseline's ancestry is truncated, while its older ancestor remains
+	// available through the merge's shorter side branch. That ancestor must
+	// never become an apparent post-baseline change.
+	_, err = repository.CommitObject(fixture.hashes["old"])
+	require.NoError(t, err)
+	runHistoryGit(t, "-C", fixture.directory, "merge-base", "--is-ancestor", fixture.hashes["old"].String(), fixture.hashes["base"].String())
+	history, err := ReadHistory(t.Context(), clone, RevisionRange{From: fixture.hashes["base"].String()})
+	require.ErrorContains(t, err, "baseline ancestry")
+	require.ErrorContains(t, err, "git fetch --unshallow")
+	require.Empty(t, history)
+
+	// Fetching complete ancestry makes the range safe and excludes the older
+	// commits even though the endpoint can still reach them via its side branch.
+	runHistoryGit(t, "-C", clone, "fetch", "--unshallow", "--no-tags", "origin")
+	history, err = ReadHistory(t.Context(), clone, RevisionRange{From: fixture.hashes["base"].String()})
+	require.NoError(t, err)
+	require.NotContains(t, commitHashes(history), fixture.hashes["old"].String())
+	require.NotContains(t, commitHashes(history), fixture.hashes["root"].String())
+	require.ElementsMatch(t, []string{fixture.hashes["feature"].String(), fixture.hashes["maintenance"].String(), fixture.hashes["side"].String(), fixture.hashes["endpoint"].String()}, commitHashes(history))
+}
+
+func runHistoryGit(t *testing.T, args ...string) string {
+	t.Helper()
+	command := exec.CommandContext(t.Context(), "git", args...)
+	command.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_TERMINAL_PROMPT=0")
+	output, err := command.CombinedOutput()
+	require.NoError(t, err, "%v: %s", args, output)
+	return string(output)
 }
 
 func commitHashes(history History) []string {
