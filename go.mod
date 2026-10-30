@@ -16,9 +16,9 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/xeipuuv/gojsonschema v1.2.0
-	github.com/zarf-dev/zarf v0.88.0
+	github.com/zarf-dev/zarf v0.89.0
 	github.com/zclconf/go-cty v1.19.0
-	gitlab.com/gitlab-org/api/client-go/v3 v3.34.0
+	gitlab.com/gitlab-org/api/client-go/v3 v3.39.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.6
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
@@ -30,6 +30,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
+	github.com/distribution/reference v0.6.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-test/deep v1.1.1 // indirect
 	github.com/golang-cz/devslog v0.0.17 // indirect
@@ -40,6 +41,7 @@ require (
 	github.com/olekukonko/cat v0.0.0-20250911104152-50322a0618f6 // indirect
 	github.com/olekukonko/errors v1.2.0 // indirect
 	github.com/olekukonko/ll v0.1.7 // indirect
+	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/phsym/console-slog v0.3.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
