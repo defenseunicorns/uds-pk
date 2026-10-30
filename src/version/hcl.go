@@ -34,9 +34,12 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 
 	body := parsed.Body.(*hclsyntax.Body)
 	var metadata *hclsyntax.Block
-	var sourceAttr *hclsyntax.Attribute
-	var source string
-	var sourceArch string
+	type sourceMatch struct {
+		attr   *hclsyntax.Attribute
+		source string
+		arch   string
+	}
+	var sources []sourceMatch
 	prefix := "zarf-package-" + packageName + "-"
 	evalContext := &hcl.EvalContext{Variables: map[string]cty.Value{
 		"sys": cty.ObjectVal(map[string]cty.Value{
@@ -79,10 +82,7 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 		if !ok {
 			continue
 		}
-		if sourceAttr != nil {
-			return nil, fmt.Errorf("bundle %s has multiple sources for Zarf package %q", bundlePath, packageName)
-		}
-		sourceAttr, source, sourceArch = attr, candidate, arch
+		sources = append(sources, sourceMatch{attr: attr, source: candidate, arch: arch})
 	}
 	if metadata == nil {
 		return nil, fmt.Errorf("bundle %s has no metadata block", bundlePath)
@@ -91,23 +91,13 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 	if versionAttr == nil {
 		return nil, fmt.Errorf("bundle %s has no metadata.version", bundlePath)
 	}
-	if sourceAttr == nil {
+	if len(sources) == 0 {
 		if allowMissingBundle {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("bundle %s has no local source for Zarf package %q", bundlePath, packageName)
 	}
-	sourceRange := sourceAttr.Expr.Range()
-
-	// Use the evaluated filename only to locate the version. Preserve the original
-	// template so architecture-dependent locals and directories stay dynamic.
-	filename := path.Base(source)
 	tag := utils.JoinNonEmpty("-", flavor.Version, flavor.Name)
-	versionStart := len(source) - len(filename) + len(prefix) + len(sourceArch) + 1
-	newSource, err := replaceSourceVersion(data, sourceAttr.Expr, evalContext, versionStart, tag)
-	if err != nil {
-		return nil, fmt.Errorf("bundle %s: %w", bundlePath, err)
-	}
 
 	type replacement struct {
 		start, end int
@@ -116,7 +106,18 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 	versionRange := versionAttr.Expr.Range()
 	replacements := []replacement{
 		{versionRange.Start.Byte, versionRange.End.Byte, strconv.Quote(tag)},
-		{sourceRange.Start.Byte, sourceRange.End.Byte, newSource},
+	}
+	// A bundle can deploy the same archive more than once under different labels.
+	// Prepare every replacement before returning an update so failures remain atomic.
+	for _, match := range sources {
+		filename := path.Base(match.source)
+		versionStart := len(match.source) - len(filename) + len(prefix) + len(match.arch) + 1
+		newSource, err := replaceSourceVersion(data, match.attr.Expr, evalContext, versionStart, tag)
+		if err != nil {
+			return nil, fmt.Errorf("bundle %s: %w", bundlePath, err)
+		}
+		r := match.attr.Expr.Range()
+		replacements = append(replacements, replacement{r.Start.Byte, r.End.Byte, newSource})
 	}
 	sort.Slice(replacements, func(i, j int) bool {
 		return replacements[i].start > replacements[j].start
