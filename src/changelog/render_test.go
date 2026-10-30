@@ -13,9 +13,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/require"
-	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark/ast"
-	markdowntext "github.com/yuin/goldmark/text"
 )
 
 func renderFixture(t *testing.T) releaseData {
@@ -90,30 +87,12 @@ func TestRenderNotesKeepsLiteralBlockSyntax(t *testing.T) {
 	release := renderFixture(t)
 	var changes []change
 	for _, subject := range []string{"- literal bullet", "+ literal bullet", "1. literal item", "123456789. literal item", "1) literal item", "---", "---- ----", "==="} {
-		changes = append(changes, change{Hash: "abc", Message: parseMessage(subject + "\n\nBREAKING CHANGE: first line\n---\n\n1. literal item\n+ literal bullet\n===\n- - -")})
+		changes = append(changes, change{Hash: "abc", Message: parseMessage(subject)})
 	}
-	release.Sections = []section{{Category: breakingChanges, Changes: changes}}
-	notes := renderNotes(release, "")
-	document := goldmark.New().Parser().Parse(markdowntext.NewReader(notes))
-	headings, items, lists := 0, 0, 0
-	require.NoError(t, ast.Walk(document, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-		if !entering {
-			return ast.WalkContinue, nil
-		}
-		switch node.(type) {
-		case *ast.Heading:
-			headings++
-		case *ast.List:
-			lists++
-			require.Equal(t, document, node.Parent(), "commit text must not create nested lists")
-		case *ast.ListItem:
-			items++
-		case *ast.ThematicBreak, *ast.CodeBlock:
-			t.Errorf("commit text created a %s block", node.Kind())
-		}
-		return ast.WalkContinue, nil
-	}))
-	require.Equal(t, 3, headings, "only the document, release, and category headings")
-	require.Equal(t, 2, lists, "only metadata and changes lists")
-	require.Equal(t, 5+len(changes), items)
+	release.Sections = []section{
+		{Category: breakingChanges, Changes: []change{{Hash: "def", Message: parseMessage("fix: preserve literal breaking details\n\nBREAKING CHANGE: first line\n---\n\n1. literal item\n+ literal bullet\n===\n- - -")}}},
+		{Category: otherChanges, Changes: changes},
+	}
+	expected := test.ReadFile(t, "testdata/notes-literal-blocks.golden.md")
+	require.Equal(t, string(expected), string(renderNotes(release, "")))
 }
