@@ -169,6 +169,8 @@ bundles:
 
 Generate Markdown release notes and changelogs for the packages, flavors, and bundles in `releaser.yaml`. Generation uses local Git history and requires no hosting token.
 
+We evaluated release-please for generation. Its [supported public API](https://github.com/googleapis/release-please/blob/v17.11.2/docs/design.md#public-interface) does not expose the standalone parser and formatter; those are internal implementation details. Reusing them directly would rely on unsupported APIs and add a Node runtime and dependency graph. We retain the Go implementation to support uds-pk's existing targets and tag conventions without changing publishing. Markdown output is covered by golden tests.
+
 ```bash
 # Print notes for the root package
 uds-pk release notes upstream --from 0.9.0-uds.0-upstream
