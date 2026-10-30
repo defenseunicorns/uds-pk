@@ -16,7 +16,6 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/xeipuuv/gojsonschema v1.2.0
-	github.com/yuin/goldmark v1.8.6
 	github.com/zarf-dev/zarf v0.88.0
 	github.com/zclconf/go-cty v1.19.0
 	gitlab.com/gitlab-org/api/client-go/v3 v3.34.0
