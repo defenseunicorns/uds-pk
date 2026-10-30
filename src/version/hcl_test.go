@@ -570,3 +570,62 @@ package "application" {
 		})
 	}
 }
+
+func TestPrepareNextBundleUpdateMultipleSources(t *testing.T) {
+	for _, secondSource := range []string{
+		"../zarf-package-valkey-${sys.arch}-dev.tar.zst",
+		"./archives/zarf-package-valkey-arm64-old.tar.zst",
+		"${local.archive}",
+	} {
+		for _, optional := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/optional=%t", secondSource, optional), func(t *testing.T) {
+				releaseDir := t.TempDir()
+				require.NoError(t, os.MkdirAll(filepath.Join(releaseDir, "bundle"), 0o755))
+				bundlePath := filepath.Join(releaseDir, "bundle", "bundle.uds.hcl")
+				original := `# Preserve deployment configuration.
+metadata {
+  name = "valkey-test"
+  version = "dev"
+}
+locals { archive = "../zarf-package-valkey-${sys.arch}-dev.tar.zst" }
+package "valkey" {
+  source = "../zarf-package-valkey-${sys.arch}-dev.tar.zst"
+  values_files = ["values/valkey.yaml"]
+}
+package "valkey-replicated-w-sentinel" {
+  source = "` + secondSource + `"
+  namespace = "valkey-replicated-w-sentinel"
+  depends_on = [package.valkey]
+  values_files = ["values/valkey-replicated-w-sentinel.yaml"]
+}
+package "other" {
+  source = "../zarf-package-valkey-resources-${sys.arch}-dev.tar.zst"
+}
+package "remote" {
+  source = "oci://registry/valkey:dev"
+}
+`
+				require.NoError(t, os.WriteFile(bundlePath, []byte(original), 0o640))
+				update, err := prepareNextBundleUpdate(types.Flavor{Name: "upstream", Version: "1.2.3"}, releaseDir, "valkey", optional)
+				if strings.Contains(secondSource, "${local.archive}") {
+					// A later unsafe source must not return a partial update.
+					require.ErrorContains(t, err, "cannot safely replace source version")
+					require.Nil(t, update)
+				} else {
+					require.NoError(t, err)
+					require.NotNil(t, update)
+					want := strings.Replace(original, `version = "dev"`, `version = "1.2.3-upstream"`, 1)
+					want = strings.ReplaceAll(want, `source = "../zarf-package-valkey-${sys.arch}-dev.tar.zst"`, `source = "../zarf-package-valkey-${sys.arch}-1.2.3-upstream.tar.zst"`)
+					want = strings.ReplaceAll(want, "./archives/zarf-package-valkey-arm64-old.tar.zst", "./archives/zarf-package-valkey-arm64-1.2.3-upstream.tar.zst")
+					require.Equal(t, want, string(update.content))
+					require.Equal(t, os.FileMode(0o640), update.mode)
+					_, diags := hclsyntax.ParseConfig(update.content, bundlePath, hcl.InitialPos)
+					require.False(t, diags.HasErrors(), diags.Error())
+				}
+				unchanged, err := os.ReadFile(bundlePath)
+				require.NoError(t, err)
+				require.Equal(t, original, string(unchanged))
+			})
+		}
+	}
+}
