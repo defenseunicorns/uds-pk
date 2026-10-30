@@ -565,6 +565,7 @@ func init() {
 	releaseCmd.AddCommand(gitlabCmd())
 	releaseCmd.AddCommand(githubCmd())
 	releaseCmd.AddCommand(updateYamlCmd())
+	releaseCmd.AddCommand(notesCmd())
 
 	releaseCmd.AddCommand(bundleCmd)
 
@@ -573,4 +574,5 @@ func init() {
 	bundleCmd.AddCommand(bundleGitlabCmd())
 	bundleCmd.AddCommand(bundleGithubCmd())
 	bundleCmd.AddCommand(updateBundleYamlCmd())
+	bundleCmd.AddCommand(bundleNotesCmd())
 }
