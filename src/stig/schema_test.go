@@ -9,28 +9,27 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/require"
-	"github.com/xeipuuv/gojsonschema"
 	"gopkg.in/yaml.v3"
 )
 
 func TestProfileSchema(t *testing.T) {
 	schemaPath, err := filepath.Abs(filepath.Join("..", "..", "schemas", "stig-profile.schema.json"))
 	require.NoError(t, err)
-	schemaLoader := gojsonschema.NewReferenceLoader("file://" + schemaPath)
+	schema, err := jsonschema.NewCompiler().Compile(schemaPath)
+	require.NoError(t, err)
 
 	t.Run("accepts single STIG profile", func(t *testing.T) {
 		document := loadYAMLDocument(t, filepath.Join("..", "test", "stig", "test-profile.yaml"))
-		result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
+		err := schema.Validate(document)
 		require.NoError(t, err)
-		require.True(t, result.Valid(), result.Errors())
 	})
 
 	t.Run("accepts multiple STIG profile", func(t *testing.T) {
 		document := loadYAMLDocument(t, filepath.Join("..", "test", "stig", "test-multi-profile.yaml"))
-		result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
+		err := schema.Validate(document)
 		require.NoError(t, err)
-		require.True(t, result.Valid(), result.Errors())
 	})
 
 	t.Run("rejects a different schema version", func(t *testing.T) {
@@ -38,9 +37,8 @@ func TestProfileSchema(t *testing.T) {
 		metadata := document["metadata"].(map[string]any)
 		metadata["version"] = "1.2.3"
 
-		result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
-		require.NoError(t, err)
-		require.False(t, result.Valid())
+		err := schema.Validate(document)
+		require.Error(t, err)
 	})
 
 	for _, status := range []string{"not_a_finding", "not_applicable", "not_reviewed", "open"} {
@@ -52,9 +50,8 @@ func TestProfileSchema(t *testing.T) {
 				"APSC-DV-000160": map[string]any{"status": status},
 			}
 
-			result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
+			err := schema.Validate(document)
 			require.NoError(t, err)
-			require.True(t, result.Valid(), result.Errors())
 		})
 	}
 
@@ -66,9 +63,8 @@ func TestProfileSchema(t *testing.T) {
 			"APSC-DV-000160": map[string]any{"status": "passed"},
 		}
 
-		result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
-		require.NoError(t, err)
-		require.False(t, result.Valid())
+		err := schema.Validate(document)
+		require.Error(t, err)
 	})
 
 	for name, appName := range map[string]string{
@@ -80,9 +76,46 @@ func TestProfileSchema(t *testing.T) {
 			metadata := document["metadata"].(map[string]any)
 			metadata["name"] = appName
 
-			result, err := gojsonschema.Validate(schemaLoader, gojsonschema.NewGoLoader(document))
-			require.NoError(t, err)
-			require.False(t, result.Valid())
+			err := schema.Validate(document)
+			require.Error(t, err)
+		})
+	}
+}
+
+func TestProfileValidateSchema(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		source  string
+		wantErr string
+	}{
+		{
+			name:   "accepts release version",
+			source: "stigs:\n  - id: asd_v6r4\n",
+		},
+		{
+			name:    "rejects missing required field",
+			wantErr: "missing property 'stigs'",
+		},
+		{
+			name:    "rejects empty STIG list",
+			source:  "stigs: []\n",
+			wantErr: "/stigs",
+		},
+		{
+			name:    "rejects nested type mismatch",
+			source:  "stigs:\n  - id: asd_v6r4\n    characteristics:\n      uses_soap: 'false'\n",
+			wantErr: "/stigs/0/characteristics/uses_soap",
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			profile := &Profile{source: []byte("kind: UDS STIG Profile\nmetadata:\n  name: test-app\n  version: 1.2.3\n" + test.source)}
+			err := profile.ValidateSchema("1.2.3")
+			if test.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+			require.ErrorContains(t, err, "profile does not match schema")
+			require.ErrorContains(t, err, test.wantErr)
 		})
 	}
 }
