@@ -1,0 +1,58 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+---
+- name: base
+  message: 'chore: initial files'
+  changes:
+    project/packages/api/remove.txt: remove this
+    project/packages/api/export.txt: move this out
+    project/packages/api-worker/import.txt: move this in
+    project/packages/api-worker/service.go: worker v1
+    project/charts/api/Chart.yaml: chart v1
+    project/shared/runtime.go: shared v1
+    project/bundles/platform/uds-bundle.yaml: bundle v1
+    project/bundles/platform-test/uds-bundle.yaml: test bundle v1
+- name: api
+  message: 'feat(api): add an endpoint'
+  changes:
+    project/packages/api/service.go: api v2
+    project/charts/api/Chart.yaml: chart v2
+- name: chart
+  message: 'fix(chart): update chart defaults'
+  changes:
+    project/charts/api/values.yaml: defaults
+- name: worker
+  message: 'fix(worker): update the worker'
+  changes:
+    project/packages/api-worker/service.go: worker v2
+- name: shared
+  message: 'fix(runtime): update shared runtime'
+  changes:
+    project/shared/runtime.go: shared v2
+- name: bundle
+  message: 'chore(bundle): update bundle references'
+  changes:
+    project/bundles/platform/uds-bundle.yaml: bundle v2
+- name: rename-out
+  message: 'refactor: move an API file to the worker'
+  changes:
+    project/packages/api/export.txt: null
+    project/packages/api-worker/export.txt: move this out
+- name: rename-in
+  message: 'refactor: move a worker file to the API'
+  changes:
+    project/packages/api-worker/import.txt: null
+    project/packages/api/import.txt: move this in
+- name: deletion
+  message: 'fix(api): delete an obsolete file'
+  changes:
+    project/packages/api/remove.txt: null
+- name: config
+  message: 'chore: update release configuration'
+  changes:
+    project/releaser.yaml: new release versions
+- name: outside
+  message: 'docs: describe the repository'
+  changes:
+    README.md: repository documentation
