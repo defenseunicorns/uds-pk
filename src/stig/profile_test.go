@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/require"
 )
 
@@ -155,8 +156,11 @@ stigs:
 	profile, err := LoadProfile(profilePath)
 	require.NoError(t, err)
 	err = profile.ValidateSchema("1.2.3")
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "Additional property unknown is not allowed")
+	var validationError *jsonschema.ValidationError
+	require.ErrorAs(t, err, &validationError)
+	require.ErrorContains(t, err, "profile does not match schema")
+	require.ErrorContains(t, err, "/metadata")
+	require.ErrorContains(t, err, "additional properties 'unknown' not allowed")
 }
 
 func TestLoadProfile_FileNotFound(t *testing.T) {

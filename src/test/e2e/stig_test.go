@@ -200,7 +200,8 @@ stigs:
 		"--output", asdOutput+","+rhelOutput,
 	)
 	require.Error(t, err)
-	assert.Contains(t, stderr, "RHEL-09-000001.status must be one of")
+	assert.Contains(t, stderr, "/stigs/1/overrides/RHEL-09-000001/status")
+	assert.Contains(t, stderr, "value must be one of")
 	for _, outputPath := range []string{asdOutput, rhelOutput} {
 		_, statErr := os.Stat(outputPath)
 		require.ErrorIs(t, statErr, os.ErrNotExist)
