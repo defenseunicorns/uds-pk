@@ -57,7 +57,7 @@ func GetAuthToken() string {
 func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slog.Logger) ([]string, error) {
 	base := "https://ghcr.io/v2/" + repoOwner + "/" + packageUrl
 	authToken := GetAuthToken()
-	manifest, err := fetchSBOMManifest(base, tag, authToken)
+	manifest, err := fetchPackageManifest(base, tag, authToken)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +119,7 @@ func FetchSboms(repoOwner, packageUrl, tag string, outputDir string, logger *slo
 	return files, nil
 }
 
-func fetchSBOMManifest(base, ref, authToken string) (ImageManifest, error) {
+func fetchPackageManifest(base, ref, authToken string) (ImageManifest, error) {
 	const accept = "application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json"
 	data, err := getByteArray(base+"/manifests/"+ref, authToken, accept)
 	if err != nil {

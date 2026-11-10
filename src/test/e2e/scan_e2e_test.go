@@ -66,6 +66,9 @@ components:
 func TestScanBetaReleased(t *testing.T) {
 	for _, flavor := range []string{"", "upstream"} {
 		t.Run("flavor="+flavor, func(t *testing.T) {
+			original := cmd.FetchPackageFlavor
+			t.Cleanup(func() { cmd.FetchPackageFlavor = original })
+			cmd.FetchPackageFlavor = func(_, _, _ string) (string, error) { return flavor, nil }
 			withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if strings.HasSuffix(r.URL.Path, "/versions") {
 					tag := "v1"

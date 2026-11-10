@@ -432,6 +432,7 @@ func ScanReleased(ctx *context.Context, outDirectory string, options *ScanReleas
 // NewGithubClient exposed for testing purposes
 var NewGithubClient = createGithubClient
 var FetchSboms = utils.FetchSboms
+var FetchPackageFlavor = utils.FetchPackageFlavor
 
 func getAuthToken() string {
 	githubToken := os.Getenv("GITHUB_TOKEN")
@@ -480,7 +481,7 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client,
 	}
 
 	for _, flavor := range flavors {
-		tag, packageUrl, err := findNewestTagForFlavor(packagesWithVersions, flavor, log)
+		tag, packageUrl, err := findNewestTagForFlavor(packagesWithVersions, flavor, repoOwner, log)
 		if err != nil {
 			return flavorToSboms, err
 		}
@@ -497,26 +498,40 @@ func fetchSbomsForFlavors(ctx *context.Context, client *github.Client,
 	return flavorToSboms, nil
 }
 
-func findNewestTagForFlavor(versions []PackageWithVersion, flavor string, log *slog.Logger) (string, string, error) {
-	for _, packageWithVersion := range versions {
-		packageUrl := packageWithVersion.encodedPackageUrl
-		versions := packageWithVersion.versions
-		for _, version := range versions {
-			var metadataMap map[string]interface{}
-			if err := json.Unmarshal(version.Metadata, &metadataMap); err == nil {
-				if container, ok := metadataMap["container"].(map[string]interface{}); ok {
-					if tags, ok := container["tags"].([]interface{}); ok {
-						// select the newest tag:
-						for _, tRaw := range tags {
-							if tag, ok := tRaw.(string); ok {
-								if strings.HasSuffix(tag, flavor) {
-									log.Debug("Found tag", slog.String("tag", tag))
-									return tag, packageUrl, nil
-								}
-							}
-						}
+func findNewestTagForFlavor(versions []PackageWithVersion, flavor, repoOwner string, log *slog.Logger) (string, string, error) {
+	for _, pkg := range versions {
+		for _, version := range pkg.versions {
+			var metadata struct {
+				Container struct {
+					Tags []string `json:"tags"`
+				} `json:"container"`
+			}
+			if err := json.Unmarshal(version.Metadata, &metadata); err != nil {
+				continue
+			}
+			for _, tag := range metadata.Container.Tags {
+				if (strings.HasPrefix(tag, "sha256-") || strings.HasPrefix(tag, "sha512-")) &&
+					(strings.HasSuffix(tag, ".sig") || strings.HasSuffix(tag, ".att") || strings.HasSuffix(tag, ".sbom")) {
+					continue
+				}
+				if flavor != "" {
+					if !strings.HasSuffix(tag, "-"+flavor) {
+						continue
+					}
+				} else {
+					// Version strings can contain arbitrary prerelease identifiers, including flavor names.
+					// Only the published package's build metadata can disambiguate an unflavored release.
+					publishedFlavor, err := FetchPackageFlavor(repoOwner, pkg.encodedPackageUrl, tag)
+					if err != nil {
+						return "", "", fmt.Errorf("read flavor of published package %s:%s: %w", pkg.encodedPackageUrl, tag, err)
+					}
+					if publishedFlavor != "" {
+						// All tags on this GitHub package version point at the same artifact.
+						break
 					}
 				}
+				log.Debug("Found tag", slog.String("tag", tag))
+				return tag, pkg.encodedPackageUrl, nil
 			}
 		}
 	}
