@@ -171,6 +171,14 @@ bundles:
     version: 0.0.1
 ```
 
+## Zarf Package API Support
+
+Release commands and package scans accept `zarf.dev/v1alpha1` and `zarf.dev/v1beta1` source definitions. An omitted `apiVersion` is treated as alpha. Version updates change only `metadata.version`, preserving comments and other fields, including beta selectors, image objects, values, and attachments. Unsupported API versions, component configs, and multi-document package artifacts produce an error; use a single package source document.
+
+Direct image scans combine shared components with each declared flavor, deduplicate images, and support packages without flavors. They scan registry images declared in the source. Component imports, daemon images, and image archives require a resolved source with registry images or scanning the released package SBOM; these cases return an error rather than an incomplete scan. Render package templates before scanning. Architecture selectors are combined unless `metadata.architecture` specifies a target.
+
+Released-package scans support both the alpha `sboms.tar` layer and beta individual JSON SBOM layers. Registry retrieval retains the existing first-platform selection for multi-platform package indexes.
+
 ## Scan Comparison
 
 The `compare-scans` command allows you to compare two grype scans using the cyclonedx-json output format. This can be useful to identify new, existing, and fixed vulnerabilities between two different scans.
