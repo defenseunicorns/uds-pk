@@ -4,6 +4,7 @@
 package scan
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -54,9 +55,29 @@ func SBOMs(sbomsDir, outputDir string, logger *slog.Logger, isVerbose bool, proc
 
 	logger.Debug("Found SBOM files to scan", slog.Int("count", len(sbomFiles)))
 
+	// Plan the whole batch before scanning so identical userInput values cannot overwrite results.
+	names := make(map[string]string, len(sbomFiles))
+	counts := make(map[string]int, len(sbomFiles))
+	for _, file := range sbomFiles {
+		names[file] = sbomOutputName(file, logger)
+		counts[names[file]]++
+	}
+	planned := make(map[string]bool, len(sbomFiles))
+	for _, file := range sbomFiles {
+		name := names[file]
+		if counts[name] > 1 {
+			// Retrieval preserves resource identity in the basename, including platform-specific layers.
+			name = fmt.Sprintf("%.140s--%x", name, sha256.Sum256([]byte(filepath.Base(file))))
+		}
+		if planned[name] {
+			return nil, fmt.Errorf("multiple SBOMs produce scan output %q", name)
+		}
+		planned[name] = true
+		names[file] = name
+	}
 	results := map[string]string{}
 	for _, sbomFile := range sbomFiles {
-		outJson, err := scanSBOM(sbomFile, outputDir, logger, isVerbose, processRunner)
+		outJson, err := scanSBOM(sbomFile, outputDir, names[sbomFile], logger, isVerbose, processRunner)
 		if err != nil {
 			return nil, err
 		} else {
@@ -121,13 +142,7 @@ func sanitizeFilename(name string) string {
 	return sanitized
 }
 
-func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
-	logger.Debug("Scanning SBOM", slog.String("file", sbomFile))
-
-	// Set up the output path if needed
-	if outputDir == "" {
-		return "", errors.New("output directory not specified")
-	}
+func sbomOutputName(sbomFile string, logger *slog.Logger) string {
 
 	// Extract image reference from SBOM if possible
 	var safeImageName string
@@ -137,7 +152,10 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 		var sbom struct {
 			Source struct {
 				Metadata struct {
-					UserInput string `json:"userInput"`
+					UserInput    string `json:"userInput"`
+					Architecture string `json:"architecture"`
+					OS           string `json:"os"`
+					Variant      string `json:"variant"`
 				} `json:"metadata"`
 			} `json:"source"`
 		}
@@ -146,6 +164,11 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 			imageRef := sbom.Source.Metadata.UserInput
 			logger.Debug("Found image reference in SBOM", slog.String("imageRef", imageRef))
 			safeImageName = sanitizeFilename(filepath.Base(imageRef))
+			metadata := sbom.Source.Metadata
+			if metadata.Architecture != "" {
+				platform := strings.Trim(strings.Join([]string{metadata.OS, metadata.Architecture, metadata.Variant}, "-"), "-")
+				safeImageName += "--" + sanitizeFilename(platform)
+			}
 		}
 	}
 
@@ -157,6 +180,17 @@ func scanSBOM(sbomFile string, outputDir string, logger *slog.Logger, isVerbose 
 		safeImageName = sanitizeFilename(safeImageName)
 		logger.Debug("Using SBOM filename for output", slog.String("safeImageName", safeImageName))
 	}
+	return safeImageName
+}
+
+func scanSBOM(sbomFile string, outputDir string, safeImageName string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
+	logger.Debug("Scanning SBOM", slog.String("file", sbomFile))
+
+	// Set up the output path if needed
+	if outputDir == "" {
+		return "", errors.New("output directory not specified")
+	}
+
 	jsonFileName := safeImageName + ".json"
 	jsonOutputPath := filepath.Join(outputDir, jsonFileName)
 	logger.Debug("Saving JSON results to output directory", slog.String("fileName", jsonOutputPath))

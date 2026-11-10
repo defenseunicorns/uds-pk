@@ -235,7 +235,10 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 					break
 				}
 			}
-			releasedScanFile, found := findMatchingScan(imageName, releasedFlavorResults, log)
+			releasedScanFile, found, err := findMatchingScan(imageName, releasedFlavorResults, log)
+			if err != nil {
+				return err
+			}
 			if !found {
 				fmt.Fprintf(&builder, "### %s: No released scan found for image\n", imageName)
 				builder.WriteString("This is likely a new image\n")
@@ -284,13 +287,17 @@ func extractImageName(imageURL string) string {
 	return filepath.Base(imagePath)
 }
 
-func findMatchingScan(imageName string, releasedResults map[string]string, logger *slog.Logger) (string, bool) {
+func findMatchingScan(imageName string, releasedResults map[string]string, logger *slog.Logger) (string, bool, error) {
+	var match string
 	for _, scanFile := range releasedResults {
 		if strings.Contains(scanFile, "/"+imageName+"_") {
-			return scanFile, true
+			if match != "" && match != scanFile {
+				return "", false, fmt.Errorf("multiple released SBOM scans match image %q; compare the platform-specific results with compare-scans", imageName)
+			}
+			match = scanFile
 		}
 	}
-	return "", false
+	return match, match != "", nil
 }
 
 func ScanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions, log *slog.Logger, verbose bool) (map[string]map[string]string, error) {
