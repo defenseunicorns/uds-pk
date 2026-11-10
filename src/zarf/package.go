@@ -25,6 +25,18 @@ type Metadata struct {
 	Architecture string `yaml:"architecture"`
 }
 
+type Definition struct {
+	APIVersion string   `yaml:"apiVersion"`
+	Kind       string   `yaml:"kind"`
+	Metadata   Metadata `yaml:"metadata"`
+	Variant    struct {
+		Flavor       string `yaml:"flavor"`
+		Architecture string `yaml:"architecture"`
+	} `yaml:"variant"`
+}
+
+func (d Definition) IsComponent() bool { return d.Kind == string(v1beta1.ZarfComponentConfig) }
+
 type Image struct {
 	Name    string
 	Source  string
@@ -49,11 +61,7 @@ type document struct {
 	file   *ast.File
 	target *ast.File
 	prefix string
-	header struct {
-		APIVersion string   `yaml:"apiVersion"`
-		Kind       string   `yaml:"kind"`
-		Metadata   Metadata `yaml:"metadata"`
-	}
+	header Definition
 }
 
 // parseDocument handles authoring sources, not the multi-document definitions in built packages.
@@ -99,7 +107,13 @@ func parseDocument(data []byte) (*document, error) {
 		return nil, fmt.Errorf("unsupported Zarf apiVersion %q", doc.header.APIVersion)
 	}
 	switch doc.header.Kind {
-	case "", "ZarfPackageConfig", "ZarfInitConfig":
+	case "":
+		doc.header.Kind = "ZarfPackageConfig"
+	case "ZarfPackageConfig", "ZarfInitConfig":
+	case "ZarfComponentConfig":
+		if doc.header.APIVersion != v1beta1.APIVersion {
+			return nil, fmt.Errorf("component configs require apiVersion %s", v1beta1.APIVersion)
+		}
 	default:
 		return nil, fmt.Errorf("unsupported Zarf package kind %q", doc.header.Kind)
 	}
@@ -107,6 +121,15 @@ func parseDocument(data []byte) (*document, error) {
 		return nil, fmt.Errorf("zarf package metadata.name is required")
 	}
 	return doc, nil
+}
+
+// ReadDefinition reads release metadata for packages and standalone component configs.
+func ReadDefinition(data []byte) (Definition, error) {
+	doc, err := parseDocument(data)
+	if err != nil {
+		return Definition{}, err
+	}
+	return doc.header, nil
 }
 
 // ReadMetadata reads only the header; beta-only and future fields are left untouched.
@@ -136,6 +159,9 @@ func Parse(data []byte) (Package, error) {
 	doc, err := parseDocument(data)
 	if err != nil {
 		return Package{}, err
+	}
+	if doc.header.IsComponent() {
+		return Package{}, fmt.Errorf("component configs are not supported for package scanning")
 	}
 	pkg := Package{APIVersion: doc.header.APIVersion, Metadata: doc.header.Metadata}
 	if pkg.APIVersion == v1beta1.APIVersion {

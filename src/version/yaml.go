@@ -32,6 +32,10 @@ type fileUpdate struct {
 }
 
 func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Chart, allowMissingBundle bool) error {
+	_, definition, err := utils.LoadReleaseSource(releaseDir, path, flavor)
+	if err != nil {
+		return err
+	}
 	zarfUpdate, packageName, err := prepareZarfYamlUpdate(flavor, releaseDir, path)
 	if err != nil {
 		return err
@@ -42,9 +46,12 @@ func UpdateYamls(flavor types.Flavor, path, releaseDir string, charts []types.Ch
 		return err
 	}
 
-	bundleUpdates, err := prepareBundleUpdates(flavor, releaseDir, packageName, allowMissingBundle)
-	if err != nil {
-		return err
+	var bundleUpdates []fileUpdate
+	if !definition.IsComponent() {
+		bundleUpdates, err = prepareBundleUpdates(flavor, releaseDir, packageName, allowMissingBundle)
+		if err != nil {
+			return err
+		}
 	}
 
 	updates := make([]fileUpdate, 0, len(chartUpdates)+len(bundleUpdates)+1)
@@ -150,7 +157,10 @@ func UpdateBundleYAML(bundle types.Bundle, releaseDir string) error {
 }
 
 func prepareZarfYamlUpdate(flavor types.Flavor, releaseDir, path string) (fileUpdate, string, error) {
-	zarfPath := filepath.Join(releaseDir, path, "zarf.yaml")
+	zarfPath, err := utils.ReleaseSourcePath(releaseDir, path, flavor)
+	if err != nil {
+		return fileUpdate{}, "", err
+	}
 	data, mode, err := readFileWithMode(zarfPath)
 	if err != nil {
 		return fileUpdate{}, "", fmt.Errorf("read zarf %s: %w", zarfPath, err)
@@ -162,7 +172,7 @@ func prepareZarfYamlUpdate(flavor types.Flavor, releaseDir, path string) (fileUp
 
 	return fileUpdate{
 		path:    zarfPath,
-		label:   "zarf.yaml",
+		label:   filepath.Base(zarfPath),
 		version: flavor.Version,
 		content: data,
 		mode:    mode,

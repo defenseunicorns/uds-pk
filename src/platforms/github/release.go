@@ -37,7 +37,7 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 	}
 
 	// Create the tag
-	zarfPackageName, err := utils.GetPackageName()
+	zarfPackageName, err := utils.GetSourceName(flavor.Source)
 	if err != nil {
 		return err
 	}

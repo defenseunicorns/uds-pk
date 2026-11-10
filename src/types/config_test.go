@@ -3,7 +3,28 @@
 
 package types
 
-import "testing"
+import (
+	"github.com/stretchr/testify/require"
+	"testing"
+)
+
+func TestReleaseSourcePaths(t *testing.T) {
+	for _, source := range []string{"component.yaml", "components/upstream.yml", "../other.yaml", "/tmp/component.yaml"} {
+		for _, scoped := range []bool{false, true} {
+			flavor := Flavor{Version: "1.0.0", Source: source}
+			config := ReleaseConfig{Flavors: []Flavor{flavor}}
+			if scoped {
+				config = ReleaseConfig{Packages: []Package{{Name: "app", Path: "components/app", Flavors: []Flavor{flavor}}}}
+			}
+			err := config.VerifyReleaseConfig()
+			if source == "../other.yaml" || source == "/tmp/component.yaml" {
+				require.ErrorContains(t, err, "release source")
+			} else {
+				require.NoError(t, err)
+			}
+		}
+	}
+}
 
 func TestVerifyReleaseConfig(t *testing.T) {
 	validNamedFlavor := Flavor{

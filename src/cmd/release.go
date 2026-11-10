@@ -53,6 +53,22 @@ func checkPackageExists(repositoryURL, tag, arch string, usePlainHTTP bool, logg
 	return false, nil
 }
 
+func checkComponentExists(repositoryURL, tag, architecture string, usePlainHTTP bool) (bool, error) {
+	if !schemeWithSlashes.MatchString(repositoryURL) {
+		scheme := "https"
+		if usePlainHTTP {
+			scheme = "http"
+		}
+		repositoryURL = scheme + "://" + repositoryURL
+	}
+	parsed, err := url.Parse(repositoryURL)
+	if err != nil {
+		return false, err
+	}
+	manifestURL := fmt.Sprintf("%s://%s/v2/%s/manifests/%s", parsed.Scheme, parsed.Host, strings.TrimPrefix(parsed.Path, "/"), tag)
+	return utils.ComponentExists(manifestURL, architecture)
+}
+
 // buildRepositoryURL joins the base repo, optional team segment, and package name into the
 // target registry path. Unicorn-flavored packages live under a "private" segment. url.JoinPath
 // is used rather than path.Join so a scheme in baseRepo keeps its "//" intact.
@@ -100,13 +116,6 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 
 	log.Debug("Checking if package exists", slog.String("baseRepo", options.baseRepo), slog.String("arch", options.arch))
 
-	var err error
-	zarfPackageName, err := utils.GetPackageName()
-	if err != nil {
-		return err
-	}
-	log.Debug("Package name", slog.String("zarfPackageName", zarfPackageName))
-
 	rootCmd.SilenceUsage = true
 	var flavor string
 
@@ -123,9 +132,17 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 	}
 	log.Debug("read release config")
 
-	_, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, options.packageName)
+	packagePath, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, options.packageName)
 	if err != nil {
 		return err
+	}
+	_, definition, err := utils.LoadReleaseSource(options.releaseDir, packagePath, currentFlavor)
+	if err != nil {
+		return err
+	}
+	zarfPackageName := definition.Metadata.Name
+	if definition.IsComponent() && definition.Variant.Architecture != "" && cmd.Flags().Changed("arch") && options.arch != definition.Variant.Architecture {
+		return fmt.Errorf("requested architecture %q does not match component variant architecture %q", options.arch, definition.Variant.Architecture)
 	}
 	log.Debug("read current flavor", slog.String("version", currentFlavor.Version), slog.String("name", currentFlavor.Name))
 
@@ -155,7 +172,12 @@ func (options *CheckOptions) run(cmd *cobra.Command, args []string) error {
 			log.Debug("Determined target repository", slog.String("repository", repositoryUrl))
 
 			// otherwise let's see if publishing was successful:
-			result, err := checkPackageExists(repositoryUrl, repoTag, options.arch, options.usePlainHTTP, log)
+			var result bool
+			if definition.IsComponent() {
+				result, err = checkComponentExists(repositoryUrl, repoTag, definition.Variant.Architecture, options.usePlainHTTP)
+			} else {
+				result, err = checkPackageExists(repositoryUrl, repoTag, options.arch, options.usePlainHTTP, log)
+			}
 			if err != nil {
 				log.Warn("Failed to check if package exists, assuming it doesn't", slog.Any("err", err))
 				effectiveResult = true
@@ -308,7 +330,7 @@ func updateYamlCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update-yaml [flavor]",
 		Aliases: []string{"u"},
-		Short:   "Update versions in zarf.yaml, managed Helm charts, and the default YAML or Next bundle",
+		Short:   "Update versions in release sources, managed Helm charts, and package bundles",
 		Args:    cobra.MaximumNArgs(1),
 		RunE:    options.run,
 	}

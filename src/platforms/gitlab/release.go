@@ -36,7 +36,7 @@ func (Platform) TagAndRelease(flavor types.Flavor, tokenVarName string, packageN
 		return err
 	}
 
-	zarfPackageName, err := utils.GetPackageName()
+	zarfPackageName, err := utils.GetSourceName(flavor.Source)
 	if err != nil {
 		return err
 	}
@@ -98,8 +98,6 @@ func (Platform) BundleTagAndRelease(bundle types.Bundle, tokenVarName string) er
 	}
 	return nil
 }
-
-
 
 func createReleaseOptions(zarfPackageName string, flavor types.Flavor, branchRef string, packageNameFlag string) *gitlab.CreateReleaseOptions {
 	name := fmt.Sprintf("%s %s", zarfPackageName, utils.JoinNonEmpty("-", flavor.Version, flavor.Name))

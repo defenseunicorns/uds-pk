@@ -173,11 +173,34 @@ bundles:
 
 ## Zarf Package API Support
 
-Release commands and package scans accept `zarf.dev/v1alpha1` and `zarf.dev/v1beta1` source definitions. An omitted `apiVersion` is treated as alpha. Version updates change only `metadata.version`, preserving comments and other field values, including beta selectors, image objects, values, and attachments. Inherited metadata is expanded locally when updating its version so shared anchors remain unchanged and Zarf can read the updated source. Unsupported API versions, component configs, and multi-document package artifacts produce an error; use a single package source document.
+Release commands and package scans accept `zarf.dev/v1alpha1` and `zarf.dev/v1beta1` package source definitions. An omitted `apiVersion` is treated as alpha. Release commands also support standalone beta component configs as described below. Version updates change only `metadata.version`, preserving comments and other field values, including beta selectors, image objects, values, and attachments. Inherited metadata is expanded locally when updating its version so shared anchors remain unchanged and Zarf can read the updated source. Unsupported API versions and multi-document package artifacts produce an error; use a single source document.
 
 Direct image scans combine shared components with each declared flavor, deduplicate images, and support packages without flavors. Images from different registries or repositories retain separate results even when their basenames match. Scan outputs record image and platform identity in CycloneDX metadata, which comparisons use instead of filenames; equivalent aliases are treated as one baseline. They scan registry images declared in the source. Component imports, daemon images, and image archives require a resolved source with registry images or scanning the released package SBOM; these cases return an error rather than an incomplete scan. Render package templates before scanning. Architecture selectors are combined unless `metadata.architecture` specifies a target.
 
 Released-package scans support both the alpha `sboms.tar` layer and beta individual JSON SBOM layers. Platform-specific SBOMs retain separate scan results; when multiple released results match an image, use `compare-scans` with the desired platform results rather than automatic comparison. Flavorless baselines skip signature/attestation tags and verify the published package's `build.flavor`, preserving support for arbitrary version strings. Registry retrieval retains the existing first-platform selection for multi-platform package indexes.
+
+### Standalone Component Releases
+
+Each release flavor can select a source definition using `source`, which defaults to `zarf.yaml`. The path is relative to the release directory, or to the selected `packages[].path` when using `--package`. This also allows different flavors to use different component source files:
+
+```yaml
+flavors:
+  - name: upstream
+    version: 1.2.3
+    source: components/upstream.yaml
+```
+
+The selected file must declare `apiVersion: zarf.dev/v1beta1` and `kind: ZarfComponentConfig`. Its `variant.flavor` must match the selected release flavor; omit both for a flavorless component. `metadata.name` supplies the artifact and release name, and existing release-tag conventions still apply.
+
+```bash
+uds-pk release update-yaml upstream
+uds-pk release check upstream --base-repo ghcr.io/my-org/components
+uds-pk release github upstream
+```
+
+Component version updates preserve the component body, imports, and variant fields, update any explicitly managed charts, and leave package bundle files untouched. Publish checks recognize generic component manifests and architecture-specific component indexes. For architecture-specific sources, the check uses `variant.architecture`; an explicitly conflicting `--arch` is rejected.
+
+Component publication itself remains the responsibility of `zarf component publish` or your build workflow. Package scan commands do not accept standalone component configs.
 
 ## Scan Comparison
 

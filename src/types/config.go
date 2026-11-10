@@ -13,6 +13,7 @@ import (
 type Flavor struct {
 	Name              string `yaml:"name"`
 	Version           string `yaml:"version"`
+	Source            string `yaml:"source,omitempty"`
 	PublishBundle     bool   `yaml:"publishBundle,omitempty,default=false"`
 	PublishPackageUrl string `yaml:"publishPackageUrl"`
 	PublishBundleUrl  string `yaml:"publishBundleUrl,omitempty"`
@@ -53,12 +54,18 @@ func (config ReleaseConfig) VerifyReleaseConfig() error {
 
 	// Each flavor must have a version defined
 	for _, flavor := range config.Flavors {
+		if err := verifySource(flavor.Source); err != nil {
+			return err
+		}
 		if flavor.Version == "" {
 			return errors.New("each flavor must have a version defined")
 		}
 	}
 	for _, pkg := range config.Packages {
 		for _, flavor := range pkg.Flavors {
+			if err := verifySource(flavor.Source); err != nil {
+				return err
+			}
 			if flavor.Version == "" {
 				return errors.New("each flavor in a package must have a version defined")
 			}
@@ -155,6 +162,14 @@ func (config ReleaseConfig) VerifyReleaseConfig() error {
 		}
 	}
 
+	return nil
+}
+
+func verifySource(source string) error {
+	clean := filepath.Clean(source)
+	if filepath.IsAbs(source) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("release source must be within the selected package directory: %s", source)
+	}
 	return nil
 }
 

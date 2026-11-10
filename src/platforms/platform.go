@@ -29,10 +29,15 @@ func LoadAndTag(releaseDir, flavor, tokenVarName string, platform Platform, pack
 		return err
 	}
 
-	_, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
+	path, currentFlavor, err := utils.GetFlavorConfig(flavor, releaseConfig, packageName)
 	if err != nil {
 		return err
 	}
+	source, _, err := utils.LoadReleaseSource(releaseDir, path, currentFlavor)
+	if err != nil {
+		return err
+	}
+	currentFlavor.Source = source
 
 	return platform.TagAndRelease(currentFlavor, tokenVarName, packageName)
 }
