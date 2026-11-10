@@ -15,7 +15,8 @@ import (
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	yamlParser "github.com/goccy/go-yaml/parser"
-	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
+	"github.com/zarf-dev/zarf/src/api/v1alpha1"
+	"github.com/zarf-dev/zarf/src/api/v1beta1"
 )
 
 type chartMetadata struct {
@@ -150,22 +151,27 @@ func UpdateBundleYAML(bundle types.Bundle, releaseDir string) error {
 }
 
 func prepareZarfYamlUpdate(flavor types.Flavor, releaseDir, path string) (fileUpdate, string, error) {
-	var zarfPackage zarf.ZarfPackage
 	zarfPath := filepath.Join(releaseDir, path, "zarf.yaml")
 	data, mode, err := readFileWithMode(zarfPath)
 	if err != nil {
 		return fileUpdate{}, "", fmt.Errorf("read zarf %s: %w", zarfPath, err)
 	}
-	err = goyaml.Unmarshal(data, &zarfPackage)
+	pkg, err := utils.ParsePackage(data)
 	if err != nil {
 		return fileUpdate{}, "", fmt.Errorf("parse zarf %s: %w", zarfPath, err)
 	}
-
-	zarfPackage.Metadata.Version = flavor.Version
-
-	data, err = goyaml.Marshal(zarfPackage)
+	var packageName string
+	switch pkg := pkg.(type) {
+	case *v1alpha1.ZarfPackage:
+		packageName = pkg.Metadata.Name
+		pkg.Metadata.Version = flavor.Version
+	case *v1beta1.Package:
+		packageName = pkg.Metadata.Name
+		pkg.Metadata.Version = flavor.Version
+	}
+	data, err = goyaml.Marshal(pkg)
 	if err != nil {
-		return fileUpdate{}, zarfPackage.Metadata.Name, fmt.Errorf("marshal zarf %s: %w", zarfPath, err)
+		return fileUpdate{}, packageName, fmt.Errorf("marshal zarf %s: %w", zarfPath, err)
 	}
 
 	return fileUpdate{
@@ -174,7 +180,7 @@ func prepareZarfYamlUpdate(flavor types.Flavor, releaseDir, path string) (fileUp
 		version: flavor.Version,
 		content: data,
 		mode:    mode,
-	}, zarfPackage.Metadata.Name, nil
+	}, packageName, nil
 }
 
 func prepareLegacyBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
