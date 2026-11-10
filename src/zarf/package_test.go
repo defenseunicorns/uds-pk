@@ -226,6 +226,44 @@ func TestUpdateVersionInsertsMissingVersion(t *testing.T) {
 	}
 }
 
+func TestUpdateVersionFromMergedMetadata(t *testing.T) {
+	for _, apiVersion := range []string{"zarf.dev/v1alpha1", "zarf.dev/v1beta1"} {
+		for _, merge := range []string{"*defaults", "{name: app, version: old, annotations: {note: preserved}}"} {
+			t.Run(apiVersion+"/"+merge, func(t *testing.T) {
+				source := "# keep source\napiVersion: " + apiVersion + `
+kind: ZarfPackageConfig
+defaults: &defaults
+  name: app
+  version: old
+  annotations: {note: preserved}
+metadata:
+  <<: ` + merge + ` # keep inherited note
+  description: local # keep metadata
+other: *defaults
+components: []
+`
+				var before map[string]any
+				require.NoError(t, yaml.Unmarshal([]byte(source), &before))
+				out, name, err := UpdateVersion([]byte(source), "new")
+				require.NoError(t, err)
+				require.Equal(t, "app", name)
+				// Zarf's YAML-to-JSON path decodes to a map before validating the native schema.
+				var after map[string]any
+				require.NoError(t, yaml.Unmarshal(out, &after))
+				before["metadata"].(map[string]any)["version"] = "new"
+				require.Equal(t, before, after)
+				pkg, err := Parse(out)
+				require.NoError(t, err)
+				require.Equal(t, "new", pkg.Metadata.Version)
+				require.Contains(t, string(out), "# keep metadata")
+				require.Contains(t, string(out), "# keep source")
+				require.Contains(t, string(out), "# keep inherited note")
+				require.Contains(t, string(out), "other: *defaults")
+			})
+		}
+	}
+}
+
 func TestUpdateVersionRejectsAnchoredMetadata(t *testing.T) {
 	for _, source := range []string{
 		"metadata: &meta {name: app, version: old}\nother: *meta\n",

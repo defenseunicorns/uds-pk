@@ -17,6 +17,42 @@ import (
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
 
+func TestUpdateYamlCommandMergedMetadata(t *testing.T) {
+	for _, apiVersion := range []string{"zarf.dev/v1alpha1", "zarf.dev/v1beta1"} {
+		t.Run(apiVersion, func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, os.Mkdir(filepath.Join(dir, "bundle"), 0o755))
+			e2e.CreateUDSBundleYaml(t, filepath.Join(dir, "bundle"))
+			e2e.CreateFlavorReleaseConfig(t, dir, releaseTypes.Flavor{Name: "upstream", Version: "2.1.0"})
+			source := "apiVersion: " + apiVersion + `
+kind: ZarfPackageConfig
+defaults: &defaults
+  name: testing-package
+  version: old
+  annotations: {note: preserved}
+metadata:
+  <<: *defaults
+other: *defaults
+components: []
+`
+			packagePath := filepath.Join(dir, "zarf.yaml")
+			require.NoError(t, os.WriteFile(packagePath, []byte(source), 0o644))
+			stdout, stderr, err := e2e.UDSPKDir(dir, "release", "update-yaml", "upstream")
+			require.NoError(t, err, stdout, stderr)
+			data, err := os.ReadFile(packagePath)
+			require.NoError(t, err)
+			var values map[string]any
+			require.NoError(t, goyaml.Unmarshal(data, &values))
+			require.Equal(t, "2.1.0", values["metadata"].(map[string]any)["version"])
+			require.Equal(t, "old", values["defaults"].(map[string]any)["version"])
+			require.Equal(t, "old", values["other"].(map[string]any)["version"])
+			pkg, err := packageinfo.ReadFile(packagePath)
+			require.NoError(t, err)
+			require.Equal(t, "2.1.0", pkg.Metadata.Version)
+		})
+	}
+}
+
 func TestUpdateYamlCommandBetaPackage(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.Mkdir(filepath.Join(dir, "bundle"), 0o755))

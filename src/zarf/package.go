@@ -5,6 +5,7 @@
 package zarf
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"sort"
@@ -248,8 +249,12 @@ func UpdateVersion(data []byte, version string) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	if _, ok := metadata.(*ast.MappingNode); !ok {
+	metadataMap, ok := metadata.(*ast.MappingNode)
+	if !ok {
 		return nil, "", fmt.Errorf("metadata must be a mapping to update its version")
+	}
+	if err := expandMetadataMerges(doc, metadataMap, metadataPath); err != nil {
+		return nil, "", err
 	}
 	versionPath, err := yaml.PathString("$.metadata.version")
 	if err != nil {
@@ -282,5 +287,69 @@ func UpdateVersion(data []byte, version string) ([]byte, string, error) {
 	} else if err := metadataPath.MergeFromReader(doc.target, strings.NewReader("version: "+string(encoded))); err != nil {
 		return nil, "", err
 	}
-	return []byte(doc.prefix + doc.file.String()), doc.header.Metadata.Name, nil
+	out := []byte(doc.prefix + doc.file.String())
+	checked, err := parseDocument(out)
+	if err != nil {
+		return nil, "", fmt.Errorf("validate updated Zarf source: %w", err)
+	}
+	// Zarf's schema validation first decodes YAML to a map. A typed metadata decode alone
+	// misses merge/explicit-key collisions, so check the same strict generic decoding path.
+	var values map[string]any
+	if err := yaml.NodeToValue(checked.target.Docs[0].Body, &values); err != nil {
+		return nil, "", fmt.Errorf("validate updated Zarf source: %w", err)
+	}
+	return out, doc.header.Metadata.Name, nil
+}
+
+// Expand only metadata's inherited fields. Updating a shared anchor would also change
+// unrelated aliases; adding an override leaves duplicate keys for Zarf's pinned decoder.
+func expandMetadataMerges(doc *document, metadata *ast.MappingNode, path *yaml.Path) error {
+	hasMerge := false
+	for _, entry := range metadata.Values {
+		hasMerge = hasMerge || entry.Key.IsMergeKey()
+	}
+	if !hasMerge {
+		return nil
+	}
+	var root map[string]any
+	if err := yaml.NodeToValue(doc.target.Docs[0].Body, &root); err != nil {
+		return err
+	}
+	inherited, ok := root["metadata"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("merged metadata must be a mapping")
+	}
+	var explicit []*ast.MappingValueNode
+	comments := metadata.GetComment()
+	for _, entry := range metadata.Values {
+		if entry.Key.IsMergeKey() {
+			for _, node := range ast.Filter(ast.CommentType, entry) {
+				if comments == nil {
+					comments = &ast.CommentGroupNode{BaseNode: &ast.BaseNode{}}
+				}
+				switch comment := node.(type) {
+				case *ast.CommentNode:
+					comments.Comments = append(comments.Comments, comment)
+				case *ast.CommentGroupNode:
+					comments.Comments = append(comments.Comments, comment.Comments...)
+				}
+			}
+			continue
+		}
+		var key string
+		if err := yaml.NodeToValue(entry.Key, &key); err != nil {
+			return err
+		}
+		delete(inherited, key)
+		explicit = append(explicit, entry)
+	}
+	data, err := yaml.Marshal(inherited)
+	if err != nil {
+		return err
+	}
+	metadata.Values = explicit
+	if err := metadata.SetComment(comments); err != nil {
+		return err
+	}
+	return path.MergeFromReader(doc.target, bytes.NewReader(data))
 }
