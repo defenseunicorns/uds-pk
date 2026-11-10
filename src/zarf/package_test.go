@@ -74,13 +74,14 @@ func TestParseBothSchemas(t *testing.T) {
 
 func TestRejectInvalidSources(t *testing.T) {
 	for name, source := range map[string]string{
-		"empty":              "",
-		"unknown version":    "apiVersion: zarf.dev/v2\nmetadata: {name: app}\n",
-		"component config":   "kind: ZarfComponentConfig\nmetadata: {name: app}\n",
-		"missing name":       "metadata: {version: dev}\n",
-		"malformed metadata": "metadata: [app]\n",
-		"duplicate keys":     "metadata: {name: app, name: other}\n",
-		"multiple docs":      "metadata: {name: app}\n---\nmetadata: {name: other}\n",
+		"empty":                  "",
+		"unknown version":        "apiVersion: zarf.dev/v2\nmetadata: {name: app}\n",
+		"component config":       "kind: ZarfComponentConfig\nmetadata: {name: app}\n",
+		"missing name":           "metadata: {version: dev}\n",
+		"malformed metadata":     "metadata: [app]\n",
+		"duplicate keys":         "metadata: {name: app, name: other}\n",
+		"multiple docs":          "metadata: {name: app}\n---\nmetadata: {name: other}\n",
+		"multiple with preamble": "# license\n%YAML 1.2\n---\nmetadata: {name: app}\n---\nmetadata: {name: other}\n",
 	} {
 		t.Run(name, func(t *testing.T) {
 			_, err := Parse([]byte(source))
@@ -88,6 +89,26 @@ func TestRejectInvalidSources(t *testing.T) {
 			_, _, err = UpdateVersion([]byte(source), "new")
 			require.Error(t, err)
 		})
+	}
+}
+
+func TestPackageDocumentPreamble(t *testing.T) {
+	for _, version := range []string{"zarf.dev/v1alpha1", "zarf.dev/v1beta1"} {
+		for _, preamble := range []string{"# license\n---\n", "%YAML 1.2\n---\n", "# license\n%YAML 1.2\n---\n"} {
+			t.Run(version+"/"+preamble, func(t *testing.T) {
+				source := preamble + "apiVersion: " + version + "\nmetadata:\n  name: app\n  version: old\ncomponents: []\n...\n# trailing comment\n"
+				pkg, err := Parse([]byte(source))
+				require.NoError(t, err)
+				require.Equal(t, "app", pkg.Metadata.Name)
+				out, name, err := UpdateVersion([]byte(source), "new")
+				require.NoError(t, err)
+				require.Equal(t, "app", name)
+				require.Equal(t, strings.Replace(source, "version: old", "version: new", 1), string(out))
+				pkg, err = Parse(out)
+				require.NoError(t, err)
+				require.Equal(t, "new", pkg.Metadata.Version)
+			})
+		}
 	}
 }
 

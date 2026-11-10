@@ -46,6 +46,8 @@ type Package struct {
 
 type document struct {
 	file   *ast.File
+	target *ast.File
+	prefix string
 	header struct {
 		APIVersion string   `yaml:"apiVersion"`
 		Kind       string   `yaml:"kind"`
@@ -59,10 +61,31 @@ func parseDocument(data []byte) (*document, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(file.Docs) != 1 || file.Docs[0].Body == nil {
+	contentIndex := -1
+	for i, candidate := range file.Docs {
+		if candidate.Body == nil {
+			continue
+		}
+		switch candidate.Body.Type() {
+		case ast.CommentType, ast.CommentGroupType, ast.DirectiveType:
+			continue
+		}
+		if contentIndex != -1 {
+			return nil, fmt.Errorf("expected a single Zarf package source document")
+		}
+		contentIndex = i
+	}
+	if contentIndex == -1 {
 		return nil, fmt.Errorf("expected a single Zarf package source document")
 	}
-	doc := &document{file: file}
+	content := file.Docs[contentIndex]
+	doc := &document{file: file, target: &ast.File{Docs: []*ast.DocumentNode{content}}}
+	if content.Start != nil {
+		// Keep the original preamble: the AST printer drops comments attached to directives.
+		lines := strings.SplitAfter(string(data), "\n")
+		doc.prefix = strings.Join(lines[:content.Start.Position.Line-1], "")
+	}
+	file.Docs = file.Docs[contentIndex:]
 	if err := yaml.NodeToValue(file.Docs[0].Body, &doc.header); err != nil {
 		return nil, err
 	}
@@ -221,7 +244,7 @@ func UpdateVersion(data []byte, version string) ([]byte, string, error) {
 	if err != nil {
 		return nil, "", err
 	}
-	metadata, err := metadataPath.FilterFile(doc.file)
+	metadata, err := metadataPath.FilterFile(doc.target)
 	if err != nil {
 		return nil, "", err
 	}
@@ -240,7 +263,7 @@ func UpdateVersion(data []byte, version string) ([]byte, string, error) {
 	if strings.ContainsAny(version, "\r\n") {
 		encoded = []byte(strconv.Quote(version))
 	}
-	if current, err := versionPath.FilterFile(doc.file); err == nil {
+	if current, err := versionPath.FilterFile(doc.target); err == nil {
 		if _, ok := current.(*ast.AnchorNode); ok {
 			return nil, "", fmt.Errorf("cannot replace an anchored metadata.version")
 		}
@@ -252,12 +275,12 @@ func UpdateVersion(data []byte, version string) ([]byte, string, error) {
 		if err := value.SetComment(current.GetComment()); err != nil {
 			return nil, "", err
 		}
-		err = versionPath.ReplaceWithNode(doc.file, value)
+		err = versionPath.ReplaceWithNode(doc.target, value)
 		if err != nil {
 			return nil, "", err
 		}
-	} else if err := metadataPath.MergeFromReader(doc.file, strings.NewReader("version: "+string(encoded))); err != nil {
+	} else if err := metadataPath.MergeFromReader(doc.target, strings.NewReader("version: "+string(encoded))); err != nil {
 		return nil, "", err
 	}
-	return []byte(doc.file.String()), doc.header.Metadata.Name, nil
+	return []byte(doc.prefix + doc.file.String()), doc.header.Metadata.Name, nil
 }
