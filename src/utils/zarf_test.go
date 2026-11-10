@@ -7,9 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/defenseunicorns/uds-pk/src/zarf"
 	"github.com/stretchr/testify/require"
-	"github.com/zarf-dev/zarf/src/api/v1alpha1"
-	"github.com/zarf-dev/zarf/src/api/v1beta1"
 )
 
 func TestGetPackageName(t *testing.T) {
@@ -39,7 +38,7 @@ func TestGetPackageName(t *testing.T) {
 }
 
 func TestParsePackageSingleDocumentPreambles(t *testing.T) {
-	for _, apiVersion := range []string{"", v1alpha1.APIVersion, v1beta1.APIVersion} {
+	for _, apiVersion := range []string{"", "zarf.dev/v1alpha1", "zarf.dev/v1beta1"} {
 		for _, prefix := range []string{"# license\n---\n", "%YAML 1.2\n---\n", "# license\n%YAML 1.2\n---\n"} {
 			t.Run(apiVersion+"/"+prefix, func(t *testing.T) {
 				source := prefix
@@ -47,15 +46,14 @@ func TestParsePackageSingleDocumentPreambles(t *testing.T) {
 					source += "apiVersion: " + apiVersion + "\n"
 				}
 				source += "kind: ZarfPackageConfig\nmetadata: {name: example}\n...\n# trailing comment\n"
-				pkg, err := ParsePackage([]byte(source))
+				pkg, err := zarf.Parse([]byte(source))
 				require.NoError(t, err)
-				if apiVersion == v1beta1.APIVersion {
-					require.IsType(t, &v1beta1.Package{}, pkg)
-					require.Equal(t, "example", pkg.(*v1beta1.Package).Metadata.Name)
-				} else {
-					require.IsType(t, &v1alpha1.ZarfPackage{}, pkg)
-					require.Equal(t, "example", pkg.(*v1alpha1.ZarfPackage).Metadata.Name)
+				expectedVersion := apiVersion
+				if expectedVersion == "" {
+					expectedVersion = "zarf.dev/v1alpha1"
 				}
+				require.Equal(t, expectedVersion, pkg.APIVersion)
+				require.Equal(t, "example", pkg.Metadata.Name)
 			})
 		}
 	}
@@ -63,7 +61,7 @@ func TestParsePackageSingleDocumentPreambles(t *testing.T) {
 
 func TestGetPackageNameRejectsUnsupportedSources(t *testing.T) {
 	for _, test := range []struct{ name, source, wantError string }{
-		{"component", "apiVersion: zarf.dev/v1beta1\nkind: ZarfComponentConfig\nmetadata: {name: component}\ncomponent: {}\n", "expected a Zarf package"},
+		{"component", "apiVersion: zarf.dev/v1beta1\nkind: ZarfComponentConfig\nmetadata: {name: component}\ncomponent: {}\n", "unsupported Zarf package kind"},
 		{"multiple documents", "apiVersion: zarf.dev/v1alpha1\nmetadata: {name: alpha}\n---\napiVersion: zarf.dev/v1beta1\nmetadata: {name: beta}\n", "single Zarf package source document"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -78,10 +76,10 @@ func TestGetPackageNameRejectsUnsupportedSources(t *testing.T) {
 func TestParsePackageChecksAPITypes(t *testing.T) {
 	for _, source := range []string{
 		"apiVersion: unsupported\nmetadata:\n  name: example\n",
-		"apiVersion: zarf.dev/v1beta1\ncomponents:\n  - name: app\n    images: [example.com/app:1]\n",
-		"apiVersion: zarf.dev/v1alpha1\ncomponents:\n  - name: app\n    images: [{name: 'example.com/app:1'}]\n",
+		"apiVersion: zarf.dev/v1beta1\nmetadata: {name: example}\ncomponents:\n  - name: app\n    images: [example.com/app:1]\n",
+		"apiVersion: zarf.dev/v1alpha1\nmetadata: {name: example}\ncomponents:\n  - name: app\n    images: [{name: 'example.com/app:1'}]\n",
 	} {
-		_, err := ParsePackage([]byte(source))
+		_, err := zarf.Parse([]byte(source))
 		require.Error(t, err)
 	}
 }

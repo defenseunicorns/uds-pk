@@ -12,11 +12,10 @@ import (
 	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
+	"github.com/defenseunicorns/uds-pk/src/zarf"
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
 	yamlParser "github.com/goccy/go-yaml/parser"
-	"github.com/zarf-dev/zarf/src/api/v1alpha1"
-	"github.com/zarf-dev/zarf/src/api/v1beta1"
 )
 
 type chartMetadata struct {
@@ -156,22 +155,9 @@ func prepareZarfYamlUpdate(flavor types.Flavor, releaseDir, path string) (fileUp
 	if err != nil {
 		return fileUpdate{}, "", fmt.Errorf("read zarf %s: %w", zarfPath, err)
 	}
-	pkg, err := utils.ParsePackage(data)
+	data, packageName, err := zarf.UpdateVersion(data, flavor.Version)
 	if err != nil {
 		return fileUpdate{}, "", fmt.Errorf("parse zarf %s: %w", zarfPath, err)
-	}
-	var packageName string
-	switch pkg := pkg.(type) {
-	case *v1alpha1.ZarfPackage:
-		packageName = pkg.Metadata.Name
-		pkg.Metadata.Version = flavor.Version
-	case *v1beta1.Package:
-		packageName = pkg.Metadata.Name
-		pkg.Metadata.Version = flavor.Version
-	}
-	data, err = goyaml.Marshal(pkg)
-	if err != nil {
-		return fileUpdate{}, packageName, fmt.Errorf("marshal zarf %s: %w", zarfPath, err)
 	}
 
 	return fileUpdate{

@@ -11,10 +11,50 @@ import (
 
 	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
+	packageinfo "github.com/defenseunicorns/uds-pk/src/zarf"
 	goyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
+
+func TestUpdateYamlCommandBetaPackage(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.Mkdir(filepath.Join(dir, "bundle"), 0o755))
+	e2e.CreateUDSBundleYaml(t, filepath.Join(dir, "bundle"))
+	e2e.CreateFlavorReleaseConfig(t, dir, releaseTypes.Flavor{Name: "upstream", Version: "2.0.0-uds.0"})
+	const source = `# beta source
+apiVersion: zarf.dev/v1beta1
+kind: ZarfPackageConfig
+metadata:
+  name: testing-package
+  version: dev # keep version note
+attachments:
+  migration: MIGRATION.md
+components:
+  - name: app
+    selector: {flavor: upstream}
+    images:
+      - name: example.com/app:v1
+        id: app
+`
+	packagePath := filepath.Join(dir, "zarf.yaml")
+	require.NoError(t, os.WriteFile(packagePath, []byte(source), 0o640))
+	stdout, stderr, err := e2e.UDSPKDir(dir, "release", "update-yaml", "upstream")
+	require.NoError(t, err, stdout, stderr)
+	data, err := os.ReadFile(packagePath)
+	require.NoError(t, err)
+	require.Equal(t, strings.Replace(source, "version: dev", "version: 2.0.0-uds.0", 1), string(data))
+	info, err := os.Stat(packagePath)
+	require.NoError(t, err)
+	require.Equal(t, os.FileMode(0o640), info.Mode().Perm())
+	pkg, err := packageinfo.ReadFile(packagePath)
+	require.NoError(t, err)
+	require.Equal(t, "2.0.0-uds.0", pkg.Metadata.Version)
+	require.Len(t, pkg.Components[0].Images, 1)
+	var bundle uds.UDSBundle
+	require.NoError(t, e2e.LoadYaml(filepath.Join(dir, "bundle", "uds-bundle.yaml"), &bundle))
+	require.Equal(t, "2.0.0-uds.0-upstream", bundle.Packages[0].Ref)
+}
 
 func TestUpdateYamlCommand(t *testing.T) {
 	e2e.CreateSandboxDir(t, "bundle")
