@@ -18,10 +18,9 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/compare"
 	"github.com/defenseunicorns/uds-pk/src/scan"
 	"github.com/defenseunicorns/uds-pk/src/utils"
+	"github.com/defenseunicorns/uds-pk/src/zarf"
 	"github.com/google/go-github/v92/github"
 	"github.com/spf13/cobra"
-	"github.com/zarf-dev/zarf/src/api/v1alpha1"
-	"go.yaml.in/yaml/v4"
 )
 
 // CommandRunner interface for better testability
@@ -312,7 +311,10 @@ func ScanZarfYamlImages(zarfYamlScanOutDir string, options *CommonScanOptions, l
 	}
 
 	log.Debug("Temporary directory", slog.String("dir", tempDir))
-	flavorToImages := getImages(&pkg)
+	flavorToImages, err := pkg.RegistryImages()
+	if err != nil {
+		return scanImagesResult, err
+	}
 	for flavor, images := range flavorToImages {
 		targetFlavorDir := path.Join(zarfYamlScanOutDir, flavor)
 		// TODO: cache image fetching and scanning so that we don't redo this on duplicates
@@ -374,7 +376,7 @@ func ScanReleased(ctx *context.Context, outDirectory string, options *ScanReleas
 		defer os.RemoveAll(tempDir) //nolint:errcheck
 	}
 
-	flavors := determineFlavors(&pkg)
+	flavors := pkg.Flavors()
 	log.Debug("Flavors", slog.Any("flavors", flavors))
 
 	flavorToSboms, err := fetchSbomsForFlavors(ctx, client, packageUrls, flavors, options.Fetch.RepoOwner, tempDir, log)
@@ -392,7 +394,7 @@ func ScanReleased(ctx *context.Context, outDirectory string, options *ScanReleas
 	// move flavor jsons to a single directory:
 	for flavor, sboms := range flavorToSboms {
 		targetFlavorDir := path.Join(targetSbomsDir, flavor)
-		if err := os.Mkdir(targetFlavorDir, 0755); err != nil {
+		if err := os.MkdirAll(targetFlavorDir, 0755); err != nil {
 			return sbomScanResults, err
 		}
 		for _, sbom := range sboms {
@@ -569,41 +571,8 @@ func determineRepositoryUrl(pkgName string, repoOwner string, prefix string, pat
 	return fmt.Sprintf("%s/%s", prefix, pkgName), nil
 }
 
-func parseZarfYaml(options *CommonScanOptions) (v1alpha1.ZarfPackage, error) {
-	data, err := os.ReadFile(options.ZarfYamlLocation)
-	if err != nil {
-		return v1alpha1.ZarfPackage{}, err
-	}
-	var pkg v1alpha1.ZarfPackage
-	if err := yaml.Unmarshal(data, &pkg); err != nil {
-		return v1alpha1.ZarfPackage{}, err
-	}
-	return pkg, nil
-}
-
-func getImages(pkg *v1alpha1.ZarfPackage) map[string][]string {
-	flavorToImages := make(map[string][]string)
-	for _, component := range pkg.Components {
-		if component.Only.Flavor != "" {
-			flavorToImages[component.Only.Flavor] = component.Images
-		}
-	}
-
-	return flavorToImages
-}
-
-func determineFlavors(pkg *v1alpha1.ZarfPackage) []string {
-	flavorSet := map[string]bool{}
-	for _, component := range pkg.Components {
-		if component.Only.Flavor != "" {
-			flavorSet[component.Only.Flavor] = true
-		}
-	}
-	flavors := make([]string, 0, len(flavorSet))
-	for flavor := range flavorSet {
-		flavors = append(flavors, flavor)
-	}
-	return flavors
+func parseZarfYaml(options *CommonScanOptions) (zarf.Package, error) {
+	return zarf.ReadFile(options.ZarfYamlLocation)
 }
 
 func init() {

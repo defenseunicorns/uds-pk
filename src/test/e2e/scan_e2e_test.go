@@ -22,7 +22,81 @@ import (
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/google/go-github/v92/github"
 	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 )
+
+func TestScanBetaImages(t *testing.T) {
+	const source = `apiVersion: zarf.dev/v1beta1
+kind: ZarfPackageConfig
+metadata: {name: app}
+components:
+  - name: common
+    images: [{name: example.com/common:v1}]
+  - name: first
+    selector: {flavor: upstream}
+    images: [{name: example.com/first:v1, id: first}]
+  - name: second
+    selector: {flavor: upstream}
+    images: [{name: example.com/second:v1}, {name: example.com/common:v1}]
+`
+	for _, flavorless := range []bool{false, true} {
+		t.Run(fmt.Sprintf("flavorless=%t", flavorless), func(t *testing.T) {
+			dir := t.TempDir()
+			data := source
+			flavor := "upstream"
+			if flavorless {
+				data = strings.ReplaceAll(source, "    selector: {flavor: upstream}\n", "")
+				flavor = ""
+			}
+			packagePath := filepath.Join(dir, "zarf.yaml")
+			require.NoError(t, os.WriteFile(packagePath, []byte(data), 0o644))
+			var scanned []string
+			options := cmd.CommonScanOptions{ZarfYamlLocation: packagePath, ExecCommand: func(command string, args ...string) utils.CommandRunner {
+				scanned = append(scanned, args[len(args)-1])
+				return fakeExecCommand(command, args...)
+			}}
+			results, err := cmd.ScanZarfYamlImages(filepath.Join(dir, "out"), &options, cmd.CreateLogger(false), false)
+			require.NoError(t, err)
+			require.Len(t, results[flavor], 3)
+			require.ElementsMatch(t, []string{"registry:example.com/common:v1", "registry:example.com/first:v1", "registry:example.com/second:v1"}, scanned)
+		})
+	}
+}
+
+func TestScanBetaReleased(t *testing.T) {
+	for _, flavor := range []string{"", "upstream"} {
+		t.Run("flavor="+flavor, func(t *testing.T) {
+			withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if strings.HasSuffix(r.URL.Path, "/versions") {
+					tag := "v1"
+					if flavor != "" {
+						tag += "-" + flavor
+					}
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = fmt.Fprintf(w, `[{"id":1,"metadata":{"container":{"tags":[%q]}}}]`, tag)
+					return
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			withMockFetchSbomsUserInput(t, "app.json", "registry:example.com/app:v1")
+			dir := t.TempDir()
+			packagePath := filepath.Join(dir, "zarf.yaml")
+			source := "apiVersion: zarf.dev/v1beta1\nmetadata: {name: app}\ncomponents:\n  - name: app\n    images: [{name: example.com/app:v1}]\n"
+			if flavor != "" {
+				source += "    selector: {flavor: " + flavor + "}\n"
+			}
+			require.NoError(t, os.WriteFile(packagePath, []byte(source), 0o644))
+			options := cmd.ScanReleasedOptions{
+				Scan:  cmd.CommonScanOptions{ZarfYamlLocation: packagePath, ExecCommand: fakeExecCommand},
+				Fetch: cmd.ImageFetchingOptions{RepoOwner: "uds-packages"},
+			}
+			ctx := t.Context()
+			result, err := cmd.ScanReleased(&ctx, filepath.Join(dir, "out"), &options, cmd.CreateLogger(false), false)
+			require.NoError(t, err)
+			require.Len(t, result[flavor], 1)
+		})
+	}
+}
 
 func simulateGrype(args []string, stdout io.Writer, stderr io.Writer) {
 	if stdout == nil {
