@@ -177,7 +177,7 @@ Release commands and package scans accept `zarf.dev/v1alpha1` and `zarf.dev/v1be
 
 Direct image scans combine shared components with each declared flavor, deduplicate images, and support packages without flavors. They scan registry images declared in the source. Component imports, daemon images, and image archives require a resolved source with registry images or scanning the released package SBOM; these cases return an error rather than an incomplete scan. Render package templates before scanning. Architecture selectors are combined unless `metadata.architecture` specifies a target.
 
-Released-package scans support both the alpha `sboms.tar` layer and beta individual JSON SBOM layers. Registry retrieval retains the existing first-platform selection for multi-platform package indexes.
+Released-package scans support both the alpha `sboms.tar` layer and beta individual JSON SBOM layers. Platform-specific SBOMs retain separate scan results; when multiple released results match an image, use `compare-scans` with the desired platform results rather than automatic comparison. Flavorless baselines skip signature/attestation tags and verify the published package's `build.flavor`, preserving support for arbitrary version strings. Registry retrieval retains the existing first-platform selection for multi-platform package indexes.
 
 ## Scan Comparison
 
