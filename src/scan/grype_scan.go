@@ -5,7 +5,6 @@ package scan
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -23,20 +22,36 @@ Scanning logic is heavily inspired by https://github.com/defenseunicorns-navy/so
 */
 
 func Images(images []string, outputDir string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (map[string]string, error) {
-	results := map[string]string{}
+	preferred := map[string]string{}
+	identities := map[string]Identity{}
+	var sources []string
 	for _, image := range images {
-		// adding registry: to make `grype` pull the image from the registry
-		// this avoids issues with containerd snapshotting in Docker
 		if !strings.HasPrefix(image, "registry:") {
 			image = "registry:" + image
 		}
-		logger.Debug("Will scan image", slog.String("image", image))
-		outJson, err := scanImage(image, outputDir, logger, isVerbose, processRunner)
+		if _, exists := preferred[image]; exists {
+			continue
+		}
+		identity, err := ImageIdentity(image)
 		if err != nil {
 			return nil, err
-		} else {
-			results[image] = outJson
 		}
+		identities[image] = identity
+		preferred[image] = sanitizeFilename(image)
+		sources = append(sources, image)
+	}
+	names, err := planOutputNames(preferred, func(source string) string { return source })
+	if err != nil {
+		return nil, err
+	}
+	results := map[string]string{}
+	for _, image := range sources {
+		logger.Debug("Will scan image", slog.String("image", image))
+		out, err := scanImage(image, outputDir, names[image], identities[image], logger, isVerbose, processRunner)
+		if err != nil {
+			return nil, err
+		}
+		results[image] = out
 	}
 	return results, nil
 }
@@ -55,29 +70,25 @@ func SBOMs(sbomsDir, outputDir string, logger *slog.Logger, isVerbose bool, proc
 
 	logger.Debug("Found SBOM files to scan", slog.Int("count", len(sbomFiles)))
 
-	// Plan the whole batch before scanning so identical userInput values cannot overwrite results.
-	names := make(map[string]string, len(sbomFiles))
-	counts := make(map[string]int, len(sbomFiles))
+	// Plan the whole batch before scanning so distinct resources cannot overwrite results.
+	preferred := make(map[string]string, len(sbomFiles))
+	identities := make(map[string]Identity, len(sbomFiles))
 	for _, file := range sbomFiles {
-		names[file] = sbomOutputName(file, logger)
-		counts[names[file]]++
-	}
-	planned := make(map[string]bool, len(sbomFiles))
-	for _, file := range sbomFiles {
-		name := names[file]
-		if counts[name] > 1 {
-			// Retrieval preserves resource identity in the basename, including platform-specific layers.
-			name = fmt.Sprintf("%.140s--%x", name, sha256.Sum256([]byte(filepath.Base(file))))
+		identity, err := sbomIdentity(file)
+		if err != nil {
+			return nil, err
 		}
-		if planned[name] {
-			return nil, fmt.Errorf("multiple SBOMs produce scan output %q", name)
-		}
-		planned[name] = true
-		names[file] = name
+		identities[file] = identity
+		preferred[file] = sbomOutputName(file, identity, logger)
 	}
+	names, err := planOutputNames(preferred, filepath.Base)
+	if err != nil {
+		return nil, err
+	}
+
 	results := map[string]string{}
 	for _, sbomFile := range sbomFiles {
-		outJson, err := scanSBOM(sbomFile, outputDir, names[sbomFile], logger, isVerbose, processRunner)
+		outJson, err := scanSBOM(sbomFile, outputDir, names[sbomFile], identities[sbomFile], logger, isVerbose, processRunner)
 		if err != nil {
 			return nil, err
 		} else {
@@ -87,6 +98,28 @@ func SBOMs(sbomsDir, outputDir string, logger *slog.Logger, isVerbose bool, proc
 	}
 
 	return results, nil
+}
+
+// planOutputNames preserves familiar names when unique and uses the full source identity
+// for collisions. Names are planned before any scanner can overwrite another result.
+func planOutputNames(preferred map[string]string, stableID func(string) string) (map[string]string, error) {
+	counts := map[string]int{}
+	for _, name := range preferred {
+		counts[name]++
+	}
+	names := make(map[string]string, len(preferred))
+	planned := map[string]bool{}
+	for source, name := range preferred {
+		if counts[name] > 1 || len(name) > 200 {
+			name = fmt.Sprintf("%.140s--%x", name, sha256.Sum256([]byte(stableID(source))))
+		}
+		if planned[name] {
+			return nil, fmt.Errorf("multiple scans produce output %q", name)
+		}
+		planned[name] = true
+		names[source] = name
+	}
+	return names, nil
 }
 
 func extractImageName(fullPath string) string {
@@ -142,33 +175,12 @@ func sanitizeFilename(name string) string {
 	return sanitized
 }
 
-func sbomOutputName(sbomFile string, logger *slog.Logger) string {
-
-	// Extract image reference from SBOM if possible
+func sbomOutputName(sbomFile string, identity Identity, logger *slog.Logger) string {
 	var safeImageName string
-
-	// Try to extract the image reference using JSON parsing
-	if data, err := os.ReadFile(sbomFile); err == nil {
-		var sbom struct {
-			Source struct {
-				Metadata struct {
-					UserInput    string `json:"userInput"`
-					Architecture string `json:"architecture"`
-					OS           string `json:"os"`
-					Variant      string `json:"variant"`
-				} `json:"metadata"`
-			} `json:"source"`
-		}
-
-		if err := json.Unmarshal(data, &sbom); err == nil && sbom.Source.Metadata.UserInput != "" {
-			imageRef := sbom.Source.Metadata.UserInput
-			logger.Debug("Found image reference in SBOM", slog.String("imageRef", imageRef))
-			safeImageName = sanitizeFilename(filepath.Base(imageRef))
-			metadata := sbom.Source.Metadata
-			if metadata.Architecture != "" {
-				platform := strings.Trim(strings.Join([]string{metadata.OS, metadata.Architecture, metadata.Variant}, "-"), "-")
-				safeImageName += "--" + sanitizeFilename(platform)
-			}
+	if identity.Reference != "" {
+		safeImageName = sanitizeFilename(identity.Reference)
+		if identity.Platform != "" {
+			safeImageName += "--" + sanitizeFilename(strings.ReplaceAll(identity.Platform, "/", "-"))
 		}
 	}
 
@@ -183,7 +195,7 @@ func sbomOutputName(sbomFile string, logger *slog.Logger) string {
 	return safeImageName
 }
 
-func scanSBOM(sbomFile string, outputDir string, safeImageName string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
+func scanSBOM(sbomFile string, outputDir string, safeImageName string, identity Identity, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
 	logger.Debug("Scanning SBOM", slog.String("file", sbomFile))
 
 	// Set up the output path if needed
@@ -208,10 +220,17 @@ func scanSBOM(sbomFile string, outputDir string, safeImageName string, logger *s
 	args := []string{"--add-cpes-if-none", "--output", "cyclonedx-json", "-v", "--file", jsonOutputPath, "sbom:" + sbomFile}
 
 	// Try to scan with retries for database issues
-	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose, processRunner)
+	out, err := runGrypeCommand(args, jsonOutputPath, logger, isVerbose, processRunner)
+	if err != nil {
+		return "", err
+	}
+	if err := recordIdentity(out, identity); err != nil {
+		return "", err
+	}
+	return out, nil
 }
 
-func scanImage(image, outputDir string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
+func scanImage(image, outputDir, safeImageName string, identity Identity, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {
 	logger.Debug("Scanning SBOM", slog.String("file", image))
 
 	// Set up the output path if needed
@@ -219,8 +238,6 @@ func scanImage(image, outputDir string, logger *slog.Logger, isVerbose bool, pro
 		return "", errors.New("output directory not specified")
 	}
 
-	// If we couldn't extract the image ref, use the SBOM filename
-	safeImageName := sanitizeFilename(image)
 	jsonFileName := safeImageName + ".json"
 	jsonOutputPath := filepath.Join(outputDir, jsonFileName)
 	logger.Debug("Saving JSON results to output directory", slog.String("fileName", jsonOutputPath))
@@ -233,7 +250,14 @@ func scanImage(image, outputDir string, logger *slog.Logger, isVerbose bool, pro
 	args := []string{"--add-cpes-if-none", "--output", "cyclonedx-json", "-v", "--file", jsonOutputPath, image}
 
 	// Try to scan with retries for database issues
-	return runGrypeCommand(args, jsonOutputPath, logger, isVerbose, processRunner)
+	out, err := runGrypeCommand(args, jsonOutputPath, logger, isVerbose, processRunner)
+	if err != nil {
+		return "", err
+	}
+	if err := recordIdentity(out, identity); err != nil {
+		return "", err
+	}
+	return out, nil
 }
 
 func runGrypeCommand(args []string, jsonOutputPath string, logger *slog.Logger, isVerbose bool, processRunner utils.RunProcess) (string, error) {

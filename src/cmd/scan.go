@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/compare"
@@ -226,16 +227,29 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 			continue // TODO: present scanning results for the flavor that has been added?
 		}
 		for key, scanFile := range flavorResults {
+			identity, err := scan.ReadIdentity(scanFile)
+			if err != nil {
+				return err
+			}
 			imageName := extractImageName(key)
 			for _, override := range options.ImageNameOverrides {
 				parts := strings.SplitN(override, "=", 2)
 				if len(parts) == 2 && parts[1] == imageName {
 					imageName = parts[0]
+					replacement := parts[0]
+					if !strings.Contains(replacement, "/") {
+						replacement = path.Dir(identity.Repository()) + "/" + replacement
+					}
+					renamed, err := scan.ImageIdentity(replacement)
+					if err != nil {
+						return err
+					}
+					identity.Reference = renamed.Reference
 					log.Debug("Found override image name for image", slog.String("image", key), slog.String("override", imageName))
 					break
 				}
 			}
-			releasedScanFile, found, err := findMatchingScan(imageName, releasedFlavorResults, log)
+			releasedScanFile, found, err := findMatchingScan(identity, releasedFlavorResults)
 			if err != nil {
 				return err
 			}
@@ -275,6 +289,9 @@ func (options *ScanAndCompareOptions) Run(cmd *cobra.Command, _ []string) error 
 }
 
 func extractImageName(imageURL string) string {
+	if identity, err := scan.ImageIdentity(imageURL); err == nil {
+		return path.Base(identity.Repository())
+	}
 	// Remove the scheme prefix if present
 	imageURL = strings.TrimPrefix(imageURL, "registry:")
 	imageURL = strings.TrimPrefix(imageURL, "docker:")
@@ -287,14 +304,38 @@ func extractImageName(imageURL string) string {
 	return filepath.Base(imagePath)
 }
 
-func findMatchingScan(imageName string, releasedResults map[string]string, logger *slog.Logger) (string, bool, error) {
+func findMatchingScan(image scan.Identity, releasedResults map[string]string) (string, bool, error) {
 	var match string
-	for _, scanFile := range releasedResults {
-		if strings.Contains(scanFile, "/"+imageName+"_") {
-			if match != "" && match != scanFile {
-				return "", false, fmt.Errorf("multiple released SBOM scans match image %q; compare the platform-specific results with compare-scans", imageName)
-			}
-			match = scanFile
+	var matchedIdentity scan.Identity
+	files := make([]string, 0, len(releasedResults))
+	for _, file := range releasedResults {
+		files = append(files, file)
+	}
+	sort.Strings(files)
+	for _, scanFile := range files {
+		candidate, err := scan.ReadIdentity(scanFile)
+		if err != nil {
+			return "", false, err
+		}
+		if candidate.Repository() == "" || candidate.Repository() != image.Repository() {
+			continue
+		}
+		if image.Platform != "" && candidate.Platform != image.Platform {
+			continue
+		}
+		if match != "" && !candidate.Equivalent(matchedIdentity) {
+			return "", false, fmt.Errorf("multiple released SBOM scans match image %q; compare the platform-specific results with compare-scans", image.Reference)
+		}
+		if match == "" {
+			match, matchedIdentity = scanFile, candidate
+		}
+		// Keep the strongest known identity across aliases so missing fields cannot mask
+		// conflicting digests or platforms in a later candidate.
+		if matchedIdentity.ImageID == "" {
+			matchedIdentity.ImageID = candidate.ImageID
+		}
+		if matchedIdentity.Platform == "" {
+			matchedIdentity.Platform = candidate.Platform
 		}
 	}
 	return match, match != "", nil

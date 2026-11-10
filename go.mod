@@ -5,6 +5,7 @@ go 1.26.10
 require (
 	github.com/CycloneDX/cyclonedx-go v0.12.0
 	github.com/defenseunicorns/uds-cli v0.41.0
+	github.com/distribution/reference v0.6.0
 	github.com/go-git/go-git/v5 v5.19.3
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v92 v92.0.0
@@ -29,7 +30,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
-	github.com/distribution/reference v0.6.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-test/deep v1.1.1 // indirect
 	github.com/golang-cz/devslog v0.0.17 // indirect

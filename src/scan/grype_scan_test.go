@@ -86,7 +86,7 @@ func TestDownloadedPlatformSBOMsKeepSeparateScanResults(t *testing.T) {
 					if err := json.Unmarshal(data, &fixture); err != nil {
 						return err
 					}
-					return os.WriteFile(output, []byte(fixture.Finding), 0o600)
+					return os.WriteFile(output, []byte(fmt.Sprintf(`{"fixtureFinding":%q}`, fixture.Finding)), 0o600)
 				}}
 			}
 			outputDir := filepath.Join(dir, "scans")
@@ -97,7 +97,11 @@ func TestDownloadedPlatformSBOMsKeepSeparateScanResults(t *testing.T) {
 			for _, output := range results {
 				data, err := os.ReadFile(output)
 				require.NoError(t, err)
-				findings = append(findings, string(data))
+				var result struct {
+					Finding string `json:"fixtureFinding"`
+				}
+				require.NoError(t, json.Unmarshal(data, &result))
+				findings = append(findings, result.Finding)
 			}
 			require.ElementsMatch(t, []string{"CVE-amd64", "CVE-arm64"}, findings)
 			outputs, err := filepath.Glob(filepath.Join(outputDir, "*.json"))

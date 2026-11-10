@@ -19,11 +19,104 @@ import (
 	"testing"
 
 	"github.com/defenseunicorns/uds-pk/src/cmd"
+	"github.com/defenseunicorns/uds-pk/src/scan"
 	"github.com/defenseunicorns/uds-pk/src/utils"
 	"github.com/google/go-github/v92/github"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSharedAndFlavoredImageNamesDoNotCollide(t *testing.T) {
+	for _, beta := range []bool{false, true} {
+		t.Run(fmt.Sprintf("beta=%t", beta), func(t *testing.T) {
+			source := `metadata: {name: app}
+components:
+  - name: common
+    images: [registry-a.example/team/app:v1]
+  - name: flavored
+    only: {flavor: upstream}
+    images: [registry-b.example/team/app:v1]
+`
+			if beta {
+				source = `apiVersion: zarf.dev/v1beta1
+metadata: {name: app}
+components:
+  - name: common
+    images: [{name: registry-a.example/team/app:v1}]
+  - name: flavored
+    selector: {flavor: upstream}
+    images: [{name: registry-b.example/team/app:v1}]
+`
+			}
+			dir := t.TempDir()
+			packagePath := filepath.Join(dir, "zarf.yaml")
+			require.NoError(t, os.WriteFile(packagePath, []byte(source), 0o644))
+			options := cmd.CommonScanOptions{ZarfYamlLocation: packagePath, ExecCommand: fakeExecCommand}
+			outputDir := filepath.Join(dir, "out")
+			result, err := cmd.ScanZarfYamlImages(outputDir, &options, cmd.CreateLogger(false), false)
+			require.NoError(t, err)
+			require.Len(t, result["upstream"], 2)
+			paths := map[string]bool{}
+			var references []string
+			for _, output := range result["upstream"] {
+				paths[output] = true
+				identity, err := scan.ReadIdentity(output)
+				require.NoError(t, err)
+				references = append(references, identity.Reference)
+			}
+			require.Len(t, paths, 2)
+			require.ElementsMatch(t, []string{"registry-a.example/team/app:v1", "registry-b.example/team/app:v1"}, references)
+		})
+	}
+}
+
+func TestScanCompareUsesImageIdentityForAliasesAndHelperImages(t *testing.T) {
+	withMockGitHub(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/versions") {
+			_, _ = w.Write([]byte(`[{"id":1,"metadata":{"container":{"tags":["1.0.0-upstream"]}}}]`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	withMockFetchSboms(t, func(_, _, _ string, output string, _ *slog.Logger) ([]string, error) {
+		var files []string
+		for i, image := range []string{"app:v1", "docker.io/library/app:v1", "app_helper:v1"} {
+			id := "sha256:app"
+			if i == 2 {
+				id = "sha256:helper"
+			}
+			data, err := json.Marshal(map[string]any{"source": map[string]any{"metadata": map[string]string{
+				"userInput": image, "id": id, "architecture": "amd64", "os": "linux",
+			}}})
+			if err != nil {
+				return nil, err
+			}
+			file := filepath.Join(output, fmt.Sprintf("sbom-%d.json", i))
+			if err := os.WriteFile(file, data, 0o600); err != nil {
+				return nil, err
+			}
+			files = append(files, file)
+		}
+		return files, nil
+	})
+	dir := t.TempDir()
+	packagePath := filepath.Join(dir, "zarf.yaml")
+	require.NoError(t, os.WriteFile(packagePath, []byte("apiVersion: zarf.dev/v1beta1\nmetadata: {name: app}\ncomponents:\n  - name: app\n    selector: {flavor: upstream}\n    images: [{name: app:v2}]\n"), 0o644))
+	options := cmd.ScanAndCompareOptions{
+		Scan: cmd.ScanReleasedOptions{
+			Scan:  cmd.CommonScanOptions{ZarfYamlLocation: packagePath, OutputDirectory: filepath.Join(dir, "out"), ExecCommand: fakeExecCommand},
+			Fetch: cmd.ImageFetchingOptions{RepoOwner: "uds-packages"},
+		},
+		ScanAndCompareOutputFile: filepath.Join(dir, "comparison.md"),
+	}
+	command := &cobra.Command{}
+	command.SetContext(cmd.InitLoggerContext(false, t.Context()))
+	require.NoError(t, options.Run(command, nil))
+	data, err := os.ReadFile(options.ScanAndCompareOutputFile)
+	require.NoError(t, err)
+	require.NotContains(t, string(data), "No released scan found")
+	require.Contains(t, string(data), "New vulnerabilities:")
+}
 
 func TestScanBetaImages(t *testing.T) {
 	const source = `apiVersion: zarf.dev/v1beta1
