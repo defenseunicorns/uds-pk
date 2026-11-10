@@ -35,9 +35,13 @@ func GetPackageName() (string, error) {
 func ParsePackage(data []byte) (any, error) {
 	var header struct {
 		APIVersion string `yaml:"apiVersion"`
+		Kind       string `yaml:"kind"`
 	}
 	if err := goyaml.Unmarshal(data, &header); err != nil {
 		return nil, err
+	}
+	if header.Kind == string(v1beta1.ZarfComponentConfig) {
+		return nil, fmt.Errorf("expected a Zarf package, got %q", header.Kind)
 	}
 	var pkg any
 	switch header.APIVersion {
