@@ -104,6 +104,12 @@ bundles:
     version: 0.0.1
 ```
 
+### Zarf API Versions
+
+Package release commands read names and update versions using the package's declared `zarf.dev/v1alpha1` or `zarf.dev/v1beta1` schema. An omitted `apiVersion` uses the alpha schema. `release update-yaml` retains the API version and supported package fields, including beta image objects, component imports, and chart values. It reserializes the definition, so formatting and comments are not preserved.
+
+Release commands require a single package source document. Multi-document streams and standalone `ZarfComponentConfig` definitions are rejected. Beta image scanning, imported component resolution, and standalone component releases are outside this release support.
+
 ### Custom Helm Chart Versions
 
 `uds-pk release update-yaml` updates the `version` field in each configured custom chart's `Chart.yaml`, in addition to `zarf.yaml`. It updates the version and matching local package source in `bundle/bundle.uds.hcl`, and the version and matching package ref in `bundle/uds-bundle.yaml`, when those files exist. If both formats are present, both are updated regardless of release mode. Errors preparing either bundle prevent changes to all files. Package-scoped updates with `--package` do not require a root bundle file and skip HCL bundles without a matching local package source. Define `charts` at the top level for charts owned by the root package or within a `packages` entry for charts owned by that package. Chart paths are relative to the release directory passed with `--dir`.

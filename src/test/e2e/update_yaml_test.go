@@ -11,6 +11,7 @@ import (
 
 	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
+	goyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
 )
@@ -41,6 +42,104 @@ func TestUpdateYamlCommand(t *testing.T) {
 
 	require.Equal(t, "1.0.0-uds.0-base", bundle.Metadata.Version)
 	require.Equal(t, "1.0.0-uds.0-base", bundle.Packages[0].Ref)
+}
+
+func TestUpdateYamlCommandBetaPackage(t *testing.T) {
+	const source = `apiVersion: zarf.dev/v1beta1
+kind: ZarfPackageConfig
+metadata:
+  name: testing-package
+  version: dev
+  annotations:
+    example.com/owner: platform
+values:
+  files: [values.yaml]
+  schema: values.schema.json
+attachments:
+  migration: MIGRATION.md
+components:
+  - name: app
+    selector:
+      flavor: upstream
+    import:
+      local:
+        - path: components/upstream.yaml
+    images:
+      - name: example.com/app:1.0.0
+        id: app
+        source: registry
+    charts:
+      - name: app
+        local:
+          path: chart
+        valuesFiles:
+          - path: values/config.yaml.tmpl
+            enableTemplating: true
+        values:
+          - sourcePath: .app
+            targetPath: .
+`
+	for _, scenario := range []string{"success", "invalid bundle", "missing chart"} {
+		t.Run(scenario, func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, os.MkdirAll(filepath.Join(dir, "bundle"), 0o755))
+			require.NoError(t, os.MkdirAll(filepath.Join(dir, "chart"), 0o755))
+			packagePath := filepath.Join(dir, "zarf.yaml")
+			bundlePath := filepath.Join(dir, "bundle", "uds-bundle.yaml")
+			chartPath := filepath.Join(dir, "chart", "Chart.yaml")
+			require.NoError(t, os.WriteFile(packagePath, []byte(source), 0o640))
+			require.NoError(t, os.WriteFile(chartPath, []byte("name: app\nversion: dev\n"), 0o640))
+			e2e.CreateUDSBundleYaml(t, filepath.Join(dir, "bundle"))
+			config := releaseTypes.ReleaseConfig{
+				Flavors: []releaseTypes.Flavor{{Name: "upstream", Version: "2.0.0-uds.0"}},
+				Charts:  []releaseTypes.Chart{{Path: "chart", VersionFromFlavor: true}},
+			}
+			if scenario == "invalid bundle" {
+				require.NoError(t, os.WriteFile(bundlePath, []byte("not: [valid"), 0o644))
+			}
+			if scenario == "missing chart" {
+				config.Charts[0].Path = "missing-chart"
+			}
+			e2e.WriteReleaseConfig(t, dir, config)
+			originals := map[string][]byte{}
+			for _, path := range []string{packagePath, bundlePath, chartPath} {
+				data, err := os.ReadFile(path)
+				require.NoError(t, err)
+				originals[path] = data
+			}
+
+			stdout, stderr, err := e2e.UDSPKDir(dir, "release", "update-yaml", "upstream")
+			if scenario != "success" {
+				require.Error(t, err, stdout, stderr)
+				for path, original := range originals {
+					data, err := os.ReadFile(path)
+					require.NoError(t, err)
+					require.Equal(t, original, data, path)
+				}
+				return
+			}
+			require.NoError(t, err, stdout, stderr)
+
+			// Compare source fields without decoding through the schema under test.
+			var expected, actual map[string]any
+			require.NoError(t, goyaml.Unmarshal([]byte(source), &expected))
+			expected["metadata"].(map[string]any)["version"] = "2.0.0-uds.0"
+			require.NoError(t, e2e.LoadYaml(packagePath, &actual))
+			for key, value := range expected {
+				require.Equal(t, value, actual[key], key)
+			}
+			info, err := os.Stat(packagePath)
+			require.NoError(t, err)
+			require.Equal(t, os.FileMode(0o640), info.Mode().Perm())
+			var bundle uds.UDSBundle
+			require.NoError(t, e2e.LoadYaml(bundlePath, &bundle))
+			require.Equal(t, "2.0.0-uds.0-upstream", bundle.Metadata.Version)
+			require.Equal(t, "2.0.0-uds.0-upstream", bundle.Packages[0].Ref)
+			var chart map[string]any
+			require.NoError(t, e2e.LoadYaml(chartPath, &chart))
+			require.Equal(t, "2.0.0-uds.0", chart["version"])
+		})
+	}
 }
 
 func TestUpdateYamlCommandWithNextBundleOnly(t *testing.T) {

@@ -13,8 +13,10 @@ import (
 	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	"github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/defenseunicorns/uds-pk/src/utils"
+	goyaml "github.com/goccy/go-yaml"
 	"github.com/stretchr/testify/require"
 	zarf "github.com/zarf-dev/zarf/src/api/v1alpha1"
+	"github.com/zarf-dev/zarf/src/api/v1beta1"
 )
 
 func TestPrepareZarfYamlUpdate(t *testing.T) {
@@ -456,4 +458,143 @@ func TestUpdateYamlsDoesNotModifyZarfWhenChartPreparationFails(t *testing.T) {
 	var zarfPackage zarf.ZarfPackage
 	require.NoError(t, utils.LoadYaml(zarfPath, &zarfPackage))
 	require.Equal(t, "dev", zarfPackage.Metadata.Version)
+}
+
+func TestUpdateYamlsRejectsUnsupportedSourcesWithoutWrites(t *testing.T) {
+	for _, test := range []struct{ name, source, wantError string }{
+		{"component", "apiVersion: zarf.dev/v1beta1\nkind: ZarfComponentConfig\nmetadata: {name: app, version: old}\ncomponent: {}\n", "expected a Zarf package"},
+		{"multiple documents", "apiVersion: zarf.dev/v1alpha1\nmetadata: {name: app, version: old}\n---\napiVersion: zarf.dev/v1beta1\nmetadata: {name: app, version: old}\n", "single Zarf package source document"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, os.Mkdir(filepath.Join(dir, "chart"), 0o755))
+			require.NoError(t, os.Mkdir(filepath.Join(dir, "bundle"), 0o755))
+			files := map[string]string{
+				"zarf.yaml":              test.source,
+				"chart/Chart.yaml":       "name: chart\nversion: old\n",
+				"bundle/uds-bundle.yaml": "kind: UDSBundle\nmetadata: {name: bundle, version: old}\npackages: [{name: app, ref: old}]\n",
+			}
+			for path, content := range files {
+				require.NoError(t, os.WriteFile(filepath.Join(dir, path), []byte(content), 0o640))
+			}
+			err := UpdateYamls(types.Flavor{Version: "2.0.0"}, "", dir, []types.Chart{{Path: "chart", VersionFromFlavor: true}}, false)
+			require.ErrorContains(t, err, test.wantError)
+			for path, content := range files {
+				data, err := os.ReadFile(filepath.Join(dir, path))
+				require.NoError(t, err)
+				require.Equal(t, content, string(data), path)
+			}
+		})
+	}
+}
+
+func TestPackageVersionPreservesDefinition(t *testing.T) {
+	tests := []struct {
+		apiVersion string
+		components string
+	}{
+		{"zarf.dev/v1alpha1", `components:
+  - name: app
+    import:
+      path: common
+    only:
+      flavor: upstream
+    images:
+      - example.com/app:1.0.0
+    charts:
+      - name: app
+        valuesFiles:
+          - values/upstream.yaml
+        templatedValuesFiles:
+          - values/config.yaml.tmpl
+        values:
+          - sourcePath: .app
+            targetPath: .
+`},
+		{"zarf.dev/v1beta1", `components:
+  - name: app
+    import:
+      local:
+        - path: components/upstream.yaml
+    selector:
+      flavor: upstream
+    images:
+      - name: example.com/app:1.0.0
+    charts:
+      - name: app
+        valuesFiles:
+          - path: values/upstream.yaml
+          - path: values/config.yaml.tmpl
+            enableTemplating: true
+        values:
+          - sourcePath: .app
+            targetPath: .
+`},
+	}
+	for _, tt := range tests {
+		t.Run(tt.apiVersion, func(t *testing.T) {
+			source := "apiVersion: " + tt.apiVersion + `
+kind: ZarfPackageConfig
+metadata:
+  name: example
+  version: dev
+` + tt.components
+			directory := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(directory, "zarf.yaml"), []byte(source), 0600))
+			update, name, err := prepareZarfYamlUpdate(types.Flavor{Version: "1.2.3-uds.0"}, directory, "")
+			require.NoError(t, err)
+			require.Equal(t, "example", name)
+			if tt.apiVersion == zarf.APIVersion {
+				var expected, actual zarf.ZarfPackage
+				require.NoError(t, goyaml.Unmarshal([]byte(source), &expected))
+				expected.Metadata.Version = "1.2.3-uds.0"
+				require.NoError(t, goyaml.Unmarshal(update.content, &actual))
+				require.Equal(t, expected, actual)
+			} else {
+				var expected, actual v1beta1.Package
+				require.NoError(t, goyaml.Unmarshal([]byte(source), &expected))
+				expected.Metadata.Version = "1.2.3-uds.0"
+				require.NoError(t, goyaml.Unmarshal(update.content, &actual))
+				require.Equal(t, expected, actual)
+			}
+		})
+	}
+}
+
+func TestPackageVersionIsAString(t *testing.T) {
+	for _, version := range []string{"1", "null", "true"} {
+		t.Run(version, func(t *testing.T) {
+			directory := t.TempDir()
+			path := filepath.Join(directory, "zarf.yaml")
+			require.NoError(t, os.WriteFile(path, []byte("apiVersion: zarf.dev/v1beta1\nkind: ZarfPackageConfig\nmetadata:\n  name: example\n  version: dev\n"), 0600))
+			update, _, err := prepareZarfYamlUpdate(types.Flavor{Version: version}, directory, "")
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(path, update.content, update.mode))
+			var pkg v1beta1.Package
+			require.NoError(t, utils.LoadYaml(path, &pkg))
+			require.Equal(t, version, pkg.Metadata.Version)
+		})
+	}
+}
+
+func TestPackageVersionWithMissingFieldsAndAnchors(t *testing.T) {
+	for _, metadata := range []string{
+		"metadata:\n  name: example\n",
+		"metadata: &meta\n  name: example\n  version: dev\n",
+		"metadata:\n  name: example\n  version: &version dev # keep version comment\n  description: *version\n",
+	} {
+		t.Run(metadata, func(t *testing.T) {
+			directory := t.TempDir()
+			source := "apiVersion: zarf.dev/v1beta1\nkind: ZarfPackageConfig\n" + metadata
+			require.NoError(t, os.WriteFile(filepath.Join(directory, "zarf.yaml"), []byte(source), 0600))
+			update, _, err := prepareZarfYamlUpdate(types.Flavor{Version: "1.2.3"}, directory, "")
+			require.NoError(t, err)
+			var pkg v1beta1.Package
+			require.NoError(t, goyaml.Unmarshal(update.content, &pkg))
+			require.Equal(t, "1.2.3", pkg.Metadata.Version)
+			if strings.Contains(metadata, "*version") {
+				require.Equal(t, "dev", pkg.Metadata.Description)
+			}
+		})
+	}
 }
