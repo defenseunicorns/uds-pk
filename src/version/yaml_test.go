@@ -462,7 +462,7 @@ func TestUpdateYamlsDoesNotModifyZarfWhenChartPreparationFails(t *testing.T) {
 
 func TestUpdateYamlsRejectsUnsupportedSourcesWithoutWrites(t *testing.T) {
 	for _, test := range []struct{ name, source, wantError string }{
-		{"component", "apiVersion: zarf.dev/v1beta1\nkind: ZarfComponentConfig\nmetadata: {name: app, version: old}\ncomponent: {}\n", "unsupported Zarf package kind"},
+		{"alpha component", "apiVersion: zarf.dev/v1alpha1\nkind: ZarfComponentConfig\nmetadata: {name: app, version: old}\ncomponent: {}\n", "component configs require apiVersion"},
 		{"multiple documents", "apiVersion: zarf.dev/v1alpha1\nmetadata: {name: app, version: old}\n---\napiVersion: zarf.dev/v1beta1\nmetadata: {name: app, version: old}\n", "single Zarf package source document"},
 	} {
 		t.Run(test.name, func(t *testing.T) {

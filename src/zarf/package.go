@@ -7,6 +7,7 @@ package zarf
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"os"
 	"sort"
 	"strconv"
@@ -277,6 +278,10 @@ func UpdateVersion(data []byte, version string) ([]byte, string, error) {
 	}
 	metadataMap, ok := metadata.(*ast.MappingNode)
 	if !ok {
+		switch metadata.(type) {
+		case *ast.AnchorNode, *ast.AliasNode:
+			return updateResolvedVersion(doc, version)
+		}
 		return nil, "", fmt.Errorf("metadata must be a mapping to update its version")
 	}
 	if err := expandMetadataMerges(doc, metadataMap, metadataPath); err != nil {
@@ -296,7 +301,7 @@ func UpdateVersion(data []byte, version string) ([]byte, string, error) {
 	}
 	if current, err := versionPath.FilterFile(doc.target); err == nil {
 		if _, ok := current.(*ast.AnchorNode); ok {
-			return nil, "", fmt.Errorf("cannot replace an anchored metadata.version")
+			return updateResolvedVersion(doc, version)
 		}
 		replacement, err := parser.ParseBytes(encoded, parser.ParseComments)
 		if err != nil {
@@ -325,6 +330,32 @@ func UpdateVersion(data []byte, version string) ([]byte, string, error) {
 		return nil, "", fmt.Errorf("validate updated Zarf source: %w", err)
 	}
 	return out, doc.header.Metadata.Name, nil
+}
+
+// Materialize anchors when the updated target defines one, preserving the old
+// values at every alias instead of changing them or leaving dangling references.
+// This compatibility path reserializes the source, as the native updater did.
+func updateResolvedVersion(doc *document, version string) ([]byte, string, error) {
+	var root map[string]any
+	if err := yaml.NodeToValue(doc.target.Docs[0].Body, &root); err != nil {
+		return nil, "", err
+	}
+	metadata, ok := root["metadata"].(map[string]any)
+	if !ok {
+		return nil, "", fmt.Errorf("metadata must be a mapping to update its version")
+	}
+	metadata = maps.Clone(metadata)
+	metadata["version"] = version
+	root["metadata"] = metadata
+	out, err := yaml.Marshal(root)
+	if err != nil {
+		return nil, "", err
+	}
+	prefix := doc.prefix
+	if doc.target.Docs[0].Start != nil {
+		prefix += "---\n"
+	}
+	return append([]byte(prefix), out...), doc.header.Metadata.Name, nil
 }
 
 // Expand only metadata's inherited fields. Updating a shared anchor would also change

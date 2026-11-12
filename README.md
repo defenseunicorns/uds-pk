@@ -104,12 +104,6 @@ bundles:
     version: 0.0.1
 ```
 
-### Zarf API Versions
-
-Package release commands read names and update versions using the package's declared `zarf.dev/v1alpha1` or `zarf.dev/v1beta1` schema. An omitted `apiVersion` uses the alpha schema. `release update-yaml` retains the API version and supported package fields, including beta image objects, component imports, and chart values. It reserializes the definition, so formatting and comments are not preserved.
-
-Release commands require a single package source document. Multi-document streams and standalone `ZarfComponentConfig` definitions are rejected. Beta image scanning, imported component resolution, and standalone component releases are outside this release support.
-
 ### Custom Helm Chart Versions
 
 `uds-pk release update-yaml` updates the `version` field in each configured custom chart's `Chart.yaml`, in addition to `zarf.yaml`. It updates the version and matching local package source in `bundle/bundle.uds.hcl`, and the version and matching package ref in `bundle/uds-bundle.yaml`, when those files exist. If both formats are present, both are updated regardless of release mode. Errors preparing either bundle prevent changes to all files. Package-scoped updates with `--package` do not require a root bundle file and skip HCL bundles without a matching local package source. Define `charts` at the top level for charts owned by the root package or within a `packages` entry for charts owned by that package. Chart paths are relative to the release directory passed with `--dir`.
@@ -174,6 +168,8 @@ bundles:
 ## Zarf Package API Support
 
 Release commands and package scans accept `zarf.dev/v1alpha1` and `zarf.dev/v1beta1` package source definitions. An omitted `apiVersion` is treated as alpha. Release commands also support standalone beta component configs as described below. Version updates change only `metadata.version`, preserving comments and other field values, including beta selectors, image objects, values, and attachments. Inherited metadata is expanded locally when updating its version so shared anchors remain unchanged and Zarf can read the updated source. Unsupported API versions and multi-document package artifacts produce an error; use a single source document.
+
+When `metadata` is an anchor or alias, or `metadata.version` defines an anchor, the updater materializes aliases and reserializes the source to preserve their original values elsewhere. Comments and formatting within that document may change in these cases.
 
 Direct image scans combine shared components with each declared flavor, deduplicate images, and support packages without flavors. Images from different registries or repositories retain separate results even when their basenames match. Scan outputs record image and platform identity in CycloneDX metadata, which comparisons use instead of filenames; equivalent aliases are treated as one baseline. They scan registry images declared in the source. Component imports, daemon images, and image archives require a resolved source with registry images or scanning the released package SBOM; these cases return an error rather than an incomplete scan. Render package templates before scanning. Architecture selectors are combined unless `metadata.architecture` specifies a target.
 

@@ -53,7 +53,7 @@ components: []
 	}
 }
 
-func TestUpdateYamlCommandBetaPackage(t *testing.T) {
+func TestUpdateYamlCommandPreservesBetaSource(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.Mkdir(filepath.Join(dir, "bundle"), 0o755))
 	e2e.CreateUDSBundleYaml(t, filepath.Join(dir, "bundle"))

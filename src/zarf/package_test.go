@@ -4,6 +4,7 @@
 package zarf
 
 import (
+	"maps"
 	"strings"
 	"testing"
 
@@ -264,12 +265,29 @@ components: []
 	}
 }
 
-func TestUpdateVersionRejectsAnchoredMetadata(t *testing.T) {
+func TestUpdateVersionPreservesAnchoredValues(t *testing.T) {
 	for _, source := range []string{
 		"metadata: &meta {name: app, version: old}\nother: *meta\n",
 		"metadata:\n  name: app\n  version: &v old\nother: *v\n",
+		"defaults: &meta {name: app, version: old}\nmetadata: *meta\nother: *meta\n",
+		"# license\n%YAML 1.2\n---\nmetadata: &meta {name: app, version: old}\nother: *meta\n",
 	} {
-		_, _, err := UpdateVersion([]byte(source), "new")
-		require.Error(t, err)
+		var expected, actual map[string]any
+		require.NoError(t, yaml.Unmarshal([]byte(source), &expected))
+		expected["metadata"] = maps.Clone(expected["metadata"].(map[string]any))
+		expected["metadata"].(map[string]any)["version"] = "new"
+		out, name, err := UpdateVersion([]byte(source), "new")
+		require.NoError(t, err)
+		require.Equal(t, "app", name)
+		require.NoError(t, yaml.Unmarshal(out, &actual))
+		require.Equal(t, expected, actual)
+		if other, ok := actual["other"].(map[string]any); ok {
+			require.Equal(t, "old", other["version"])
+		} else {
+			require.Equal(t, "old", actual["other"])
+		}
+		if strings.HasPrefix(source, "# license") {
+			require.True(t, strings.HasPrefix(string(out), "# license\n%YAML 1.2\n---\n"))
+		}
 	}
 }
