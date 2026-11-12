@@ -460,6 +460,34 @@ func TestUpdateYamlsDoesNotModifyZarfWhenChartPreparationFails(t *testing.T) {
 	require.Equal(t, "dev", zarfPackage.Metadata.Version)
 }
 
+func TestUpdateYamlsRejectsUnsupportedSourcesWithoutWrites(t *testing.T) {
+	for _, test := range []struct{ name, source, wantError string }{
+		{"component", "apiVersion: zarf.dev/v1beta1\nkind: ZarfComponentConfig\nmetadata: {name: app, version: old}\ncomponent: {}\n", "expected a Zarf package"},
+		{"multiple documents", "apiVersion: zarf.dev/v1alpha1\nmetadata: {name: app, version: old}\n---\napiVersion: zarf.dev/v1beta1\nmetadata: {name: app, version: old}\n", "single Zarf package source document"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, os.Mkdir(filepath.Join(dir, "chart"), 0o755))
+			require.NoError(t, os.Mkdir(filepath.Join(dir, "bundle"), 0o755))
+			files := map[string]string{
+				"zarf.yaml":              test.source,
+				"chart/Chart.yaml":       "name: chart\nversion: old\n",
+				"bundle/uds-bundle.yaml": "kind: UDSBundle\nmetadata: {name: bundle, version: old}\npackages: [{name: app, ref: old}]\n",
+			}
+			for path, content := range files {
+				require.NoError(t, os.WriteFile(filepath.Join(dir, path), []byte(content), 0o640))
+			}
+			err := UpdateYamls(types.Flavor{Version: "2.0.0"}, "", dir, []types.Chart{{Path: "chart", VersionFromFlavor: true}}, false)
+			require.ErrorContains(t, err, test.wantError)
+			for path, content := range files {
+				data, err := os.ReadFile(filepath.Join(dir, path))
+				require.NoError(t, err)
+				require.Equal(t, content, string(data), path)
+			}
+		})
+	}
+}
+
 func TestPackageVersionPreservesDefinition(t *testing.T) {
 	tests := []struct {
 		apiVersion string
