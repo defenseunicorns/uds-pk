@@ -1,0 +1,54 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+---
+# A depth-six clone cuts the baseline's long ancestry at long4, but old and
+# root are still available through the endpoint's shorter side branch.
+commits:
+  - name: root
+    message: 'chore: initial repository'
+    timestamp: 1
+  - name: old
+    message: 'feat: already released change'
+    parents: [root]
+    timestamp: 2
+  - name: long1
+    message: 'chore: old change one'
+    parents: [old]
+    timestamp: 3
+  - name: long2
+    message: 'chore: old change two'
+    parents: [long1]
+    timestamp: 4
+  - name: long3
+    message: 'chore: old change three'
+    parents: [long2]
+    timestamp: 5
+  - name: long4
+    message: 'chore: old change four'
+    parents: [long3]
+    timestamp: 6
+  - name: long5
+    message: 'chore: old change five'
+    parents: [long4]
+    timestamp: 7
+  - name: base
+    message: 'chore: previous release'
+    parents: [long5]
+    timestamp: 8
+  - name: feature
+    message: 'feat: first new change'
+    parents: [base]
+    timestamp: 9
+  - name: maintenance
+    message: 'fix: second new change'
+    parents: [feature]
+    timestamp: 10
+  - name: side
+    message: 'fix: side branch change'
+    parents: [old]
+    timestamp: 11
+  - name: endpoint
+    message: Merge side branch
+    parents: [maintenance, side]
+    timestamp: 12

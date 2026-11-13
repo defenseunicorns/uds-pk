@@ -1,0 +1,29 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+---
+target:
+  kind: package
+  name: api
+  flavor: upstream
+  version: 2.0.0
+  tag: api-2.0.0-upstream
+from: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+to: ffffffffffffffffffffffffffffffffffffffff
+revisionDate: '2026-10-28T23:30:00-07:00'
+commits:
+  - hash: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    message: 'feat(api): add [search](https://example.test) and `filter`'
+  - hash: cccccccccccccccccccccccccccccccccccccccc
+    message: |-
+      fix(api)!: replace the old request format
+
+      BREAKING CHANGE: Replace `<old>` with [new].
+      Migrate existing clients.
+
+      Keep a backup before migration.
+      Refs: #123
+  - hash: dddddddddddddddddddddddddddddddddddddddd
+    message: 'chore(deps): update the runtime'
+  - hash: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
+    message: 'Unstructured <script>alert("hello")</script> message'
