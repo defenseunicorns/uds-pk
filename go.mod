@@ -1,6 +1,6 @@
 module github.com/defenseunicorns/uds-pk
 
-go 1.26.10
+go 1.26.11
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.12.0
@@ -8,16 +8,17 @@ require (
 	github.com/go-git/go-git/v5 v5.19.3
 	github.com/goccy/go-yaml v1.19.2
 	github.com/google/go-github/v92 v92.0.0
+	github.com/google/go-github/v93 v93.0.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/hcl/v2 v2.25.0
-	github.com/mikefarah/yq/v4 v4.54.2
+	github.com/mikefarah/yq/v4 v4.54.3
 	github.com/olekukonko/tablewriter v1.1.5
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
-	github.com/zarf-dev/zarf v0.89.0
+	github.com/zarf-dev/zarf v1.0.1
 	github.com/zclconf/go-cty v1.20.0
-	gitlab.com/gitlab-org/api/client-go/v3 v3.44.0
+	gitlab.com/gitlab-org/api/client-go/v3 v3.48.0
 	go.yaml.in/yaml/v4 v4.0.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )
@@ -41,6 +42,8 @@ require (
 	github.com/olekukonko/errors v1.2.0 // indirect
 	github.com/olekukonko/ll v0.1.7 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
+	github.com/otiai10/copy v1.14.1 // indirect
+	github.com/otiai10/mint v1.6.3 // indirect
 	github.com/phsym/console-slog v0.3.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
