@@ -8,7 +8,6 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/defenseunicorns/uds-pk/src/types"
@@ -19,6 +18,47 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 )
+
+func replaceBundleMetadataVersion(data []byte, filename, version string) ([]byte, error) {
+	parsed, diags := hclsyntax.ParseConfig(data, filename, hcl.InitialPos)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("parse bundle: %s", diags.Error())
+	}
+	attr, err := bundleMetadataVersion(parsed.Body.(*hclsyntax.Body))
+	if err != nil {
+		return nil, err
+	}
+	r := attr.Expr.Range()
+	updated := append([]byte(nil), data[:r.Start.Byte]...)
+	updated = append(updated, hclStringLiteral(version)...)
+	updated = append(updated, data[r.End.Byte:]...)
+	return updated, nil
+}
+
+func bundleMetadataVersion(body *hclsyntax.Body) (*hclsyntax.Attribute, error) {
+	var metadata *hclsyntax.Block
+	for _, block := range body.Blocks {
+		if block.Type != "metadata" {
+			continue
+		}
+		if metadata != nil {
+			return nil, fmt.Errorf("bundle must have exactly one metadata block")
+		}
+		metadata = block
+	}
+	if metadata == nil {
+		return nil, fmt.Errorf("bundle has no metadata block")
+	}
+	attr := metadata.Body.Attributes["version"]
+	if attr == nil {
+		return nil, fmt.Errorf("bundle has no metadata.version")
+	}
+	return attr, nil
+}
+
+func hclStringLiteral(value string) []byte {
+	return hclwrite.TokensForValue(cty.StringVal(value)).Bytes()
+}
 
 func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
 	bundlePath := filepath.Join(releaseDir, "bundle", "bundle.uds.hcl")
@@ -33,7 +73,10 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 	}
 
 	body := parsed.Body.(*hclsyntax.Body)
-	var metadata *hclsyntax.Block
+	versionAttr, err := bundleMetadataVersion(body)
+	if err != nil {
+		return nil, fmt.Errorf("bundle %s: %w", bundlePath, err)
+	}
 	type sourceMatch struct {
 		attr   *hclsyntax.Attribute
 		source string
@@ -51,9 +94,6 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 	}
 
 	for _, block := range body.Blocks {
-		if block.Type == "metadata" {
-			metadata = block
-		}
 		if block.Type != "package" {
 			continue
 		}
@@ -84,13 +124,6 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 		}
 		sources = append(sources, sourceMatch{attr: attr, source: candidate, arch: arch})
 	}
-	if metadata == nil {
-		return nil, fmt.Errorf("bundle %s has no metadata block", bundlePath)
-	}
-	versionAttr := metadata.Body.Attributes["version"]
-	if versionAttr == nil {
-		return nil, fmt.Errorf("bundle %s has no metadata.version", bundlePath)
-	}
 	if len(sources) == 0 {
 		if allowMissingBundle {
 			return nil, nil
@@ -105,7 +138,7 @@ func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string
 	}
 	versionRange := versionAttr.Expr.Range()
 	replacements := []replacement{
-		{versionRange.Start.Byte, versionRange.End.Byte, strconv.Quote(tag)},
+		{versionRange.Start.Byte, versionRange.End.Byte, string(hclStringLiteral(tag))},
 	}
 	// A bundle can deploy the same archive more than once under different labels.
 	// Prepare every replacement before returning an update so failures remain atomic.
@@ -158,7 +191,7 @@ func replaceSourceVersion(data []byte, expr hclsyntax.Expression, ctx *hcl.EvalC
 				// Keep earlier expressions verbatim and encode the remaining literal
 				// as HCL, including escapes for literal ${ and %{ sequences.
 				prefix := data[expr.Range().Start.Byte:part.Range().Start.Byte]
-				suffix := hclwrite.TokensForValue(cty.StringVal(text[:versionStart-offset] + tag + ".tar.zst")).Bytes()
+				suffix := hclStringLiteral(text[:versionStart-offset] + tag + ".tar.zst")
 				return string(prefix) + string(suffix[1:]), nil
 			}
 			offset += len(text)

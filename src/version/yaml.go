@@ -131,22 +131,41 @@ func replaceChartValue(file *ast.File, path, value string) error {
 }
 
 func UpdateBundleYAML(bundle types.Bundle, releaseDir string) error {
-	var udsBundle uds.UDSBundle
 	// TODO: Validate bundle paths like chart paths so absolute or parent-relative paths cannot escape releaseDir.
-	bundlePath := filepath.Join(releaseDir, bundle.Path, "uds-bundle.yaml")
-	err := utils.LoadYaml(bundlePath, &udsBundle)
-	if err != nil {
+	var updates []fileUpdate
+	for _, filename := range []string{"bundle.uds.hcl", "uds-bundle.yaml"} {
+		bundlePath := filepath.Join(releaseDir, bundle.Path, filename)
+		data, mode, err := readFileWithMode(bundlePath)
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("read bundle %s: %w", bundlePath, err)
+		}
+		if filename == "bundle.uds.hcl" {
+			data, err = replaceBundleMetadataVersion(data, bundlePath, bundle.Version)
+		} else {
+			var udsBundle uds.UDSBundle
+			err = goyaml.Unmarshal(data, &udsBundle)
+			if err == nil {
+				udsBundle.Metadata.Version = bundle.Version
+				data, err = goyaml.Marshal(udsBundle)
+			}
+		}
+		if err != nil {
+			return fmt.Errorf("update bundle %s: %w", bundlePath, err)
+		}
+		updates = append(updates, fileUpdate{path: bundlePath, label: filename, version: bundle.Version, content: data, mode: mode})
+	}
+	if len(updates) == 0 {
+		return fmt.Errorf("read bundle: neither bundle.uds.hcl nor uds-bundle.yaml exists in %s", filepath.Join(releaseDir, bundle.Path))
+	}
+	if err := writeUpdatesWithRollback(updates); err != nil {
 		return err
 	}
-
-	udsBundle.Metadata.Version = bundle.Version
-
-	err = utils.UpdateYaml(bundlePath, udsBundle)
-	if err != nil {
-		return err
+	for _, update := range updates {
+		fmt.Printf("Updated %s with version %s\n", update.label, update.version)
 	}
-
-	fmt.Printf("Updated uds-bundle.yaml with version %s\n", bundle.Version)
 	return nil
 }
 
