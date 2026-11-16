@@ -1,0 +1,181 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+---
+- name: feature
+  text: 'feat: add an endpoint'
+  type: feat
+  description: add an endpoint
+  category: Features
+- name: scoped fix
+  text: 'fix(api): handle an empty request'
+  type: fix
+  scope: api
+  description: handle an empty request
+  category: Bug Fixes
+- name: performance
+  text: 'perf(cache): reuse objects'
+  type: perf
+  scope: cache
+  description: reuse objects
+  category: Performance
+- name: docs
+  text: 'docs: explain deployment'
+  type: docs
+  description: explain deployment
+  category: Documentation
+- name: dependencies before type
+  text: 'fix(deps): update a library'
+  type: fix
+  scope: deps
+  description: update a library
+  category: Dependencies
+- name: case insensitive metadata
+  text: 'FEAT(DEPS): update a library'
+  type: feat
+  scope: DEPS
+  description: update a library
+  category: Dependencies
+- name: unscoped exclamation
+  text: 'feat!: remove the old endpoint'
+  type: feat
+  description: remove the old endpoint
+  breaking: [remove the old endpoint]
+  category: Breaking Changes
+- name: scoped exclamation before dependencies
+  text: 'chore(deps)!: require a newer runtime'
+  type: chore
+  scope: deps
+  description: require a newer runtime
+  breaking: [require a newer runtime]
+  category: Breaking Changes
+- name: breaking footer with body and continuations
+  text: |-
+    fix(api): use a new configuration
+
+    Update the parser and examples.
+
+    BREAKING CHANGE: The old format is no longer supported.
+    Migrate existing configuration files.
+
+    See the migration guide for the full procedure.
+    Reviewed-by: Another Author
+    Refs #123
+  type: fix
+  scope: api
+  description: use a new configuration
+  breaking:
+    - |-
+      The old format is no longer supported.
+      Migrate existing configuration files.
+
+      See the migration guide for the full procedure.
+  category: Breaking Changes
+- name: footer overrides exclamation description
+  text: |-
+    feat(api)!: change configuration
+
+    BREAKING-CHANGE: Replace the legacy configuration key.
+  type: feat
+  scope: api
+  description: change configuration
+  breaking: [Replace the legacy configuration key.]
+  category: Breaking Changes
+- name: multiple breaking footers
+  text: |-
+    feat: change interfaces
+
+    BREAKING CHANGE: Remove the old endpoint.
+    Refs: #123
+    BREAKING-CHANGE: Remove the old configuration key.
+  type: feat
+  description: change interfaces
+  breaking: [Remove the old endpoint., Remove the old configuration key.]
+  category: Breaking Changes
+- name: breaking footer on a nonconventional commit
+  text: |-
+    Change the request format
+
+    BREAKING CHANGE: Requests must include an identifier.
+  description: Change the request format
+  breaking: [Requests must include an identifier.]
+  category: Breaking Changes
+- name: unknown conventional type
+  text: 'custom(api): a custom operation'
+  type: custom
+  scope: api
+  description: a custom operation
+  category: Other Changes
+- name: nonconventional subject retained
+  text: 'Handle an empty request (#123)'
+  description: 'Handle an empty request (#123)'
+  category: Other Changes
+- name: revert retained
+  text: 'revert: remove the recent change'
+  type: revert
+  description: remove the recent change
+  category: Other Changes
+- name: inline breaking text is not a footer
+  text: |-
+    docs: explain migration
+
+    The guide describes BREAKING CHANGE: markers.
+  type: docs
+  description: explain migration
+  category: Documentation
+- name: lowercase breaking footer is not special
+  text: |-
+    fix: update configuration
+
+    breaking-change: This marker is lowercase.
+  type: fix
+  description: update configuration
+  category: Bug Fixes
+- name: footer needs paragraph separation
+  text: |-
+    fix: update configuration
+    BREAKING CHANGE: No separating blank line.
+  type: fix
+  description: update configuration
+  category: Bug Fixes
+- name: hash separator is not a breaking marker
+  text: |-
+    fix: update configuration
+
+    BREAKING-CHANGE #123
+  type: fix
+  description: update configuration
+  category: Bug Fixes
+- name: empty breaking footer
+  text: "fix: update configuration\n\nBREAKING CHANGE: \n"
+  type: fix
+  description: update configuration
+  category: Bug Fixes
+- name: missing header space
+  text: 'feat:add an endpoint'
+  description: 'feat:add an endpoint'
+  category: Other Changes
+- name: missing description
+  text: 'feat: '
+  description: 'feat:'
+  category: Other Changes
+- name: empty scope
+  text: 'feat(): add an endpoint'
+  description: 'feat(): add an endpoint'
+  category: Other Changes
+- name: markdown is preserved until rendering
+  text: 'feat(api): add [a link](https://example.test) and `code`'
+  type: feat
+  scope: api
+  description: 'add [a link](https://example.test) and `code`'
+  category: Features
+- name: CRLF message
+  text: "fix: change configuration\r\n\r\nBREAKING CHANGE: Migrate configuration.\r\n"
+  type: fix
+  description: change configuration
+  breaking: [Migrate configuration.]
+  category: Breaking Changes
+- name: empty message
+  text: ''
+  description: ''
+  category: Other Changes

@@ -1,0 +1,31 @@
+# Copyright 2026 Defense Unicorns
+# SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+---
+flavors:
+  - name: upstream
+    version: 2.0.0
+    publishBundle: true
+    publishBundleUrl: https://example.test/bundle
+  - version: root-flavorless
+packages:
+  - name: api
+    path: packages/api
+    flavors:
+      - name: upstream
+        version: 2.0.0
+      - version: api-flavorless
+    charts:
+      - path: charts/api
+        versionFromFlavor: true
+  - name: worker
+    path: packages/worker
+    flavors:
+      - version: 3.0.0
+bundles:
+  - name: platform
+    path: bundles/platform
+    version: 4.0.0
+  - name: platform-test
+    path: bundles/platform-test
+    version: testing

@@ -171,6 +171,31 @@ bundles:
     version: 0.0.1
 ```
 
+### Release Notes and Changelogs
+
+Generate Markdown notes and changelogs for targets in `releaser.yaml` using local Git history. Conventional commits are grouped by type; other messages appear under **Other Changes**.
+
+```bash
+# Root package
+uds-pk release notes upstream --from 0.9.0-uds.0-upstream
+
+# Named package, saving notes and its changelog
+uds-pk release notes upstream --package second-package \
+  --from second-package-0.9.0-uds.0-upstream \
+  --output notes/second-package.md --changelog second-package/CHANGELOG.md
+
+# Bundle, including changes from a shared package
+uds-pk release bundle notes dev --from dev-0.0.1 --include-path second-package
+```
+
+Use `--from` for the previous release of the same target, or `--initial` for its first release. Versions come from `releaser.yaml`. Omit the flavor argument for flavorless packages.
+
+By default, notes print to stdout and update repository-root `CHANGELOG.md`. Use `--output FILE` to save notes, `--changelog FILE` to choose another changelog, or `--no-changelog` to skip it. Generated changelogs must not be edited by hand; use another path for existing handwritten history. Serialize updates to the same file.
+
+Root notes cover the repository; named packages cover their package and configured charts; bundles cover their directory. Use `--include-path` to broaden the scope. `--dir` locates `releaser.yaml`; explicit paths are relative to it.
+
+Run `uds-pk release notes --help` or `uds-pk release bundle notes --help` for all options.
+
 ## Scan Comparison
 
 The `compare-scans` command allows you to compare two grype scans using the cyclonedx-json output format. This can be useful to identify new, existing, and fixed vulnerabilities between two different scans.

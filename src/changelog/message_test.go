@@ -1,0 +1,85 @@
+// Copyright 2026 Defense Unicorns
+// SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Defense-Unicorns-Commercial
+
+package changelog
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/defenseunicorns/uds-pk/src/utils"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/stretchr/testify/require"
+)
+
+func TestParseMessage(t *testing.T) {
+	var fixtures []struct {
+		Name        string
+		Text        string
+		Type        string
+		Scope       string
+		Description string
+		Breaking    []string
+		Category    changeCategory
+	}
+	require.NoError(t, utils.LoadYaml("testdata/messages.yaml", &fixtures))
+	require.NotEmpty(t, fixtures)
+	for _, fixture := range fixtures {
+		t.Run(fixture.Name, func(t *testing.T) {
+			message := parseMessage(fixture.Text)
+			require.Equal(t, commitMessage{
+				Subject:              strings.TrimSpace(strings.Split(fixture.Text, "\n")[0]),
+				Type:                 fixture.Type,
+				Scope:                fixture.Scope,
+				Description:          fixture.Description,
+				BreakingDescriptions: fixture.Breaking,
+			}, message)
+			require.Equal(t, fixture.Category, message.category())
+		})
+	}
+}
+
+func TestMaintenanceTypes(t *testing.T) {
+	for _, commitType := range []string{"chore", "build", "ci", "refactor", "test", "style"} {
+		require.Equal(t, maintenance, parseMessage(commitType+": maintain the project").category())
+	}
+}
+
+func TestGroupCommits(t *testing.T) {
+	fixture := newHistoryFixture(t)
+	history, err := readHistory(t.Context(), fixture.directory, RevisionRange{Initial: true})
+	require.NoError(t, err)
+	selected, err := filterCommits(t.Context(), history, fixture.directory, releaseTarget{}, nil)
+	require.NoError(t, err)
+	sections := groupCommits(selected)
+	var categories []changeCategory
+	var hashes []string
+	for _, section := range sections {
+		categories = append(categories, section.Category)
+		require.NotEmpty(t, section.Changes)
+		for _, change := range section.Changes {
+			hashes = append(hashes, change.Hash)
+		}
+	}
+	require.Equal(t, []changeCategory{features, bugFixes, dependencies, maintenance}, categories)
+	require.ElementsMatch(t, commitHashes(commitHistory{Commits: selected}), hashes)
+	require.Equal(t, fixture.hashes["base"].String(), sections[0].Changes[0].Hash)
+	require.Equal(t, fixture.hashes["feature"].String(), sections[0].Changes[1].Hash)
+	require.Empty(t, groupCommits(nil))
+}
+
+func TestGroupCommitsCategoryOrder(t *testing.T) {
+	var commits []*object.Commit
+	for index, subject := range []string{
+		"A nonconventional message", "chore: maintenance", "docs: documentation", "chore(deps): dependencies",
+		"perf: performance", "fix: bug fix", "feat: feature", "fix!: breaking change",
+	} {
+		commits = append(commits, &object.Commit{Hash: plumbing.ComputeHash(plumbing.CommitObject, []byte{byte(index)}), Message: subject})
+	}
+	var categories []changeCategory
+	for _, section := range groupCommits(commits) {
+		categories = append(categories, section.Category)
+	}
+	require.Equal(t, []changeCategory{breakingChanges, features, bugFixes, performance, dependencies, documentation, maintenance, otherChanges}, categories)
+}
