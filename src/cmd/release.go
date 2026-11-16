@@ -362,7 +362,7 @@ func updateBundleYamlCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "update-yaml BUNDLE_NAME",
 		Aliases: []string{"ub"},
-		Short:   "Update the version field in the specified uds-bundle.yaml",
+		Short:   "Update the version field in the specified YAML or HCL bundle",
 		Args:    cobra.ExactArgs(1),
 		RunE:    options.run,
 	}

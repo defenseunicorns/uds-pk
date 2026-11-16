@@ -20,6 +20,36 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 )
 
+func replaceBundleMetadataVersion(data []byte, filename, version string) ([]byte, error) {
+	parsed, diags := hclsyntax.ParseConfig(data, filename, hcl.InitialPos)
+	if diags.HasErrors() {
+		return nil, fmt.Errorf("parse bundle: %s", diags.Error())
+	}
+	var metadata *hclsyntax.Block
+	for _, block := range parsed.Body.(*hclsyntax.Body).Blocks {
+		if block.Type != "metadata" {
+			continue
+		}
+		if metadata != nil {
+			return nil, fmt.Errorf("bundle must have exactly one metadata block")
+		}
+		metadata = block
+	}
+	if metadata == nil {
+		return nil, fmt.Errorf("bundle has no metadata block")
+	}
+	attr := metadata.Body.Attributes["version"]
+	if attr == nil {
+		return nil, fmt.Errorf("bundle has no metadata.version")
+	}
+	r := attr.Expr.Range()
+	replacement := hclwrite.TokensForValue(cty.StringVal(version)).Bytes()
+	updated := append([]byte(nil), data[:r.Start.Byte]...)
+	updated = append(updated, replacement...)
+	updated = append(updated, data[r.End.Byte:]...)
+	return updated, nil
+}
+
 func prepareNextBundleUpdate(flavor types.Flavor, releaseDir, packageName string, allowMissingBundle bool) (*fileUpdate, error) {
 	bundlePath := filepath.Join(releaseDir, "bundle", "bundle.uds.hcl")
 	data, mode, err := readFileWithMode(bundlePath)

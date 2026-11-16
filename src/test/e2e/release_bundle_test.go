@@ -4,12 +4,61 @@
 package test
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	uds "github.com/defenseunicorns/uds-cli/pkg/legacy/types"
 	releaseTypes "github.com/defenseunicorns/uds-pk/src/types"
 	"github.com/stretchr/testify/require"
 )
+
+func TestBundleUpdateYamlCommandHCL(t *testing.T) {
+	const original = `# Preserve bundle formatting
+locals { notes = file("notes.txt") }
+metadata {
+  name = "bundle1"
+  version = local.version # release version
+}
+package "app" {
+  source = "oci://example.com/app:old"
+}
+`
+	for _, both := range []bool{false, true} {
+		name := "HCL only"
+		if both {
+			name = "both formats"
+		}
+		t.Run(name, func(t *testing.T) {
+			dir := t.TempDir()
+			bundleDir := filepath.Join(dir, "bundles", "bundle1")
+			require.NoError(t, os.MkdirAll(bundleDir, 0o755))
+			hclPath := filepath.Join(bundleDir, "bundle.uds.hcl")
+			require.NoError(t, os.WriteFile(hclPath, []byte(original), 0o640))
+			if both {
+				e2e.CreateUDSBundleYaml(t, bundleDir)
+			}
+			e2e.WriteReleaseConfig(t, dir, releaseTypes.ReleaseConfig{
+				Bundles: []releaseTypes.Bundle{{Name: "bundle1", Path: "bundles/bundle1", Version: "2.0.0-bundle.1"}},
+			})
+			stdout, stderr, err := e2e.UDSPKDir("src/test", "release", "bundle", "update-yaml", "bundle1", "--dir", dir)
+			require.NoError(t, err, stdout, stderr)
+			require.Contains(t, stdout, "Updated bundle.uds.hcl with version 2.0.0-bundle.1")
+			data, err := os.ReadFile(hclPath)
+			require.NoError(t, err)
+			require.Equal(t, strings.Replace(original, "version = local.version", `version = "2.0.0-bundle.1"`, 1), string(data))
+			if both {
+				require.Contains(t, stdout, "Updated uds-bundle.yaml with version 2.0.0-bundle.1")
+				var bundle uds.UDSBundle
+				require.NoError(t, e2e.LoadYaml(filepath.Join(bundleDir, "uds-bundle.yaml"), &bundle))
+				require.Equal(t, "2.0.0-bundle.1", bundle.Metadata.Version)
+			} else {
+				require.NoFileExists(t, filepath.Join(bundleDir, "uds-bundle.yaml"))
+			}
+		})
+	}
+}
 
 func TestBundleShowCommand(t *testing.T) {
 	e2e.CreateSandboxDir(t, "bundle1")
